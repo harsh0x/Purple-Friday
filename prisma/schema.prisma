@@ -14,3 +14,4 @@ model User {
   email     String   @unique
   createdAt DateTime @default(now())
 }
+

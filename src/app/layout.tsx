@@ -14,13 +14,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en-IN"
-      className={`${bricolage.variable} ${instrumentSans.variable} ${dmMono.variable}`}
-    >
-      <body className="font-sans bg-paper text-ink antialiased min-h-screen">
-        {children}
-      </body>
-    </html>
-  );
+        <html
+          lang="en-IN"
+          className={`${bricolage.variable} ${instrumentSans.variable} ${dmMono.variable}`}
+        >
+          <body className="font-sans bg-paper text-ink antialiased min-h-screen">
+            {children}
+          </body>
+        </html>
+        );
 }

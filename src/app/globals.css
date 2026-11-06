@@ -3,19 +3,104 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-ink: #15101F;
+  --color-paper: #F5F0E8;
+  --color-paper-warm: #EDE6DA;
+  --color-violet: #6A2CFF;
+  --color-lilac: #CDB8FF;
+  --color-spot-lime: #D8FF3F;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    border-color: #DDD4E6;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-instrument), system-ui, sans-serif;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-bricolage), sans-serif;
+    letter-spacing: -0.03em;
+  }
+
+  code, pre, .font-mono, [data-mono] {
+    font-family: var(--font-dm-mono), monospace;
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+/* Fluid Heading Clamping */
+.heading-hero {
+  font-size: clamp(2.5rem, 5vw + 1.25rem, 5.5rem);
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+}
+
+.heading-section {
+  font-size: clamp(1.85rem, 3vw + 0.8rem, 3.25rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+
+.heading-sub {
+  font-size: clamp(1.25rem, 1.5vw + 0.5rem, 1.85rem);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+/* Subtle Halftone Pattern via Inline SVG */
+.bg-halftone {
+  background-image: radial-gradient(#15101F 1px, transparent 1px);
+  background-size: 8px 8px;
+  background-position: 0 0;
+}
+
+.bg-halftone-subtle {
+  background-image: radial-gradient(rgba(21, 16, 31, 0.08) 1px, transparent 1px);
+  background-size: 6px 6px;
+}
+
+.bg-halftone-violet {
+  background-image: radial-gradient(rgba(106, 44, 255, 0.12) 1.2px, transparent 1.2px);
+  background-size: 8px 8px;
+}
+
+/* Paper Grain Texture (SVG noise filter) */
+.bg-paper-grain {
+  background-color: var(--color-paper);
+  background-image: radial-gradient(rgba(21, 16, 31, 0.03) 1px, transparent 0);
+  background-size: 4px 4px;
+}
+
+.bg-ink-grain {
+  background-color: var(--color-ink);
+  background-image: radial-gradient(rgba(205, 184, 255, 0.04) 1px, transparent 0);
+  background-size: 4px 4px;
+}
+
+/* Accessible focus styling */
+:focus-visible {
+  outline: 2px solid #6A2CFF;
+  outline-offset: 2px;
+}
+
+/* Prefers reduced motion overrides */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

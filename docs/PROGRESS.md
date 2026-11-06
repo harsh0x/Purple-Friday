@@ -12,8 +12,8 @@
 | :--- | :--- | :--- | :--- |
 | **Step 0** | Preflight and Scaffold (Next.js 15, React 19, Tailwind 3.4, Scripts, Env Template) | ✅ COMPLETE | 2026-11-06 |
 | **Step 1** | Project Docs (`RULES.md`, `ARCHITECTURE.md`, `PROGRESS.md`) | ✅ COMPLETE | 2026-11-06 |
-| **Step 2** | Design System (Tokens, Self-Hosted Fonts, 6 Button Roles, Primitives, Decorative Motifs, `/styleguide`) | 🟡 IN PROGRESS | - |
-| **Step 3** | Database (Prisma Schema, 24+ Products Seed, SVG Mockup Templates, Tier Pricing) | ⚪ PENDING | - |
+| **Step 2** | Design System (Tokens, Self-Hosted Fonts, 6 Button Roles, Primitives, Decorative Motifs, `/styleguide`) | ✅ COMPLETE | 2026-11-06 |
+| **Step 3** | Database (Prisma Schema, 24+ Products Seed, SVG Mockup Templates, Tier Pricing) | 🟡 IN PROGRESS | - |
 | **Step 4** | Security Baseline (`src/env.ts`, CSP Nonce Middleware, Rate Limiter, API Wrapper, Redacted Logger, Turnstile) | ⚪ PENDING | - |
 | **Step 5** | App Shell (AnnouncementBar, Header, SearchDrawer, CartDrawer, WishlistDrawer, Footer) | ⚪ PENDING | - |
 | **Step 6** | Loading & Error Infrastructure (Skeletons, `loading.tsx`, `error.tsx`, `not-found.tsx`, `SmartImage`, Caching) | ⚪ PENDING | - |

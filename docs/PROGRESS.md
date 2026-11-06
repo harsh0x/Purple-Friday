@@ -14,8 +14,8 @@
 | **Step 1** | Project Docs (`RULES.md`, `ARCHITECTURE.md`, `PROGRESS.md`) | ✅ COMPLETE | 2026-11-06 |
 | **Step 2** | Design System (Tokens, Self-Hosted Fonts, 6 Button Roles, Primitives, Decorative Motifs, `/styleguide`) | ✅ COMPLETE | 2026-11-06 |
 | **Step 3** | Database (Prisma Schema, 24+ Products Seed, SVG Mockup Templates, Tier Pricing) | ✅ COMPLETE | 2026-11-06 |
-| **Step 4** | Security Baseline (`src/env.ts`, CSP Nonce Middleware, Rate Limiter, API Wrapper, Redacted Logger, Turnstile) | 🟡 IN PROGRESS | - |
-| **Step 5** | App Shell (AnnouncementBar, Header, SearchDrawer, CartDrawer, WishlistDrawer, Footer) | ⚪ PENDING | - |
+| **Step 4** | Security Baseline (`src/env.ts`, CSP Nonce Middleware, Rate Limiter, API Wrapper, Redacted Logger, Turnstile) | ✅ COMPLETE | 2026-11-06 |
+| **Step 5** | App Shell (AnnouncementBar, Header, SearchDrawer, CartDrawer, WishlistDrawer, Footer) | 🟡 IN PROGRESS | - |
 | **Step 6** | Loading & Error Infrastructure (Skeletons, `loading.tsx`, `error.tsx`, `not-found.tsx`, `SmartImage`, Caching) | ⚪ PENDING | - |
 | **Step 7** | Motion Foundations (Lenis + GSAP ticker, Reveal, PageTransition, Magnetic Hover) | ⚪ PENDING | - |
 | **Step 8** | Verification & Final Delivery (Checklist, Test suite, Build, Migrate, Seed, Missing Env Report) | ⚪ PENDING | - |

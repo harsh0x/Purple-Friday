@@ -23,8 +23,8 @@
 | **Part 2 Step 1** | Shared Components (`ProductCard`, `PosterCard`, `ProductMockup`, `QuickViewSheet`, `useCustomerLogo`) | ✅ COMPLETE | 2026-11-06 |
 | **Part 2 Step 2** | Home Page (11 Complete Sections: Hero, TrustStrip, BestSellers, Bento, HowItWorks, ReviewMarquee, Timeline, Stories, Factory, FAQ, ClosingCTA) | ✅ COMPLETE | 2026-11-06 |
 | **Part 2 Step 3** | Collection Pages (`/collections/[slug]`, `/collections/all`, `/collections/best-sellers`) | ✅ COMPLETE | 2026-11-06 |
-| **Part 2 Step 4** | Product Page (`/products/[slug]`) | 🟡 IN PROGRESS | - |
-| **Part 2 Step 5** | Cart & Wishlist (`/cart`, `/wishlist`, coupon validation, GST 18%) | ⚪ PENDING | - |
+| **Part 2 Step 4** | Product Page (`/products/[slug]`) | ✅ COMPLETE | 2026-11-06 |
+| **Part 2 Step 5** | Cart & Wishlist (`/cart`, `/wishlist`, coupon validation, GST 18%) | 🟡 IN PROGRESS | - |
 | **Part 2 Step 6** | Search & Content Pages (`/search`, `/about`, `/contact`, policies, `/blog`) | ⚪ PENDING | - |
 | **Part 2 Step 7** | SEO & Performance (`sitemap.ts`, `robots.ts`, OpenGraph, JSON-LD) | ⚪ PENDING | - |
 | **Part 2 Step 8** | Verification & Final Delivery (Part 2 Checklist & Quality Gates) | ⚪ PENDING | - |
@@ -63,6 +63,26 @@
   - Responsive layout: sticky 3-col filter sidebar on desktop and bottom-sheet Dialog drawer on mobile.
   - Continuous "Load more" via IntersectionObserver with skeleton loading placeholders and clean empty state.
 - Created route pages `/collections/[slug]`, `/collections/all`, and `/collections/best-sellers` wrapped in Suspense boundaries.
+- Verified zero errors across `typecheck`, `lint`, `test`, and Next.js production `build`.
+
+### Part 2 Step 4: Product Detail Page
+- Built `ProductGallery`: Main vector mockup (with dynamic customer logo), angle and macro weave inspection slides, desktop hover zoom lens ("Real image"), mobile fullscreen lightbox with pinch zoom, and keyboard arrow controls.
+- Built `OptionSelectors`: 4 visually distinct control taxonomies:
+  - Shape cards: preview icons for Circle, Rectangle, Square, Contour Cut.
+  - Colour swatches: circular tokens with Radix Tooltip name previews.
+  - Fabric cards: structural cards with GSM ratings and "Popular" / "Premium" badges.
+  - Size chips: clean mono letter chips.
+- Built `QuantityPriceTiers`:
+  - Quantity Stepper with `minQty` and `qtyStep` clamping and typed input validation.
+  - Interactive price grid with Motion `layoutId` gliding glow highlight.
+  - Dynamic "Make it N" upsell nudge calculating pieces to next tier and per-piece savings; hidden at highest tier.
+- Built `DeliveryEstimator`: 6-digit Indian PIN code validator with transit date calculation for metro vs non-metro hubs and 18% GST input tax credit notice.
+- Built `LetOurTeamDesignModal`: Free pre-press studio brief upload modal with file dropzone, contact fields, and WhatsApp proof notification.
+- Built `ProductAccordionTabs`: Technical specs, Shipping/Returns/GST credit, and wash care instructions.
+- Built `ProductReviewsSection`: 5-point rating breakdown bars, verified buyer badges, customer photo masonry, star filter, and "Write a review" Radix Dialog.
+- Built `StickyMobileBar`: Fixed bottom bar for mobile with product name, active tier unit price, and "Design now" CTA.
+- Created `/products/[slug]/page.tsx` with dynamic OpenGraph metadata and JSON-LD schema (AggregateOffer, AggregateRating).
+- Added comprehensive Vitest test suite (`src/__tests__/product-tiers.test.ts`) covering tier resolution, active index transitions, and upsell nudge mathematics.
 - Verified zero errors across `typecheck`, `lint`, `test`, and Next.js production `build`.
 
 ### Step 0: Preflight & Scaffold

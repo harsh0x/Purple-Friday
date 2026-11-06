@@ -7,6 +7,8 @@ import { SearchDrawer } from "@/components/drawers/SearchDrawer";
 import { CartDrawer } from "@/components/drawers/CartDrawer";
 import { WishlistDrawer } from "@/components/drawers/WishlistDrawer";
 import { Toaster } from "@/components/ui/sonner";
+import { LenisProvider } from "@/components/motion/LenisProvider";
+import { PageTransition } from "@/components/motion/PageTransition";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -43,17 +45,19 @@ export default function RootLayout({
         <CartDrawer />
         <WishlistDrawer />
 
-        {/* App Shell Header */}
-        <AnnouncementBar />
-        <Header />
+        <LenisProvider>
+          {/* App Shell Header */}
+          <AnnouncementBar />
+          <Header />
 
-        {/* Main Content Landmark */}
-        <main id="main-content" className="flex-1">
-          {children}
-        </main>
+          {/* Main Content Landmark with Page Transitions */}
+          <main id="main-content" className="flex-1 flex flex-col">
+            <PageTransition>{children}</PageTransition>
+          </main>
 
-        {/* App Shell Footer */}
-        <Footer />
+          {/* App Shell Footer */}
+          <Footer />
+        </LenisProvider>
       </body>
     </html>
   );

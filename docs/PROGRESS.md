@@ -16,8 +16,8 @@
 | **Step 3** | Database (Prisma Schema, 24+ Products Seed, SVG Mockup Templates, Tier Pricing) | ✅ COMPLETE | 2026-11-06 |
 | **Step 4** | Security Baseline (`src/env.ts`, CSP Nonce Middleware, Rate Limiter, API Wrapper, Redacted Logger, Turnstile) | ✅ COMPLETE | 2026-11-06 |
 | **Step 5** | App Shell (AnnouncementBar, Header, SearchDrawer, CartDrawer, WishlistDrawer, Footer) | ✅ COMPLETE | 2026-11-06 |
-| **Step 6** | Loading & Error Infrastructure (Skeletons, `loading.tsx`, `error.tsx`, `not-found.tsx`, `SmartImage`, Caching) | 🟡 IN PROGRESS | - |
-| **Step 7** | Motion Foundations (Lenis + GSAP ticker, Reveal, PageTransition, Magnetic Hover) | ⚪ PENDING | - |
+| **Step 6** | Loading & Error Infrastructure (Skeletons, `loading.tsx`, `error.tsx`, `not-found.tsx`, `SmartImage`, Caching) | ✅ COMPLETE | 2026-11-06 |
+| **Step 7** | Motion Foundations (Lenis + GSAP ticker, Reveal, PageTransition, Magnetic Hover) | 🟡 IN PROGRESS | - |
 | **Step 8** | Verification & Final Delivery (Checklist, Test suite, Build, Migrate, Seed, Missing Env Report) | ⚪ PENDING | - |
 
 ---

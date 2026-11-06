@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createApiHandler } from "@/lib/api";
 import prisma from "@/lib/prisma";
-import { CATALOG_FALLBACK } from "@/lib/pricing";
+import { ALL_PRODUCTS } from "@/lib/catalogue";
 
 const searchQuerySchema = z.object({
   q: z.string().default(""),
@@ -75,22 +75,23 @@ export const GET = createApiHandler(
 
     // In-memory fallback search if DB was empty or unavailable
     if (results.length === 0) {
-      const fallbackList = Object.values(CATALOG_FALLBACK);
-      results = fallbackList
+      results = ALL_PRODUCTS
         .filter(
           (p) =>
             p.name.toLowerCase().includes(rawQuery) ||
-            p.slug.toLowerCase().includes(rawQuery)
+            p.slug.toLowerCase().includes(rawQuery) ||
+            p.description.toLowerCase().includes(rawQuery) ||
+            p.categorySlug.toLowerCase().includes(rawQuery)
         )
-        .slice(0, 8)
+        .slice(0, 16)
         .map((p) => ({
-          id: p.slug,
+          id: p.id,
           slug: p.slug,
           name: p.name,
-          shortName: p.name.split("(")[0].trim(),
+          shortName: p.shortName,
           mrp: p.mrp,
           basePrice: p.basePrice,
-          categoryName: "Custom Merch",
+          categoryName: p.categorySlug.replace(/-/g, " "),
           template: p.template,
         }));
     }

@@ -24,8 +24,8 @@
 | **Part 2 Step 2** | Home Page (11 Complete Sections: Hero, TrustStrip, BestSellers, Bento, HowItWorks, ReviewMarquee, Timeline, Stories, Factory, FAQ, ClosingCTA) | ✅ COMPLETE | 2026-11-06 |
 | **Part 2 Step 3** | Collection Pages (`/collections/[slug]`, `/collections/all`, `/collections/best-sellers`) | ✅ COMPLETE | 2026-11-06 |
 | **Part 2 Step 4** | Product Page (`/products/[slug]`) | ✅ COMPLETE | 2026-11-06 |
-| **Part 2 Step 5** | Cart & Wishlist (`/cart`, `/wishlist`, coupon validation, GST 18%) | 🟡 IN PROGRESS | - |
-| **Part 2 Step 6** | Search & Content Pages (`/search`, `/about`, `/contact`, policies, `/blog`) | ⚪ PENDING | - |
+| **Part 2 Step 5** | Cart & Wishlist (`/cart`, `/wishlist`, coupon validation, GST 18%) | ✅ COMPLETE | 2026-11-06 |
+| **Part 2 Step 6** | Search & Content Pages (`/search`, `/about`, `/contact`, policies, `/blog`) | 🟡 IN PROGRESS | - |
 | **Part 2 Step 7** | SEO & Performance (`sitemap.ts`, `robots.ts`, OpenGraph, JSON-LD) | ⚪ PENDING | - |
 | **Part 2 Step 8** | Verification & Final Delivery (Part 2 Checklist & Quality Gates) | ⚪ PENDING | - |
 
@@ -83,6 +83,18 @@
 - Built `StickyMobileBar`: Fixed bottom bar for mobile with product name, active tier unit price, and "Design now" CTA.
 - Created `/products/[slug]/page.tsx` with dynamic OpenGraph metadata and JSON-LD schema (AggregateOffer, AggregateRating).
 - Added comprehensive Vitest test suite (`src/__tests__/product-tiers.test.ts`) covering tier resolution, active index transitions, and upsell nudge mathematics.
+- Verified zero errors across `typecheck`, `lint`, `test`, and Next.js production `build`.
+
+### Part 2 Step 5: Cart & Wishlist
+- Built `/cart` page:
+  - Line items with product mockup thumbnail, name, chosen options, tier-resolved unit price, quantity stepper with minimum clamping, line total, and removal confirmation.
+  - Order summary card: subtotal, volume savings callout, coupon input with server validation (`FIRSTORDER`), 18% GST line item ("Inclusive of 18% GST"), and shipping status.
+  - Free shipping progress bar calculating threshold distance to ₹2,500.
+  - Editorial empty state with "Explore Best Sellers" stamp button.
+- Built `/wishlist` page:
+  - Saved specimen cards with live bulk pricing and "Move to Cart" triggering `QuickViewSheet`.
+  - Item removal with confirmation toast and empty state with collection link.
+- Synchronized Zustand cart store (`useCart`) and wishlist store (`useWishlist`) with localStorage persistence.
 - Verified zero errors across `typecheck`, `lint`, `test`, and Next.js production `build`.
 
 ### Step 0: Preflight & Scaffold

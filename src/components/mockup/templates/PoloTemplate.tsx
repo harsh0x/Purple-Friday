@@ -23,6 +23,9 @@ export function PoloTemplate({
         <filter id="poloShadow" x="-10%" y="-10%" width="120%" height="120%">
           <feDropShadow dx="0" dy="4" stdDeviation="6" floodOpacity="0.12" />
         </filter>
+        <clipPath id="poloPrintClip">
+          <rect x="220" y="130" width="55" height="55" rx="3" />
+        </clipPath>
       </defs>
 
       {/* Polo Body */}
@@ -67,33 +70,32 @@ export function PoloTemplate({
       <circle cx="200" cy="110" r="3" fill="#FFFFFF" stroke="#15101F" strokeWidth="1" />
       <circle cx="200" cy="135" r="3" fill="#FFFFFF" stroke="#15101F" strokeWidth="1" />
 
-      {/* Left Chest Embroidery Area (x: 225, y: 135, width: 45, height: 45) */}
-      <g id="print-area">
-        {logoUrl ? (
-          <image
-            href={logoUrl}
-            x="225"
-            y="135"
-            width="45"
-            height="45"
-            preserveAspectRatio="xMidYMid meet"
-          />
-        ) : (
-          <rect
-            x="225"
-            y="135"
-            width="45"
-            height="45"
-            rx="2"
-            fill="none"
-            stroke="#6A2CFF"
-            strokeWidth="1.5"
-            strokeDasharray="3 3"
-            opacity="0.45"
-          />
-        )}
-      </g>
+        {/* Left Chest Embroidery Area (Clipped) */}
+        <g id="print-area" clipPath="url(#poloPrintClip)">
+          {logoUrl ? (
+            <image
+              href={logoUrl}
+              x="220"
+              y="130"
+              width="55"
+              height="55"
+              preserveAspectRatio="xMidYMid meet"
+            />
+          ) : (
+            <rect
+              x="225"
+              y="135"
+              width="45"
+              height="45"
+              rx="2"
+              fill="none"
+              stroke="#6A2CFF"
+              strokeWidth="1.5"
+              strokeDasharray="3 3"
+              opacity="0.45"
+            />
+          )}
+        </g>
     </svg>
   );
 }
-

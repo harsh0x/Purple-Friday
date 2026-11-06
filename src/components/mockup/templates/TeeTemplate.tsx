@@ -4,12 +4,14 @@ interface TemplateProps {
   color?: string;
   logoUrl?: string;
   className?: string;
+  view?: "front" | "back";
 }
 
 export function TeeTemplate({
   color = "#15101F",
   logoUrl,
   className = "w-full h-full",
+  view = "front",
 }: TemplateProps) {
   return (
     <svg
@@ -20,18 +22,19 @@ export function TeeTemplate({
       aria-label="T-Shirt Template"
     >
       <defs>
-        {/* Subtle garment shadow */}
         <filter id="teeShadow" x="-10%" y="-10%" width="120%" height="120%">
           <feDropShadow dx="0" dy="4" stdDeviation="6" floodOpacity="0.12" />
         </filter>
-        {/* Fabric shading overlay */}
         <linearGradient id="teeShading" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#000000" stopOpacity="0.1" />
+          <stop offset="0%" stopColor="#000000" stopOpacity="0.12" />
           <stop offset="15%" stopColor="#FFFFFF" stopOpacity="0.08" />
           <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
           <stop offset="85%" stopColor="#000000" stopOpacity="0.08" />
-          <stop offset="100%" stopColor="#000000" stopOpacity="0.14" />
+          <stop offset="100%" stopColor="#000000" stopOpacity="0.16" />
         </linearGradient>
+        <clipPath id="teePrintClip">
+          <rect x="145" y="125" width="110" height="135" rx="2" />
+        </clipPath>
       </defs>
 
       {/* T-Shirt Body & Sleeves Silhouette */}
@@ -51,20 +54,32 @@ export function TeeTemplate({
       />
 
       {/* Ribbed Collar */}
-      <path
-        d="M130 50 C155 85 245 85 270 50 C250 72 150 72 130 50 Z"
-        fill="#000000"
-        fillOpacity="0.2"
-        stroke="#15101F"
-        strokeWidth="2"
-      />
-      <path
-        d="M142 56 C165 80 235 80 258 56"
-        stroke="#FFFFFF"
-        strokeWidth="1"
-        strokeOpacity="0.3"
-        fill="none"
-      />
+      {view === "front" ? (
+        <>
+          <path
+            d="M130 50 C155 85 245 85 270 50 C250 72 150 72 130 50 Z"
+            fill="#000000"
+            fillOpacity="0.2"
+            stroke="#15101F"
+            strokeWidth="2"
+          />
+          <path
+            d="M142 56 C165 80 235 80 258 56"
+            stroke="#FFFFFF"
+            strokeWidth="1"
+            strokeOpacity="0.3"
+            fill="none"
+          />
+        </>
+      ) : (
+        <path
+          d="M130 50 C160 62 240 62 270 50 Z"
+          fill="#000000"
+          fillOpacity="0.25"
+          stroke="#15101F"
+          strokeWidth="2"
+        />
+      )}
 
       {/* Sleeve Seam Details */}
       <path
@@ -85,33 +100,32 @@ export function TeeTemplate({
       {/* Hem Stitching */}
       <line x1="124" y1="398" x2="276" y2="398" stroke="#FFFFFF" strokeWidth="1" strokeOpacity="0.25" strokeDasharray="3 2" />
 
-      {/* Defined Print Area (Chest: 150, 130, 100, 120) */}
-      <g id="print-area">
-        {logoUrl ? (
-          <image
-            href={logoUrl}
-            x="150"
-            y="130"
-            width="100"
-            height="120"
-            preserveAspectRatio="xMidYMid meet"
-          />
-        ) : (
-          <rect
-            x="150"
-            y="130"
-            width="100"
-            height="120"
-            rx="4"
-            fill="none"
-            stroke="#6A2CFF"
-            strokeWidth="1.5"
-            strokeDasharray="4 4"
-            opacity="0.4"
-          />
-        )}
-      </g>
+        {/* Defined Print Area (Clipped) */}
+        <g id="print-area" clipPath="url(#teePrintClip)">
+          {logoUrl ? (
+            <image
+              href={logoUrl}
+              x="145"
+              y="125"
+              width="110"
+              height="135"
+              preserveAspectRatio="xMidYMid meet"
+            />
+          ) : (
+            <rect
+              x="150"
+              y="130"
+              width="100"
+              height="120"
+              rx="4"
+              fill="none"
+              stroke="#6A2CFF"
+              strokeWidth="1.5"
+              strokeDasharray="4 4"
+              opacity="0.35"
+            />
+          )}
+        </g>
     </svg>
   );
 }
-

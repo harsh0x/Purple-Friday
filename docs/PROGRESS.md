@@ -20,9 +20,39 @@
 | **Step 7** | Motion Foundations (Lenis + GSAP ticker, Reveal, PageTransition, Magnetic Hover) | ✅ COMPLETE | 2026-11-06 |
 | **Step 8** | Verification & Final Delivery (Checklist, Test suite, Build, Migrate, Seed, Missing Env Report) | ✅ COMPLETE | 2026-11-06 |
 
+| **Part 2 Step 1** | Shared Components (`ProductCard`, `PosterCard`, `ProductMockup`, `QuickViewSheet`, `useCustomerLogo`) | ✅ COMPLETE | 2026-11-06 |
+| **Part 2 Step 2** | Home Page (11 Complete Sections: Hero, TrustStrip, BestSellers, Bento, HowItWorks, ReviewMarquee, Timeline, Stories, Factory, FAQ, ClosingCTA) | ✅ COMPLETE | 2026-11-06 |
+| **Part 2 Step 3** | Collection Pages (`/collections/[slug]`, `/collections/all`, `/collections/best-sellers`) | 🟡 IN PROGRESS | - |
+| **Part 2 Step 4** | Product Page (`/products/[slug]`) | ⚪ PENDING | - |
+| **Part 2 Step 5** | Cart & Wishlist (`/cart`, `/wishlist`, coupon validation, GST 18%) | ⚪ PENDING | - |
+| **Part 2 Step 6** | Search & Content Pages (`/search`, `/about`, `/contact`, policies, `/blog`) | ⚪ PENDING | - |
+| **Part 2 Step 7** | SEO & Performance (`sitemap.ts`, `robots.ts`, OpenGraph, JSON-LD) | ⚪ PENDING | - |
+| **Part 2 Step 8** | Verification & Final Delivery (Part 2 Checklist & Quality Gates) | ⚪ PENDING | - |
+
 ---
 
 ## Detailed Step Log
+
+### Part 2 Step 1: Shared Components
+- Built `src/hooks/useCustomerLogo.ts` with cross-component synchronization via CustomEvents and `sessionStorage`.
+- Enhanced `ProductMockup` with vector `<clipPath>` for realistic apparel/badge printing previews.
+- Implemented `ProductCard` with hover preview, min-order badge, rating, and Quick View bottom sheet.
+- Implemented `PosterCard` with 3D mouse tilt interaction and primary stamp button for best-sellers.
+
+### Part 2 Step 2: Home Page (11 Sections)
+1. **HeroSection**: Real-time 10-second logo dropzone with client validation (<5MB, PNG/JPG/WebP/SVG), 6-item live preview with before/after toggle, trust chips, and pricing quick-links.
+2. **TrustStrip**: IntersectionObserver-triggered animated count-up numbers.
+3. **BestSellersCarousel**: Embla carousel of `PosterCard`s with drag, keyboard controls, and progress bar.
+4. **CategoryBentoGrid**: Asymmetric 12-column bento grid for 5 flagship categories with hover micro-interactions.
+5. **HowItWorksSequence**: Desktop pinned 3-step sequence using GSAP ScrollTrigger; clean stacked layout on mobile.
+6. **CustomerReviewMarquee**: Two-row marquee with verified Indian customer reviews and hover pause.
+7. **OrderProcessTimeline**: 5-step delivery pipeline with scroll-driven SVG line drawing.
+8. **StoriesCarousel**: Embla carousel of editorial blog dispatches.
+9. **FactoryTeamSection**: Showcase of in-house Bengaluru & Tirupur manufacturing facilities and Tajima embroidery rigs.
+10. **FaqSection**: 2-column Radix Accordion with clear B2B merchandise answers.
+11. **ClosingCtaBand**: Registration-mark motif closing section with stamp CTA.
+- Configured dynamic lazy-loading with matching skeleton placeholders for below-the-fold sections.
+- Verified zero errors across `typecheck`, `lint`, `test`, and Next.js production `build`.
 
 ### Step 0: Preflight & Scaffold
 - Checked Node.js runtime: `v24.19.0` (meets `>= 20.0.0` requirement).

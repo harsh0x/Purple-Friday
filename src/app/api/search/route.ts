@@ -80,8 +80,8 @@ export const GET = createApiHandler(
           (p) =>
             p.name.toLowerCase().includes(rawQuery) ||
             p.slug.toLowerCase().includes(rawQuery) ||
-            p.description.toLowerCase().includes(rawQuery) ||
-            p.categorySlug.toLowerCase().includes(rawQuery)
+          p.description.toLowerCase().includes(rawQuery) ||
+          p.categorySlug.toLowerCase().includes(rawQuery)
         )
         .slice(0, 16)
         .map((p) => ({

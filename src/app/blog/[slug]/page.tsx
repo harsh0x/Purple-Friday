@@ -2,6 +2,7 @@ import React from "react";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import Link from "next/link";
+import Script from "next/script";
 import ReactMarkdown from "react-markdown";
 import { ArrowLeft, Clock, Calendar, Tag } from "lucide-react";
 import { BLOG_POSTS } from "@/lib/blog-data";
@@ -44,6 +45,34 @@ export default async function BlogPostPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-pf-paper pb-24">
+      {/* BlogPosting JSON-LD */}
+      <Script
+        id={`blog-post-${slug}-schema`}
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BlogPosting",
+            headline: post.title,
+            description: post.excerpt,
+            datePublished: post.publishedAt,
+            author: {
+              "@type": "Person",
+              name: post.author.name,
+              jobTitle: post.author.role,
+            },
+            publisher: {
+              "@type": "Organization",
+              name: "Purple Friday",
+              url: "https://purplefriday.in",
+            },
+            mainEntityOfPage: {
+              "@type": "WebPage",
+              "@id": `https://purplefriday.in/blog/${post.slug}`,
+            },
+          }),
+        }}
+      />
       {/* Breadcrumb Header */}
       <div className="border-b-2 border-pf-ink bg-white py-12 px-4 md:px-8">
         <div className="mx-auto max-w-4xl space-y-4">

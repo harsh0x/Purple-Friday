@@ -1,6 +1,7 @@
 import React, { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
+import Script from "next/script";
 import { CollectionPageView } from "@/components/collection/CollectionPageView";
 import { SectionSkeleton } from "@/components/ui/skeleton";
 import { getCachedProducts, getCachedCategories } from "@/lib/catalogue";
@@ -112,15 +113,47 @@ export default async function CollectionPage({
   };
 
   return (
-    <Suspense fallback={<SectionSkeleton height="h-[600px]" title="Loading Collection Atelier..." />}>
-      <CollectionPageView
-        title={meta.title}
-        description={meta.description}
-        categorySlug={slug}
-        initialProducts={initialProducts}
-        initialCursor={initialCursor}
-        initialCounts={counts}
+    <>
+      <Script
+        id={`breadcrumb-${slug}-schema`}
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              {
+                "@type": "ListItem",
+                position: 1,
+                name: "Home",
+                item: "https://purplefriday.in",
+              },
+              {
+                "@type": "ListItem",
+                position: 2,
+                name: "Collections",
+                item: "https://purplefriday.in/collections/all",
+              },
+              {
+                "@type": "ListItem",
+                position: 3,
+                name: meta.title,
+                item: `https://purplefriday.in/collections/${slug}`,
+              },
+            ],
+          }),
+        }}
       />
-    </Suspense>
+      <Suspense fallback={<SectionSkeleton height="h-[600px]" title="Loading Collection Atelier..." />}>
+        <CollectionPageView
+          title={meta.title}
+          description={meta.description}
+          categorySlug={slug}
+          initialProducts={initialProducts}
+          initialCursor={initialCursor}
+          initialCounts={counts}
+        />
+      </Suspense>
+    </>
   );
 }

@@ -376,3 +376,4 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailPro
     </div>
   );
 }
+

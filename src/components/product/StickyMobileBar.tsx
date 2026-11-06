@@ -51,3 +51,4 @@ export function StickyMobileBar({
     </div>
   );
 }
+

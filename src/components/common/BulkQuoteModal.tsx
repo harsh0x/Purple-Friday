@@ -296,3 +296,4 @@ export function BulkQuoteModal({ trigger, defaultProduct = "Magnetic Badges" }: 
     </Dialog.Root>
   );
 }
+

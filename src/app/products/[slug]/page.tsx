@@ -119,12 +119,42 @@ export default async function ProductPage({ params }: PageProps) {
     },
   };
 
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: "https://purplefriday.in",
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Collections",
+        item: "https://purplefriday.in/collections/all",
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: product.name,
+        item: `https://purplefriday.in/products/${product.slug}`,
+      },
+    ],
+  };
+
   return (
     <>
       <Script
         id="product-schema-jsonld"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <Script
+        id="product-breadcrumb-schema-jsonld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
       <ProductDetailView product={product} relatedProducts={relatedProducts} />
     </>

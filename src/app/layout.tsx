@@ -10,6 +10,7 @@ import { WishlistDrawer } from "@/components/drawers/WishlistDrawer";
 import { Toaster } from "@/components/ui/sonner";
 import { LenisProvider } from "@/components/motion/LenisProvider";
 import { PageTransition } from "@/components/motion/PageTransition";
+import { AuthProvider } from "@/components/providers/AuthProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -114,19 +115,21 @@ export default function RootLayout({
           }}
         />
 
-        <LenisProvider>
-          {/* App Shell Header */}
-          <AnnouncementBar />
-          <Header />
+        <AuthProvider>
+          <LenisProvider>
+            {/* App Shell Header */}
+            <AnnouncementBar />
+            <Header />
 
-          {/* Main Content Landmark with Page Transitions */}
-          <main id="main-content" className="flex-1 flex flex-col">
-            <PageTransition>{children}</PageTransition>
-          </main>
+            {/* Main Content Landmark with Page Transitions */}
+            <main id="main-content" className="flex-1 flex flex-col">
+              <PageTransition>{children}</PageTransition>
+            </main>
 
-          {/* App Shell Footer */}
-          <Footer />
-        </LenisProvider>
+            {/* App Shell Footer */}
+            <Footer />
+          </LenisProvider>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -32,8 +32,8 @@
 | **Part 3 Step 3A** | Secure Uploads (Magic bytes detection, SVG sanitization & sharp PNG rasterization, Cloudinary/local fallback, anonymous uploader session, test suite) | ✅ COMPLETE | 2026-11-07 |
 | **Part 3 Step 3B** | Logo Customizer (`/design/[slug]`, Konva canvas, print area clamping, background removal, text tool, AI color contrast, autosave) | ✅ COMPLETE | 2026-11-07 |
 | **Part 3 Step 3C** | Authentication (NextAuth v4 credentials, brute-force lock, password policy, guest cart sync) | ✅ COMPLETE | 2026-11-07 |
-| **Part 3 Step 3D** | Checkout & Payments (3-step checkout, Razorpay, webhook idempotency, PDF GST invoice, confirmation) | ⏳ IN PROGRESS | |
-| **Part 3 Step 3E** | Customer Account (`/account`, order history, proof review approval/changes, `/track-order`) | ⏳ PENDING | |
+| **Part 3 Step 3D** | Checkout & Payments (3-step checkout, Razorpay, webhook idempotency, PDF GST invoice, confirmation) | ✅ COMPLETE | 2026-11-07 |
+| **Part 3 Step 3E** | Customer Account (`/account`, order history, proof review approval/changes, `/track-order`) | ⏳ IN PROGRESS | |
 | **Part 3 Step 3F** | Admin Dashboard (`/admin`, KPI metrics, proof upload, order management, CSV injection protection) | ⏳ PENDING | |
 | **Part 3 Step 3G** | Extra Features (Purple Assistant AI / Finder wizard, Corporate Gifts PDF quote, PWA manifest) | ⏳ PENDING | |
 | **Part 3 Step 3H** | Performance & Security Hardening (CSP enforcing, security headers script, security.txt, tests) | ⏳ PENDING | |
@@ -206,6 +206,28 @@
   - `/admin/*`: Enforces `ADMIN` role; redirects unauthorized users to `/auth/login?error=Forbidden`.
 - Added comprehensive Vitest suite in `src/__tests__/auth-policy.test.ts` covering password validation rules, scoring, and lockout timing.
 - Quality Gates passed: 0 typecheck errors, 0 lint warnings, 40/40 unit tests passed, production build passed.
+
+### Part 3 Step 3D: Checkout & Payments
+- Built payment security utilities in `src/lib/security/payments.ts`:
+  - `verifyRazorpaySignature`: HMAC-SHA256 signature verification using `crypto.timingSafeEqual` against timing attacks.
+  - `verifyWebhookSignature`: Raw body webhook signature verification.
+  - `isWebhookProcessed` / `markWebhookProcessed`: Sliding-window deduplication store guaranteeing idempotent webhook ingestion.
+- Built GST Tax Invoice Generator in `src/lib/invoice-generator.ts` with `pdf-lib`:
+  - Generates official Indian GST Tax Invoices formatted to A4 with seller GSTIN (`29AAACP1234F1Z5`), buyer GSTIN, HSN codes (7117, 6109, 6505, 9608, 3924, etc.), state/central tax split (CGST 9% + SGST 9% intra-state, or IGST 18% inter-state), and authorized signatory stamp.
+- Built order management engine in `src/lib/orders.ts`:
+  - Server-side price recalculation using `src/lib/pricing.ts` (strictly never trusting client numbers).
+  - Order numbers formatted as `PF-YYMM-XXXXX`.
+  - Prisma database storage with resilient in-memory fallback.
+- Created checkout APIs:
+  - `POST /api/orders`: Validates 10-digit mobile, 6-digit Indian PIN, and 15-character GSTIN.
+  - `POST /api/payments/verify`: Timing-safe signature validation and order status transition to `PAID`.
+  - `POST /api/webhooks/razorpay`: `force-dynamic` raw body webhook handler with idempotency.
+  - `GET /api/orders/[orderNumber]/invoice`: Streams generated GST invoice PDF with `Content-Disposition: attachment`.
+- Built checkout storefront pages:
+  - `/checkout`: Single-page 3-stage sequential flow (Contact, Delivery with PIN hub auto-fill and live 18% ITC credit calculator, Payment).
+  - `/checkout/success/[orderNumber]`: Order reference display, proof timeline ("Next: Studio proof in 24 hours"), instant PDF invoice download button, and guest account registration prompt.
+- Added comprehensive Vitest suite in `src/__tests__/payments.test.ts` verifying valid signatures, tampered payloads, wrong secrets, and webhook idempotency.
+- Quality Gates passed: 0 typecheck errors, 0 lint warnings, 47/47 unit tests passed, production build passed.
 
 ### Step 0: Preflight & Scaffold
 

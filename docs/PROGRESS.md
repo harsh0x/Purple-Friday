@@ -38,7 +38,8 @@
 | **Part 3 Step 3G** | Extra Features (Purple Assistant AI widget, Corporate Gifts Budget Planner with PDF quote, PWA manifest & icons) | ✅ COMPLETE | 2026-11-07 |
 | **Part 3 Step 3H** | Performance & Accessibility Audit (WCAG AA contrast audit, focus ring verification, bundle audit) | ✅ COMPLETE | 2026-11-07 |
 | **Part 3 Step 3I** | Comprehensive Security Hardening (CSP Enforcing, CSRF origin checks, rate limits, docs/SECURITY.md, security.txt, 10-test suite) | ✅ COMPLETE | 2026-11-07 |
-| **Part 3 Step 3J** | Final Verification, Playwright E2E Smoke Tests, Launch Checklist & Delivery (88+ passing tests, 60 routes) | ✅ COMPLETE | 2026-11-07 |
+| **Part 3 Step 3J** | Final Verification, Playwright E2E Smoke Tests, Launch Checklist & Delivery (94 passing tests, 60 routes) | ✅ COMPLETE | 2026-11-07 |
+| **Post-Launch Polish** | Browser Extension Hydration Protection (`bis_skin_checked`) & Workspace Root Runner | ✅ COMPLETE | 2026-11-07 |
 
 ---
 

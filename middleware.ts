@@ -1,6 +1,29 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getToken } from "next-auth/jwt";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // 1. Role-based Route Protection
+  if (pathname.startsWith("/account") || pathname.startsWith("/admin")) {
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET || "pf_super_secret_jwt_key_2026_dev_fallback",
+    });
+
+    if (!token) {
+      const loginUrl = new URL("/auth/login", request.url);
+      loginUrl.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    if (pathname.startsWith("/admin") && token.role !== "ADMIN") {
+      const forbiddenUrl = new URL("/auth/login", request.url);
+      forbiddenUrl.searchParams.set("error", "Forbidden");
+      return NextResponse.redirect(forbiddenUrl);
+    }
+  }
+
   // Generate random base64 nonce for CSP script validation
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
 

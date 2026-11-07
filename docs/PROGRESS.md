@@ -31,8 +31,8 @@
 
 | **Part 3 Step 3A** | Secure Uploads (Magic bytes detection, SVG sanitization & sharp PNG rasterization, Cloudinary/local fallback, anonymous uploader session, test suite) | ✅ COMPLETE | 2026-11-07 |
 | **Part 3 Step 3B** | Logo Customizer (`/design/[slug]`, Konva canvas, print area clamping, background removal, text tool, AI color contrast, autosave) | ✅ COMPLETE | 2026-11-07 |
-| **Part 3 Step 3C** | Authentication (NextAuth v4 credentials, brute-force lock, password policy, guest cart sync) | ⏳ IN PROGRESS | |
-| **Part 3 Step 3D** | Checkout & Payments (3-step checkout, Razorpay, webhook idempotency, PDF GST invoice, confirmation) | ⏳ PENDING | |
+| **Part 3 Step 3C** | Authentication (NextAuth v4 credentials, brute-force lock, password policy, guest cart sync) | ✅ COMPLETE | 2026-11-07 |
+| **Part 3 Step 3D** | Checkout & Payments (3-step checkout, Razorpay, webhook idempotency, PDF GST invoice, confirmation) | ⏳ IN PROGRESS | |
 | **Part 3 Step 3E** | Customer Account (`/account`, order history, proof review approval/changes, `/track-order`) | ⏳ PENDING | |
 | **Part 3 Step 3F** | Admin Dashboard (`/admin`, KPI metrics, proof upload, order management, CSV injection protection) | ⏳ PENDING | |
 | **Part 3 Step 3G** | Extra Features (Purple Assistant AI / Finder wizard, Corporate Gifts PDF quote, PWA manifest) | ⏳ PENDING | |
@@ -184,6 +184,28 @@
   - `GET /api/designs/[id]`: Serves saved design record.
 - Added comprehensive Vitest suite in `src/__tests__/customizer.test.ts` covering undo/redo step limits, DPI calculations, and WCAG contrast recommendations.
 - Quality Gates passed: 0 typecheck errors, 0 lint warnings, 30/30 unit tests passed, production build passed.
+
+### Part 3 Step 3C: Authentication & Account Security
+- Implemented `src/lib/security/auth-policy.ts` containing:
+  - Strict password policy validator (min 10 characters, uppercase, lowercase, numeric, symbol, common dictionary blacklist rejection, 0-4 scoring).
+  - Brute-force lockout manager enforcing 15-minute account lock after 5 consecutive failed login attempts.
+- Implemented `src/lib/auth-service.ts` with bcrypt cost 12 hashing, Prisma user queries with resilient in-memory development fallback, and initial demo admin credentials (`admin@purplefriday.com` / `Admin@PF2026!`).
+- Implemented NextAuth v4 configuration in `src/lib/auth.ts` and route handler `src/app/api/auth/[...nextauth]/route.ts` with JWT sessions, Credentials provider, and optional Google SSO.
+- Created auth API endpoints:
+  - `POST /api/auth/register`: Rate limited, validates password strength, creates customer accounts.
+  - `POST /api/auth/forgot-password`: Rate limited with constant-time generic responses preventing email enumeration, issuing secure tokens in `src/lib/security/auth-tokens.ts`.
+  - `POST /api/auth/reset-password`: Validates reset tokens and updates password hash.
+  - `POST /api/auth/sync`: Automatically synchronizes anonymous designs and carts upon login.
+- Built editorial print-shop auth pages:
+  - `/auth/login`: Clean sign-in form with registration-mark motif, callbackUrl redirection, and demo credentials hint.
+  - `/auth/register`: Interactive registration form with real-time 4-step password strength meter and requirement checklist.
+  - `/auth/forgot-password`: Password recovery instructions dispatcher.
+  - `/auth/reset-password`: Token-verified password reset form wrapped in Suspense.
+- Updated `middleware.ts` with role-based route protection:
+  - `/account/*`: Enforces authenticated session; redirects to `/auth/login?callbackUrl=...`.
+  - `/admin/*`: Enforces `ADMIN` role; redirects unauthorized users to `/auth/login?error=Forbidden`.
+- Added comprehensive Vitest suite in `src/__tests__/auth-policy.test.ts` covering password validation rules, scoring, and lockout timing.
+- Quality Gates passed: 0 typecheck errors, 0 lint warnings, 40/40 unit tests passed, production build passed.
 
 ### Step 0: Preflight & Scaffold
 

@@ -8,6 +8,8 @@ export default defineConfig({
   test: {
     environment: "node",
     globals: true,
+    include: ["src/__tests__/**/*.test.ts"],
+    exclude: ["node_modules", "e2e"],
   },
   resolve: {
     alias: {

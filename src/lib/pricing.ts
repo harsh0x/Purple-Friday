@@ -1,4 +1,5 @@
 import prisma from "./prisma";
+import { findProductBySlug } from "./catalogue";
 
 export interface CartItemInput {
   productId: string;
@@ -251,9 +252,23 @@ export async function calculateCartPricing(
 
     // If not found in DB, check in-memory catalog
     if (!productData) {
-      productData =
-        CATALOG_FALLBACK[item.productId] ??
-        Object.values(CATALOG_FALLBACK)[0];
+      const catProd = findProductBySlug(item.productId);
+      if (catProd) {
+        productData = {
+          name: catProd.name,
+          slug: catProd.slug,
+          mrp: catProd.mrp,
+          basePrice: catProd.basePrice,
+          minQty: catProd.minQty,
+          qtyStep: catProd.qtyStep,
+          template: catProd.template,
+          tiers: catProd.priceTiers,
+        };
+      } else {
+        productData =
+          CATALOG_FALLBACK[item.productId] ??
+          Object.values(CATALOG_FALLBACK)[0];
+      }
     }
 
     // 1. Normalize quantity

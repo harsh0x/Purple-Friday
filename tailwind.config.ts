@@ -44,6 +44,12 @@ import type { Config } from "tailwindcss";
             hover: "#C4ED2B",
             dark: "#B0D820",
           },
+          // Direct token aliases for robust semantic styling across legacy & new components
+          "pf-ink": "#15101F",
+          "pf-paper": "#F5F0E8",
+          "pf-violet": "#6A2CFF",
+          "pf-lime": "#D8FF3F",
+          "pf-lilac": "#CDB8FF",
         },
         fontFamily: {
           sans: ["var(--font-instrument)", "system-ui", "-apple-system", "sans-serif"],

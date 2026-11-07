@@ -1,5 +1,9 @@
 import { unstable_cache } from "next/cache";
+import { Prisma } from "@prisma/client";
 import prisma from "./prisma";
+import { normalizeSlug, productHref, categoryHref } from "./urls";
+
+export { normalizeSlug, productHref, categoryHref };
 
 export interface CatalogueProduct {
   id: string;
@@ -26,7 +30,7 @@ export interface CatalogueProduct {
 }
 
 export const ALL_PRODUCTS: CatalogueProduct[] = [
-  // --- Magnetic Badges ---
+  // --- Magnetic Badges (4) ---
   {
     id: "round-gloss-badge-58mm",
     slug: "round-gloss-badge-58mm",
@@ -100,23 +104,24 @@ export const ALL_PRODUCTS: CatalogueProduct[] = [
     specChips: ["Die-Cast Zinc", "Soft Enamel", "Butterfly or Magnet"],
     audience: "GIFTING",
     minQty: 25,
-    qtyStep: 25,
+    qtyStep: 5,
     isBestSeller: false,
-    mrp: 350,
-    basePrice: 240,
-    printMethod: "Die-Struck Enamel",
+    mrp: 290,
+    basePrice: 195,
+    printMethod: "Die-Struck Enamel + Dual Magnet",
     template: "badge",
-    rating: 5.0,
-    reviewCount: 39,
+    rating: 4.9,
+    reviewCount: 92,
     colors: [
-      { name: "Antique Gold", hex: "#CFB53B" },
-      { name: "Nickel Silver", hex: "#E5E4E2" },
+      { name: "Mirror Gold", hex: "#D4AF37" },
+      { name: "Antique Nickel", hex: "#708090" },
+      { name: "Rose Copper", hex: "#B87333" },
     ],
     priceTiers: [
-      { minQty: 25, maxQty: 49, unitPrice: 240 },
-      { minQty: 50, maxQty: 99, unitPrice: 190 },
-      { minQty: 100, maxQty: 249, unitPrice: 150 },
-      { minQty: 250, maxQty: null, unitPrice: 120 },
+      { minQty: 25, maxQty: 49, unitPrice: 195 },
+      { minQty: 50, maxQty: 99, unitPrice: 160 },
+      { minQty: 100, maxQty: 249, unitPrice: 135 },
+      { minQty: 250, maxQty: null, unitPrice: 110 },
     ],
   },
   {
@@ -127,29 +132,30 @@ export const ALL_PRODUCTS: CatalogueProduct[] = [
     categorySlug: "magnetic-badges",
     description: "Glass-look 3mm clear acrylic badge with reverse UV color printing and polished flame-buffed edges.",
     badges: ["Modern Tech"],
-    specChips: ["3mm Cast Acrylic", "Flame Polished", "Reverse Print"],
+    specChips: ["3mm Crystal Acrylic", "Flame Polished", "Reverse Print"],
     audience: "TEAM",
-    minQty: 15,
-    qtyStep: 5,
+    minQty: 20,
+    qtyStep: 10,
     isBestSeller: false,
     mrp: 180,
     basePrice: 110,
-    printMethod: "Reverse UV High-Gloss",
+    printMethod: "Reverse UV Mirror Print",
     template: "badge",
     rating: 4.7,
-    reviewCount: 45,
+    reviewCount: 54,
     colors: [
-      { name: "Ultra Clear", hex: "#FFFFFF" },
-      { name: "Frosted Smoked", hex: "#483A5A" },
+      { name: "Crystal Clear", hex: "#F5F0E8" },
+      { name: "Smoked Grey", hex: "#483A5A" },
     ],
     priceTiers: [
-      { minQty: 15, maxQty: 49, unitPrice: 110 },
-      { minQty: 50, maxQty: 99, unitPrice: 85 },
-      { minQty: 100, maxQty: null, unitPrice: 68 },
+      { minQty: 20, maxQty: 49, unitPrice: 110 },
+      { minQty: 50, maxQty: 99, unitPrice: 90 },
+      { minQty: 100, maxQty: 249, unitPrice: 75 },
+      { minQty: 250, maxQty: null, unitPrice: 60 },
     ],
   },
 
-  // --- T-Shirts ---
+  // --- T-Shirts (4) ---
   {
     id: "classic-crewneck-tshirt",
     slug: "classic-crewneck-tshirt",
@@ -158,22 +164,23 @@ export const ALL_PRODUCTS: CatalogueProduct[] = [
     categorySlug: "t-shirts",
     description: "100% super-combed cotton t-shirt, pre-shrunk and bio-washed for an exceptionally smooth print canvas. Engineered for team events.",
     badges: ["Best Seller", "100% Cotton"],
-    specChips: ["180 GSM", "Bio-Washed", "DTG or Screen Print"],
+    specChips: ["180 GSM Combed Cotton", "Bio-Washed", "Double Needle Stitch"],
     audience: "BOTH",
     minQty: 5,
     qtyStep: 1,
     isBestSeller: true,
     mrp: 499,
     basePrice: 285,
-    printMethod: "Direct-to-Garment / Silkscreen",
+    printMethod: "Direct-to-Garment / Screen Print",
     template: "tee",
     rating: 4.9,
-    reviewCount: 312,
+    reviewCount: 310,
     colors: [
-      { name: "Carbon Black", hex: "#15101F" },
-      { name: "Paper Off-White", hex: "#F5F0E8" },
-      { name: "Electric Violet", hex: "#6A2CFF" },
+      { name: "Pitch Black", hex: "#15101F" },
+      { name: "Off White", hex: "#FAF7F2" },
       { name: "Navy Blue", hex: "#1B2A4A" },
+      { name: "Spot Violet", hex: "#6A2CFF" },
+      { name: "Spot Lime", hex: "#D8FF3F" },
     ],
     priceTiers: [
       { minQty: 5, maxQty: 14, unitPrice: 285 },
@@ -190,52 +197,53 @@ export const ALL_PRODUCTS: CatalogueProduct[] = [
     categorySlug: "t-shirts",
     description: "Heavyweight 240 GSM French Terry cotton with relaxed drop-shoulder silhouette and thick 1.2-inch ribbed collar. High streetwear aesthetic.",
     badges: ["Trending", "Heavyweight"],
-    specChips: ["240 GSM French Terry", "Drop Shoulder", "High Density Print"],
-    audience: "TEAM",
-    minQty: 10,
+    specChips: ["240 GSM French Terry", "Drop Shoulder", "Thick Ribbed Collar"],
+    audience: "BOTH",
+    minQty: 5,
     qtyStep: 1,
     isBestSeller: true,
-    mrp: 899,
+    mrp: 799,
     basePrice: 480,
     printMethod: "High-Density Puff / Screen Print",
     template: "tee",
     rating: 4.9,
-    reviewCount: 94,
+    reviewCount: 188,
     colors: [
-      { name: "Washed Carbon", hex: "#221A31" },
-      { name: "Vintage Lilac", hex: "#CDB8FF" },
-      { name: "Raw Natural", hex: "#EDE6DA" },
+      { name: "Vintage Charcoal", hex: "#221A31" },
+      { name: "Eggshell White", hex: "#EDE6DA" },
+      { name: "Electric Violet", hex: "#6A2CFF" },
+      { name: "Sage Olive", hex: "#484E3A" },
     ],
     priceTiers: [
-      { minQty: 10, maxQty: 24, unitPrice: 480 },
-      { minQty: 25, maxQty: 49, unitPrice: 420 },
-      { minQty: 50, maxQty: 99, unitPrice: 360 },
+      { minQty: 5, maxQty: 14, unitPrice: 480 },
+      { minQty: 15, maxQty: 49, unitPrice: 410 },
+      { minQty: 50, maxQty: 99, unitPrice: 355 },
       { minQty: 100, maxQty: null, unitPrice: 310 },
     ],
   },
   {
     id: "sports-performance-tee",
     slug: "sports-performance-tee",
-    name: "Moisture-Wicking Athletic Poly Tee (160 GSM)",
-    shortName: "Athletic Poly Tee",
+    name: "Athletic Quick-Dry Poly Performance Tee",
+    shortName: "Sports Quick-Dry Tee",
     categorySlug: "t-shirts",
-    description: "Quick-drying honeycomb polyester knit with antimicrobial treatment. Ideal for marathons, sports days, and active corporate offsites.",
-    badges: ["Quick Dry"],
-    specChips: ["160 GSM Polyester", "Sublimation Ready", "Breathable Mesh"],
+    description: "Moisture-wicking micro-polyester interlock mesh. Breathable, anti-static, and built for sports events, marathons, and fitness teams.",
+    badges: ["Moisture Wicking"],
+    specChips: ["160 GSM Micro-Poly", "UV 30+ Protection", "Anti-Odor Finish"],
     audience: "TEAM",
     minQty: 10,
     qtyStep: 5,
     isBestSeller: false,
     mrp: 399,
     basePrice: 220,
-    printMethod: "All-Over Sublimation / Vinyl",
+    printMethod: "Sublimation / Breathable Screen",
     template: "tee",
-    rating: 4.6,
-    reviewCount: 52,
+    rating: 4.7,
+    reviewCount: 76,
     colors: [
-      { name: "Volt Lime", hex: "#D8FF3F" },
-      { name: "Charcoal Grey", hex: "#312540" },
-      { name: "Royal Blue", hex: "#2A4B8C" },
+      { name: "Neon Lime", hex: "#D8FF3F" },
+      { name: "Cobalt Blue", hex: "#1E40AF" },
+      { name: "Anthracite", hex: "#15101F" },
     ],
     priceTiers: [
       { minQty: 10, maxQty: 24, unitPrice: 220 },
@@ -247,215 +255,247 @@ export const ALL_PRODUCTS: CatalogueProduct[] = [
   {
     id: "premium-organic-cotton-tee",
     slug: "premium-organic-cotton-tee",
-    name: "GOTS-Certified 100% Organic Cotton Tee (200 GSM)",
-    shortName: "Organic 200 GSM Tee",
+    name: "GOTS-Certified Organic Combed Cotton Tee",
+    shortName: "Organic Cotton Tee",
     categorySlug: "t-shirts",
-    description: "Sustainably cultivated organic ring-spun cotton with eco-friendly water-based ink print. Comes with certified organic hangtag.",
-    badges: ["Eco-Friendly"],
-    specChips: ["GOTS Certified", "Water-Based Inks", "Zero Chemical Bleach"],
+    description: "100% GOTS certified organic ring-spun cotton. Ultra-soft hand feel, sustainably dyed with non-toxic OEKO-TEX certified inks.",
+    badges: ["Eco Friendly", "GOTS Certified"],
+    specChips: ["100% Organic Cotton", "OEKO-TEX Inks", "Carbon Neutral"],
     audience: "GIFTING",
-    minQty: 15,
-    qtyStep: 1,
+    minQty: 10,
+    qtyStep: 5,
     isBestSeller: false,
-    mrp: 699,
-    basePrice: 380,
-    printMethod: "Eco Water-Based Screen Print",
+    mrp: 649,
+    basePrice: 360,
+    printMethod: "Water-based Screen Print",
     template: "tee",
-    rating: 4.9,
-    reviewCount: 41,
+    rating: 4.8,
+    reviewCount: 52,
     colors: [
-      { name: "Natural Sand", hex: "#F5F0E8" },
-      { name: "Olive Drab", hex: "#484E3A" },
-      { name: "Midnight Black", hex: "#15101F" },
+      { name: "Natural Ecru", hex: "#F5F0E8" },
+      { name: "Forest Moss", hex: "#2E3A2F" },
+      { name: "Deep Ink", hex: "#15101F" },
     ],
     priceTiers: [
-      { minQty: 15, maxQty: 49, unitPrice: 380 },
-      { minQty: 50, maxQty: 99, unitPrice: 310 },
-      { minQty: 100, maxQty: null, unitPrice: 260 },
+      { minQty: 10, maxQty: 24, unitPrice: 360 },
+      { minQty: 25, maxQty: 49, unitPrice: 310 },
+      { minQty: 50, maxQty: 99, unitPrice: 265 },
+      { minQty: 100, maxQty: null, unitPrice: 225 },
     ],
   },
 
-  // --- Polo Shirts ---
+  // --- Polo Shirts (4) ---
   {
     id: "executive-pique-polo",
     slug: "executive-pique-polo",
-    name: "Executive Cotton Piqué Polo Shirt (230 GSM)",
-    shortName: "230 GSM Piqué Polo",
+    name: "Executive 230 GSM Combed Cotton Piqué Polo",
+    shortName: "Executive Piqué Polo",
     categorySlug: "polo-shirts",
-    description: "Substantial 230 GSM honeycomb knit polo featuring mother-of-pearl buttons, ribbed armbands, and reinforced collar stays. Perfect for corporate leadership.",
-    badges: ["Best Seller", "Corporate Choice"],
-    specChips: ["230 GSM Piqué", "High-Density Embroidery", "Side Slits"],
+    description: "Premium honeycomb piqué knit with reinforced ribbed collar, 3-button horn placket, and side vents with herringbone tape.",
+    badges: ["Best Seller", "Corporate Standard"],
+    specChips: ["230 GSM Cotton Piqué", "Tajima Embroidery", "Horn Button Placket"],
     audience: "BOTH",
     minQty: 5,
     qtyStep: 1,
     isBestSeller: true,
-    mrp: 749,
+    mrp: 699,
     basePrice: 420,
     printMethod: "Japanese Tajima Embroidery",
     template: "polo",
     rating: 4.9,
-    reviewCount: 184,
+    reviewCount: 220,
     colors: [
-      { name: "Jet Black", hex: "#15101F" },
-      { name: "Crisp White", hex: "#FAF7F2" },
+      { name: "Obsidian Black", hex: "#15101F" },
+      { name: "Classic Navy", hex: "#17223B" },
       { name: "Royal Purple", hex: "#483A5A" },
-      { name: "Navy", hex: "#17223B" },
+      { name: "Chalk White", hex: "#FAF7F2" },
     ],
     priceTiers: [
       { minQty: 5, maxQty: 14, unitPrice: 420 },
       { minQty: 15, maxQty: 49, unitPrice: 360 },
-      { minQty: 50, maxQty: 99, unitPrice: 310 },
-      { minQty: 100, maxQty: null, unitPrice: 265 },
+      { minQty: 50, maxQty: 99, unitPrice: 305 },
+      { minQty: 100, maxQty: null, unitPrice: 260 },
     ],
   },
   {
     id: "contrast-tipped-polo",
     slug: "contrast-tipped-polo",
-    name: "Contrast Tipped Collar Executive Polo (220 GSM)",
+    name: "Dual-Tipped Collar Corporate Polo (220 GSM)",
     shortName: "Contrast Tipped Polo",
     categorySlug: "polo-shirts",
-    description: "Sporty modern polo with contrasting collar stripe accents and tonal buttons. Designed for tech startups and retail sales uniforms.",
-    badges: ["Smart Casual"],
-    specChips: ["Dual Color Collar", "220 GSM Matty", "Anti-Pilling"],
+    description: "Contemporary team polo featuring sharp contrast tipping on collar edge and sleeve bands. Tailored athletic fit.",
+    badges: ["Modern Cut"],
+    specChips: ["220 GSM Rich Blend", "Contrast Ribbed Trim", "Preshrunk"],
     audience: "TEAM",
-    minQty: 10,
+    minQty: 5,
     qtyStep: 1,
     isBestSeller: false,
-    mrp: 699,
+    mrp: 649,
     basePrice: 390,
-    printMethod: "Left-Chest Embroidery / DTF",
+    printMethod: "Chest Embroidery / DTF Print",
     template: "polo",
-    rating: 4.7,
-    reviewCount: 76,
+    rating: 4.8,
+    reviewCount: 84,
     colors: [
-      { name: "Black with Violet Tip", hex: "#15101F" },
-      { name: "Navy with Lime Tip", hex: "#1A2536" },
+      { name: "Black / Lime Tip", hex: "#15101F" },
+      { name: "Navy / White Tip", hex: "#1B2A4A" },
+      { name: "Grey / Violet Tip", hex: "#64537A" },
     ],
     priceTiers: [
-      { minQty: 10, maxQty: 24, unitPrice: 390 },
-      { minQty: 25, maxQty: 49, unitPrice: 340 },
-      { minQty: 50, maxQty: 99, unitPrice: 295 },
-      { minQty: 100, maxQty: null, unitPrice: 250 },
+      { minQty: 5, maxQty: 14, unitPrice: 390 },
+      { minQty: 15, maxQty: 49, unitPrice: 330 },
+      { minQty: 50, maxQty: 99, unitPrice: 280 },
+      { minQty: 100, maxQty: null, unitPrice: 240 },
     ],
   },
   {
     id: "drifit-team-polo",
     slug: "drifit-team-polo",
-    name: "Dri-Fit Polyester Performance Polo (170 GSM)",
-    shortName: "Dri-Fit Team Polo",
+    name: "Dri-Fit Wicking Corporate Sports Polo",
+    shortName: "Dri-Fit Sports Polo",
     categorySlug: "polo-shirts",
-    description: "Engineered micro-poly knit with side ventilation eyelets for hot outdoor climate. Sweat resistant and machine washable.",
-    badges: ["High Durability"],
-    specChips: ["Micro Poly", "Quick Dry", "Wrinkle Free"],
+    description: "Engineered polyester pique with moisture dispersion channels. Keeps teams cool during outdoor summits and team sports days.",
+    badges: ["Quick Dry"],
+    specChips: ["180 GSM Poly Pique", "Quick Dry Finish", "Laser Welded Buttonhole"],
     audience: "TEAM",
     minQty: 10,
     qtyStep: 5,
     isBestSeller: false,
-    mrp: 499,
-    basePrice: 290,
-    printMethod: "Heat Transfer Vinyl / Embroidery",
+    mrp: 549,
+    basePrice: 320,
+    printMethod: "High-Precision Embroidery",
     template: "polo",
-    rating: 4.8,
-    reviewCount: 63,
+    rating: 4.7,
+    reviewCount: 65,
     colors: [
-      { name: "Steel Grey", hex: "#5C5668" },
-      { name: "Classic Navy", hex: "#17223B" },
-      { name: "Pure White", hex: "#FFFFFF" },
+      { name: "Graphite", hex: "#312540" },
+      { name: "Electric Blue", hex: "#1E40AF" },
+      { name: "Arctic White", hex: "#FFFFFF" },
     ],
     priceTiers: [
-      { minQty: 10, maxQty: 24, unitPrice: 290 },
-      { minQty: 25, maxQty: 49, unitPrice: 245 },
-      { minQty: 50, maxQty: 99, unitPrice: 210 },
-      { minQty: 100, maxQty: null, unitPrice: 175 },
+      { minQty: 10, maxQty: 24, unitPrice: 320 },
+      { minQty: 25, maxQty: 49, unitPrice: 275 },
+      { minQty: 50, maxQty: 99, unitPrice: 235 },
+      { minQty: 100, maxQty: null, unitPrice: 198 },
+    ],
+  },
+  {
+    id: "heavyweight-uniform-polo",
+    slug: "heavyweight-uniform-polo",
+    name: "Industrial Heavyweight Workwear Polo (260 GSM)",
+    shortName: "260 GSM Heavy Polo",
+    categorySlug: "polo-shirts",
+    description: "Durable 60% cotton 40% polyester blend built for warehouse operations, logistics crews, and facility staff.",
+    badges: ["Heavy Duty"],
+    specChips: ["260 GSM Blend", "Triple Stitching", "Stain Release"],
+    audience: "TEAM",
+    minQty: 15,
+    qtyStep: 5,
+    isBestSeller: false,
+    mrp: 649,
+    basePrice: 350,
+    printMethod: "Heavy Embroidery",
+    template: "polo",
+    rating: 4.8,
+    reviewCount: 47,
+    colors: [
+      { name: "Coal Black", hex: "#15101F" },
+      { name: "Navy Industrial", hex: "#17223B" },
+    ],
+    priceTiers: [
+      { minQty: 15, maxQty: 49, unitPrice: 350 },
+      { minQty: 50, maxQty: 99, unitPrice: 300 },
+      { minQty: 100, maxQty: null, unitPrice: 255 },
     ],
   },
 
-  // --- Hoodies & Sweatshirts ---
+  // --- Hoodies & Sweatshirts (4) ---
   {
     id: "classic-pullover-hoodie",
     slug: "classic-pullover-hoodie",
-    name: "Classic Kangaroo Pocket Pullover Hoodie (320 GSM)",
+    name: "320 GSM Brushed Heavy Fleece Pullover Hoodie",
     shortName: "320 GSM Pullover Hoodie",
     categorySlug: "hoodies",
-    description: "Heavyweight 320 GSM brushed fleece with double-layered thermal hood, flat shoelace drawstrings, and 2x2 lycra rib cuffs. Premium winter swag staple.",
+    description: "Plush 320 GSM combed cotton-rich fleece. Double-layered hood, heavy matching drawstrings with gunmetal aglets, and roomy kangaroo pocket.",
     badges: ["Best Seller", "Heavy Fleece"],
-    specChips: ["320 GSM Fleece", "Kangaroo Pocket", "Double Lined Hood"],
+    specChips: ["320 GSM Brushed Fleece", "Double Layer Hood", "Gunmetal Aglets"],
     audience: "BOTH",
     minQty: 5,
     qtyStep: 1,
     isBestSeller: true,
-    mrp: 1499,
-    basePrice: 790,
-    printMethod: "Center-Chest DTF / Embroidery",
+    mrp: 1299,
+    basePrice: 799,
+    printMethod: "Screen Print / High-Density Embroidery",
     template: "hoodie",
     rating: 4.9,
-    reviewCount: 220,
+    reviewCount: 268,
     colors: [
-      { name: "Midnight Black", hex: "#15101F" },
-      { name: "Heather Grey", hex: "#A8A2B0" },
-      { name: "Deep Navy", hex: "#1B2A4A" },
-      { name: "Rich Lilac", hex: "#CDB8FF" },
+      { name: "Ink Black", hex: "#15101F" },
+      { name: "Deep Heather Grey", hex: "#64537A" },
+      { name: "Spot Violet", hex: "#6A2CFF" },
+      { name: "Midnight Navy", hex: "#17223B" },
     ],
     priceTiers: [
-      { minQty: 5, maxQty: 14, unitPrice: 790 },
+      { minQty: 5, maxQty: 14, unitPrice: 799 },
       { minQty: 15, maxQty: 49, unitPrice: 680 },
-      { minQty: 50, maxQty: 99, unitPrice: 580 },
+      { minQty: 50, maxQty: 99, unitPrice: 575 },
       { minQty: 100, maxQty: null, unitPrice: 495 },
     ],
   },
   {
-    id: "zipper-fleece-hoodie",
-    slug: "zipper-fleece-hoodie",
-    name: "Full-Zip Brushed Heavy Fleece Hoodie (340 GSM)",
-    shortName: "Full-Zip 340 GSM Hoodie",
+    id: "metal-zipper-fleece-jacket",
+    slug: "metal-zipper-fleece-jacket",
+    name: "Full-Zip Metal Zipper Heavyweight Fleece Jacket",
+    shortName: "Full-Zip Fleece Jacket",
     categorySlug: "hoodies",
-    description: "Warm 340 GSM cotton-poly fleece featuring a smooth YKK metal zipper, concealed phone pocket, and double-needle stitching throughout.",
-    badges: ["YKK Zipper"],
-    specChips: ["340 GSM Cotton Fleece", "YKK Brass Pull", "Inner Media Pocket"],
-    audience: "TEAM",
+    description: "Premium heavy fleece jacket with antique brass YKK zipper, cadet stand collar, and concealed headphone cable routing hole.",
+    badges: ["YKK Zipper", "Executive Cut"],
+    specChips: ["340 GSM Heavyweight", "Antique Brass YKK", "Cadet Stand Collar"],
+    audience: "BOTH",
     minQty: 5,
     qtyStep: 1,
     isBestSeller: false,
-    mrp: 1799,
-    basePrice: 940,
-    printMethod: "Left-Chest Crest + Back Artwork",
+    mrp: 1599,
+    basePrice: 990,
+    printMethod: "Chest Embroidery / Leather Patch",
     template: "hoodie",
-    rating: 4.8,
-    reviewCount: 88,
+    rating: 4.9,
+    reviewCount: 114,
     colors: [
-      { name: "Carbon Black", hex: "#15101F" },
-      { name: "Slate Heather", hex: "#565261" },
+      { name: "Pitch Black", hex: "#15101F" },
+      { name: "Deep Navy", hex: "#17223B" },
+      { name: "Slate Melange", hex: "#483A5A" },
     ],
     priceTiers: [
-      { minQty: 5, maxQty: 14, unitPrice: 940 },
-      { minQty: 15, maxQty: 49, unitPrice: 820 },
-      { minQty: 50, maxQty: 99, unitPrice: 710 },
-      { minQty: 100, maxQty: null, unitPrice: 615 },
+      { minQty: 5, maxQty: 14, unitPrice: 990 },
+      { minQty: 15, maxQty: 49, unitPrice: 850 },
+      { minQty: 50, maxQty: 99, unitPrice: 740 },
+      { minQty: 100, maxQty: null, unitPrice: 650 },
     ],
   },
   {
     id: "minimalist-crewneck-sweatshirt",
     slug: "minimalist-crewneck-sweatshirt",
-    name: "Minimalist Drop-Shoulder Crewneck Sweatshirt (300 GSM)",
+    name: "Minimalist Crewneck Sweatshirt (300 GSM)",
     shortName: "Crewneck Sweatshirt",
     categorySlug: "hoodies",
-    description: "Modern no-hood silhouette engineered with 300 GSM combed cotton. Perfect for indoor office AC environments and tech campus swag.",
+    description: "Clean-line raglan sleeve crewneck in smooth face fleece. Features classic V-notch rib insert at neck and spandex-reinforced cuffs.",
     badges: ["Minimalist"],
-    specChips: ["300 GSM Cotton", "Raglan Sleeves", "No-Pill Fleece"],
-    audience: "GIFTING",
+    specChips: ["300 GSM Smooth Face", "Raglan Sleeve", "Spandex Ribbing"],
+    audience: "BOTH",
     minQty: 10,
-    qtyStep: 1,
+    qtyStep: 5,
     isBestSeller: false,
-    mrp: 1299,
+    mrp: 999,
     basePrice: 680,
-    printMethod: "Subtle Tonal Embroidery / Puff",
+    printMethod: "Center Chest DTG / Minimal Embroidery",
     template: "hoodie",
-    rating: 4.9,
-    reviewCount: 95,
+    rating: 4.8,
+    reviewCount: 89,
     colors: [
-      { name: "Vintage Cream", hex: "#F5F0E8" },
-      { name: "Sage Olive", hex: "#484E3A" },
-      { name: "Washed Ink", hex: "#221A31" },
+      { name: "Heather Grey", hex: "#9F8CB8" },
+      { name: "Oatmeal Milk", hex: "#EDE6DA" },
+      { name: "Deep Ink", hex: "#15101F" },
     ],
     priceTiers: [
       { minQty: 10, maxQty: 24, unitPrice: 680 },
@@ -464,8 +504,37 @@ export const ALL_PRODUCTS: CatalogueProduct[] = [
       { minQty: 100, maxQty: null, unitPrice: 440 },
     ],
   },
+  {
+    id: "varsity-raglan-hoodie",
+    slug: "varsity-raglan-hoodie",
+    name: "Two-Tone Varsity Raglan Pullover (320 GSM)",
+    shortName: "Two-Tone Varsity Hoodie",
+    categorySlug: "hoodies",
+    description: "College varsity styling with contrast color raglan sleeves and striped ribbed cuffs. Built for university student councils and clubs.",
+    badges: ["Varsity"],
+    specChips: ["Raglan Sleeves", "Striped Ribbing", "Twill Applique"],
+    audience: "TEAM",
+    minQty: 15,
+    qtyStep: 5,
+    isBestSeller: false,
+    mrp: 1399,
+    basePrice: 720,
+    printMethod: "Chenille Applique / Screen Print",
+    template: "hoodie",
+    rating: 4.8,
+    reviewCount: 39,
+    colors: [
+      { name: "Black & Violet", hex: "#15101F" },
+      { name: "Navy & Grey", hex: "#1B2A4A" },
+    ],
+    priceTiers: [
+      { minQty: 15, maxQty: 49, unitPrice: 720 },
+      { minQty: 50, maxQty: 99, unitPrice: 610 },
+      { minQty: 100, maxQty: null, unitPrice: 520 },
+    ],
+  },
 
-  // --- Caps & Headwear ---
+  // --- Caps & Headwear (4) ---
   {
     id: "structured-cotton-twill-cap",
     slug: "structured-cotton-twill-cap",
@@ -499,13 +568,13 @@ export const ALL_PRODUCTS: CatalogueProduct[] = [
     ],
   },
   {
-    id: "mesh-trucker-snapback",
-    slug: "mesh-trucker-snapback",
+    id: "trucker-mesh-snapback-cap",
+    slug: "trucker-mesh-snapback-cap",
     name: "Vintage Mesh Back Trucker Snapback",
     shortName: "Mesh Trucker Cap",
     categorySlug: "caps",
     description: "Retro high-crown trucker cap with premium foam front panel, breathable nylon mesh back, and 7-notch adjustable snapback.",
-    badges: ["Breathable"],
+    badges: ["Breathable", "Summer Hit"],
     specChips: ["Nylon Mesh", "Sublimation / Screen", "Classic Snapback"],
     audience: "TEAM",
     minQty: 10,
@@ -528,8 +597,128 @@ export const ALL_PRODUCTS: CatalogueProduct[] = [
       { minQty: 100, maxQty: null, unitPrice: 135 },
     ],
   },
+  {
+    id: "unstructured-dad-hat",
+    slug: "unstructured-dad-hat",
+    name: "Vintage Washed Unstructured Dad Hat",
+    shortName: "Washed Dad Hat",
+    categorySlug: "caps",
+    description: "Soft unlined cotton twill with garment wash enzyme treatment for a relaxed, broken-in feel right out of the box.",
+    badges: ["Vintage Wash"],
+    specChips: ["Enzyme Washed", "Antique Clasp", "Flat Embroidery"],
+    audience: "GIFTING",
+    minQty: 10,
+    qtyStep: 1,
+    isBestSeller: false,
+    mrp: 449,
+    basePrice: 250,
+    printMethod: "Tonal Flat Embroidery",
+    template: "cap",
+    rating: 4.8,
+    reviewCount: 56,
+    colors: [
+      { name: "Washed Sage", hex: "#816F98" },
+      { name: "Faded Black", hex: "#221A31" },
+    ],
+    priceTiers: [
+      { minQty: 10, maxQty: 24, unitPrice: 250 },
+      { minQty: 25, maxQty: 49, unitPrice: 205 },
+      { minQty: 50, maxQty: 99, unitPrice: 170 },
+      { minQty: 100, maxQty: null, unitPrice: 140 },
+    ],
+  },
+  {
+    id: "performance-running-visor",
+    slug: "performance-running-visor",
+    name: "Lightweight Quick-Dry Sports Sun Visor",
+    shortName: "Sports Sun Visor",
+    categorySlug: "caps",
+    description: "Curved glare-reducing brim with inner terrycloth sweatband and adjustable velcro closure for sports events and marathons.",
+    badges: ["Activewear"],
+    specChips: ["Terry Sweatband", "Velcro Tab", "Ultralight"],
+    audience: "TEAM",
+    minQty: 15,
+    qtyStep: 5,
+    isBestSeller: false,
+    mrp: 349,
+    basePrice: 195,
+    printMethod: "Reflective Vinyl / Embroidery",
+    template: "cap",
+    rating: 4.7,
+    reviewCount: 41,
+    colors: [
+      { name: "Bright Lime", hex: "#D8FF3F" },
+      { name: "Solid Black", hex: "#15101F" },
+    ],
+    priceTiers: [
+      { minQty: 15, maxQty: 49, unitPrice: 195 },
+      { minQty: 50, maxQty: 99, unitPrice: 160 },
+      { minQty: 100, maxQty: null, unitPrice: 130 },
+    ],
+  },
 
-  // --- Corporate Gifts & Kits ---
+  // --- Corporate Gifts & Kits (4) ---
+  {
+    id: "executive-brass-twist-pen",
+    slug: "executive-brass-twist-pen",
+    name: "Executive Brass Twist Metal Ballpoint Pen",
+    shortName: "Brass Twist Pen",
+    categorySlug: "corporate-gifts",
+    description: "Solid weighted brass barrel with matte electroplated finish, smooth German Schmidt refill, and mirror-gold laser etching.",
+    badges: ["Best Seller", "German Refill"],
+    specChips: ["Solid Brass 32g", "Schmidt Refill", "Mirror Laser Etch"],
+    audience: "GIFTING",
+    minQty: 15,
+    qtyStep: 5,
+    isBestSeller: true,
+    mrp: 349,
+    basePrice: 195,
+    printMethod: "Fiber Laser Engraving",
+    template: "pen",
+    rating: 4.9,
+    reviewCount: 145,
+    colors: [
+      { name: "Matte Black & Gold", hex: "#15101F" },
+      { name: "Satin Silver", hex: "#D6D6D6" },
+    ],
+    priceTiers: [
+      { minQty: 15, maxQty: 49, unitPrice: 195 },
+      { minQty: 50, maxQty: 99, unitPrice: 165 },
+      { minQty: 100, maxQty: 249, unitPrice: 135 },
+      { minQty: 250, maxQty: null, unitPrice: 110 },
+    ],
+  },
+  {
+    id: "hardbound-leather-journal-a5",
+    slug: "hardbound-leather-journal-a5",
+    name: "Hardbound Debossed A5 Vegan Leather Journal (192 Pages)",
+    shortName: "A5 Leather Journal",
+    categorySlug: "corporate-gifts",
+    description: "Handcrafted 192-page 100 GSM ivory ruled paper diary with PU leather cover, expanding inner back pocket, and elastic pen loop.",
+    badges: ["Top Corporate Gift"],
+    specChips: ["100 GSM Ivory Paper", "Blind Debossing", "180° Lay Flat"],
+    audience: "GIFTING",
+    minQty: 10,
+    qtyStep: 5,
+    isBestSeller: true,
+    mrp: 599,
+    basePrice: 340,
+    printMethod: "Blind Deboss / Gold Foil Stamping",
+    template: "notebook",
+    rating: 4.9,
+    reviewCount: 132,
+    colors: [
+      { name: "Linen Paper", hex: "#F5F0E8" },
+      { name: "Charcoal Slate", hex: "#2E2838" },
+      { name: "Deep Violet", hex: "#483A5A" },
+    ],
+    priceTiers: [
+      { minQty: 10, maxQty: 24, unitPrice: 340 },
+      { minQty: 25, maxQty: 49, unitPrice: 290 },
+      { minQty: 50, maxQty: 99, unitPrice: 245 },
+      { minQty: 100, maxQty: null, unitPrice: 210 },
+    ],
+  },
   {
     id: "matte-insulated-steel-flask",
     slug: "matte-insulated-steel-flask",
@@ -563,89 +752,28 @@ export const ALL_PRODUCTS: CatalogueProduct[] = [
     ],
   },
   {
-    id: "executive-hardbound-journal",
-    slug: "executive-hardbound-journal",
-    name: "Smyth-Sewn Hardbound Linen Journal (192 Pages)",
-    shortName: "Linen Hardbound Journal",
+    id: "steel-engraved-keychain",
+    slug: "steel-engraved-keychain",
+    name: "Heavy Stainless Steel Rectangle Engraved Keychain",
+    shortName: "Steel Keychain",
     categorySlug: "corporate-gifts",
-    description: "100 GSM acid-free ivory pages that lay completely flat at 180 degrees. Encased in textured bookbinding linen with pen loop and dual ribbon markers.",
-    badges: ["Hand-Bound"],
-    specChips: ["100 GSM Ivory Paper", "Blind Debossing", "180° Lay Flat"],
-    audience: "GIFTING",
-    minQty: 10,
-    qtyStep: 5,
-    isBestSeller: true,
-    mrp: 599,
-    basePrice: 340,
-    printMethod: "Blind Deboss / Gold Foil Stamping",
-    template: "notebook",
-    rating: 4.9,
-    reviewCount: 132,
-    colors: [
-      { name: "Linen Paper", hex: "#F5F0E8" },
-      { name: "Charcoal Slate", hex: "#2E2838" },
-      { name: "Deep Violet", hex: "#483A5A" },
-    ],
-    priceTiers: [
-      { minQty: 10, maxQty: 24, unitPrice: 340 },
-      { minQty: 25, maxQty: 49, unitPrice: 290 },
-      { minQty: 50, maxQty: 99, unitPrice: 245 },
-      { minQty: 100, maxQty: null, unitPrice: 210 },
-    ],
-  },
-  {
-    id: "matte-metal-rollerball-pen",
-    slug: "matte-metal-rollerball-pen",
-    name: "Precision Weighted Brass Rollerball Pen (0.5mm)",
-    shortName: "Brass Rollerball Pen",
-    categorySlug: "corporate-gifts",
-    description: "Solid brass barrel with German Schneider ceramic roller refill. Laser engraved to expose the gleaming golden brass underneath the matte black coat.",
-    badges: ["German Refill"],
-    specChips: ["Solid Brass 32g", "Schneider Gel Ink", "Mirror Laser Etch"],
-    audience: "GIFTING",
-    minQty: 15,
-    qtyStep: 5,
-    isBestSeller: false,
-    mrp: 349,
-    basePrice: 195,
-    printMethod: "Fiber Laser Engraving",
-    template: "pen",
-    rating: 4.8,
-    reviewCount: 97,
-    colors: [
-      { name: "Matte Black & Gold", hex: "#15101F" },
-      { name: "Satin Silver", hex: "#D6D6D6" },
-    ],
-    priceTiers: [
-      { minQty: 15, maxQty: 49, unitPrice: 195 },
-      { minQty: 50, maxQty: 99, unitPrice: 165 },
-      { minQty: 100, maxQty: 249, unitPrice: 135 },
-      { minQty: 250, maxQty: null, unitPrice: 110 },
-    ],
-  },
-  {
-    id: "leather-loop-keychain",
-    slug: "leather-loop-keychain",
-    name: "Full-Grain Leather Loop Keyring with Matte Rivet",
-    shortName: "Leather Loop Keyring",
-    categorySlug: "corporate-gifts",
-    description: "Vegetable-tanned harness leather hand-beveled and burnished with beeswax. Laser engraved or heat stamped with black nickel split ring.",
-    badges: ["Full Grain"],
-    specChips: ["Full-Grain Veg Tan", "Gunmetal Rivet", "Heat Embossing"],
+    description: "Solid 2.5mm stainless steel tag with hand-brushed satin finish, high-tensile flat split ring, and permanent deep laser engraving.",
+    badges: ["Lifetime Finish"],
+    specChips: ["Solid Stainless Steel", "Permanent Laser Etch", "Heavy Duty Ring"],
     audience: "GIFTING",
     minQty: 20,
     qtyStep: 10,
     isBestSeller: false,
     mrp: 299,
     basePrice: 145,
-    printMethod: "Hot Foil / Laser Engrave",
+    printMethod: "Deep Laser Engrave",
     template: "keychain",
     rating: 4.8,
     reviewCount: 64,
     colors: [
-      { name: "Tan Saddle", hex: "#A06834" },
-      { name: "Dark Walnut", hex: "#42281D" },
-      { name: "Jet Black", hex: "#15101F" },
+      { name: "Brushed Steel", hex: "#D6D6D6" },
+      { name: "Matte Black", hex: "#15101F" },
+      { name: "Mirror Gold", hex: "#D4AF37" },
     ],
     priceTiers: [
       { minQty: 20, maxQty: 49, unitPrice: 145 },
@@ -656,13 +784,52 @@ export const ALL_PRODUCTS: CatalogueProduct[] = [
 ];
 
 export const CATEGORIES_LIST = [
-  { id: "1", slug: "magnetic-badges", name: "Magnetic Badges", description: "No fabric damage magnetic lapel pins", sortOrder: 1, _count: { products: 4 } },
-  { id: "2", slug: "t-shirts", name: "T-Shirts", description: "100% bio-washed custom printed cotton tees", sortOrder: 2, _count: { products: 4 } },
-  { id: "3", slug: "polo-shirts", name: "Polo Shirts", description: "230 GSM piqué corporate embroidered polos", sortOrder: 3, _count: { products: 3 } },
-  { id: "4", slug: "hoodies", name: "Hoodies & Sweatshirts", description: "320 GSM brushed heavy fleece hoodies", sortOrder: 4, _count: { products: 3 } },
-  { id: "5", slug: "caps", name: "Caps & Headwear", description: "Structured 6-panel twill and trucker caps", sortOrder: 5, _count: { products: 2 } },
-  { id: "6", slug: "corporate-gifts", name: "Corporate Gifts & Kits", description: "Laser pens, notebooks, and steel flasks", sortOrder: 6, _count: { products: 4 } },
+  { id: "1", slug: "magnetic-badges", name: "Magnetic Badges", description: "Dual-neodymium magnetic fastener lapel pins and badges", sortOrder: 1, _count: { products: 4 } },
+  { id: "2", slug: "t-shirts", name: "T-Shirts", description: "100% bio-washed custom printed cotton tees (includes athletic & heavyweight)", sortOrder: 2, _count: { products: 8 } },
+  { id: "3", slug: "polo-shirts", name: "Polo Shirts", description: "230 GSM piqué corporate embroidered polos", sortOrder: 3, _count: { products: 4 } },
+  { id: "4", slug: "hoodies", name: "Hoodies & Sweatshirts", description: "320 GSM brushed heavy fleece hoodies & sweatshirts", sortOrder: 4, _count: { products: 4 } },
+  { id: "5", slug: "caps", name: "Caps & Headwear", description: "Structured 6-panel twill and retro mesh trucker caps", sortOrder: 5, _count: { products: 4 } },
+  { id: "6", slug: "corporate-gifts", name: "Corporate Gifts & Kits", description: "Laser pens, notebooks, and insulated flasks", sortOrder: 6, _count: { products: 4 } },
 ];
+
+/**
+ * Normalizes slug and finds matching product from in-memory catalog
+ */
+export function findProductBySlug(rawSlug: string): CatalogueProduct | undefined {
+  if (!rawSlug) return undefined;
+  const canonical = normalizeSlug(rawSlug);
+  return (
+    ALL_PRODUCTS.find((p) => p.slug === canonical || p.id === canonical) ||
+    ALL_PRODUCTS.find((p) => p.slug.toLowerCase() === rawSlug.toLowerCase().trim() || p.id.toLowerCase() === rawSlug.toLowerCase().trim())
+  );
+}
+
+/**
+ * Normalizes slug and finds matching category
+ */
+export function findCategoryBySlug(rawSlug: string) {
+  if (!rawSlug) return undefined;
+  const slug = rawSlug.toLowerCase().trim();
+  if (slug === "all") {
+    return {
+      id: "all",
+      slug: "all",
+      name: "All Print Merchandise",
+      description: "The complete atelier catalogue of proof-ready custom merchandise with bulk tier pricing.",
+      _count: { products: ALL_PRODUCTS.length },
+    };
+  }
+  if (slug === "best-sellers") {
+    return {
+      id: "best-sellers",
+      slug: "best-sellers",
+      name: "Best Selling Merchandise",
+      description: "Our top-rated products chosen by over 1,200 Indian tech companies, college festivals, and design teams.",
+      _count: { products: ALL_PRODUCTS.filter((p) => p.isBestSeller).length },
+    };
+  }
+  return CATEGORIES_LIST.find((c) => c.slug === slug);
+}
 
 /**
  * Fetch all active categories with cache tag 'categories'
@@ -686,7 +853,7 @@ export const getCachedCategories = unstable_cache(
         });
         if (categories.length > 0) return categories;
       } catch {
-        // Fallback
+        // Fallback to static
       }
     }
 
@@ -697,7 +864,8 @@ export const getCachedCategories = unstable_cache(
 );
 
 /**
- * Fetch flagship products with cache tag 'products'
+ * Fetch products with cache tag 'products'
+ * Special: "t-shirts" includes "polo-shirts" per design specification.
  */
 export const getCachedProducts = unstable_cache(
   async (categorySlug?: string) => {
@@ -707,14 +875,17 @@ export const getCachedProducts = unstable_cache(
       !process.env.DATABASE_URL.includes("user:password")
     ) {
       try {
+        const whereClause: Prisma.ProductWhereInput = { active: true };
+        if (categorySlug === "t-shirts") {
+          whereClause.category = { slug: { in: ["t-shirts", "polo-shirts"] } };
+        } else if (categorySlug && categorySlug !== "all" && categorySlug !== "best-sellers") {
+          whereClause.category = { slug: categorySlug };
+        } else if (categorySlug === "best-sellers") {
+          whereClause.isBestSeller = true;
+        }
+
         const products = await prisma.product.findMany({
-          where: {
-            active: true,
-            ...(categorySlug && categorySlug !== "all" && categorySlug !== "best-sellers"
-              ? { category: { slug: categorySlug } }
-              : {}),
-            ...(categorySlug === "best-sellers" ? { isBestSeller: true } : {}),
-          },
+          where: whereClause,
           include: {
             category: true,
             priceTiers: { orderBy: { minQty: "asc" } },
@@ -760,13 +931,55 @@ export const getCachedProducts = unstable_cache(
 
     // Static Fallback
     let items = ALL_PRODUCTS;
-    if (categorySlug && categorySlug !== "all" && categorySlug !== "best-sellers") {
-      items = items.filter((p) => p.categorySlug === categorySlug);
-    } else if (categorySlug === "best-sellers") {
-      items = items.filter((p) => p.isBestSeller);
-    }
-    return items;
-  },
-  ["products-cache-key"],
-  { tags: ["catalogue", "products"], revalidate: 3600 }
+      if (categorySlug === "t-shirts") {
+        items = items.filter((p) => p.categorySlug === "t-shirts" || p.categorySlug === "polo-shirts");
+      } else if (categorySlug && categorySlug !== "all" && categorySlug !== "best-sellers") {
+        items = items.filter((p) => p.categorySlug === categorySlug);
+      } else if (categorySlug === "best-sellers") {
+        items = items.filter((p) => p.isBestSeller);
+      }
+      return items;
+    },
+    ["products-cache-key"],
+      { tags: ["catalogue", "products"], revalidate: 3600 }
 );
+
+/**
+ * Async lookup helper for single product
+ */
+export async function getProductBySlug(rawSlug: string): Promise<CatalogueProduct | undefined> {
+  const canonical = normalizeSlug(rawSlug);
+  const products = await getCachedProducts();
+  return (
+    products.find((p) => p.slug === canonical || p.id === canonical) ||
+    products.find((p) => p.slug.toLowerCase() === rawSlug.toLowerCase().trim()) ||
+    findProductBySlug(rawSlug)
+  );
+}
+
+/**
+ * Async lookup helper for single category
+ */
+export async function getCategoryBySlug(rawSlug: string) {
+  const slug = rawSlug.toLowerCase().trim();
+  const categories = await getCachedCategories();
+  if (slug === "all") {
+    return {
+      id: "all",
+      slug: "all",
+      name: "All Print Merchandise",
+      description: "The complete atelier catalogue of proof-ready custom merchandise with bulk tier pricing.",
+      _count: { products: ALL_PRODUCTS.length },
+    };
+  }
+  if (slug === "best-sellers") {
+    return {
+      id: "best-sellers",
+      slug: "best-sellers",
+      name: "Best Selling Merchandise",
+      description: "Our top-rated products chosen by over 1,200 Indian tech companies, college festivals, and design teams.",
+      _count: { products: ALL_PRODUCTS.filter((p) => p.isBestSeller).length },
+    };
+  }
+  return categories.find((c) => c.slug === slug) || findCategoryBySlug(slug);
+}

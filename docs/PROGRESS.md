@@ -282,6 +282,27 @@
 - Added comprehensive Vitest suite in `src/__tests__/admin.test.ts` (11 tests covering DDE formula protection, price tier contiguity validation, descending prices, overlap detection, and audit logging).
 - Quality Gates passed: 0 typecheck errors, 0 lint warnings, 64/64 unit tests passed, production build passed (57/57 routes optimized).
 
+### Part 3 Step 3G: Extra Features
+- Built Purple Assistant Knowledge Engine in `src/lib/assistant/responder.ts`:
+  - Rich offline rule-based heuristic knowledge base covering MOQs (5-10 units), turnaround (24-48h dispatch, pan-India air express), 18% GST input credit compliance, pre-press proof approval guarantees, print method capabilities (DTG, Screen Print, Tajima Embroidery, Laser Engraving, Offset Lithography), sample batches, and artwork specs.
+  - Live Google Gemini API integration (with prompt hardening, strictly plain-text responses, and non-merchandise topic shielding).
+- Created `/api/assistant` endpoint with sliding-window rate limiting (15 requests/min per IP) and Zod payload validation.
+- Built `PurpleAssistant` client component in `src/components/chat/PurpleAssistant.tsx`:
+  - Floating bottom-right chat widget with unread notification badge, session-persistent open/collapsed state (`sessionStorage`), greeting from Master Printmaker Vikram, quick prompt chips, auto-scrolling message thread, and plain-text-only rendering (zero raw markdown execution).
+  - Integrated into root layout (`src/app/layout.tsx`).
+- Built Corporate Gifts Budget Planner in `src/lib/corporate/kits.ts`:
+  - Algorithmic recommendation engine mapping recipient volume (10 to 5000) and budget per head (₹300 to ₹10,000) across 4 corporate audiences (New Joiners, Client VIPs, Festive Hampers, Tech Conference Swag) into optimal 3-product suites.
+  - Computes retail MRP, automated volume tier rates (50+ and 250+ units), total team investment, and net corporate project savings.
+- Built Quotation PDF Generation Endpoint in `src/app/api/corporate/quotation-pdf/route.ts`:
+  - Generates official Indian B2B Corporate Gifting Quotation formatted to A4 with seller details, GSTIN, line-item breakdowns, volume discounts, presentation packaging terms, and 30-day price lock guarantee using `pdf-lib`.
+- Created `/corporate-gifting/page.tsx` featuring the interactive `BudgetPlanner` and enterprise assistance CTA.
+- Created Progressive Web App (PWA) configuration:
+  - `public/manifest.json` with standalone display, `#15101F` theme, `#F5F0E8` background, portrait orientation.
+  - Script `scripts/generate-icons.ts` generating high-resolution branded icons with sharp: `icon-192.png`, `icon-512.png`, and `maskable-512.png`.
+  - Linked `manifest: "/manifest.json"` in root layout metadata.
+- Added comprehensive Vitest test suite in `src/__tests__/assistant-corporate.test.ts` (8 tests covering knowledge responder, intent matching, corporate kit calculation, and volume discount scaling).
+- Quality Gates passed: 0 typecheck errors, 0 lint warnings, 72/72 unit tests passed, production build passed (60/60 routes optimized).
+
 ### Step 0: Preflight & Scaffold
 
 ### Step 0: Preflight & Scaffold

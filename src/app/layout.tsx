@@ -11,9 +11,11 @@ import { Toaster } from "@/components/ui/sonner";
 import { LenisProvider } from "@/components/motion/LenisProvider";
 import { PageTransition } from "@/components/motion/PageTransition";
 import { AuthProvider } from "@/components/providers/AuthProvider";
+import { PurpleAssistant } from "@/components/chat/PurpleAssistant";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  manifest: "/manifest.json",
   title: {
     default: "Purple Friday | Custom Printed Products & Corporate Merch India",
     template: "%s | Purple Friday",
@@ -128,6 +130,9 @@ export default function RootLayout({
 
             {/* App Shell Footer */}
             <Footer />
+
+            {/* Floating Purple Assistant */}
+            <PurpleAssistant />
         </LenisProvider>
       </AuthProvider>
     </body>

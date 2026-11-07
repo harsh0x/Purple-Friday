@@ -303,6 +303,26 @@
 - Added comprehensive Vitest test suite in `src/__tests__/assistant-corporate.test.ts` (8 tests covering knowledge responder, intent matching, corporate kit calculation, and volume discount scaling).
 - Quality Gates passed: 0 typecheck errors, 0 lint warnings, 72/72 unit tests passed, production build passed (60/60 routes optimized).
 
+### Part 3 Step 3H & 3I: Security Hardening & Accessibility Audit
+- Enforcing Content-Security-Policy (CSP) in `middleware.ts`:
+  - Switched from Report-Only to strict ENFORCING mode with dynamic base64 nonces, `strict-dynamic`, `frame-ancestors 'none'`, and restricted connect domains (Razorpay, Cloudinary, Cloudflare Turnstile, Gemini API).
+  - Hardened HTTP response headers suite: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, and `Cross-Origin-Opener-Policy: same-origin-allow-popups`.
+  - Scoped `Permissions-Policy` to permit camera access exclusively on `/design` customizer routes (`camera=(self)`) and disabled camera, microphone, and geolocation across other routes.
+- Cross-Site Request Forgery (CSRF) & Same-Origin Defense:
+  - Created `src/lib/security/origin.ts` verifying `isSameOrigin` on all state-mutating API routes (`/api/orders`, `/api/reviews`, `/api/auth/*`).
+- API Rate Limiting Verification:
+  - Enforced strict sliding-window rate limit schedule across all endpoints: `/api/uploads` (20/min), `/api/orders` (10/min), `/api/auth/*` (5/min), `/api/assistant` (10/min), and `/api/reviews` (5/min).
+- Security Documentation & Disclosure:
+  - Created `docs/SECURITY.md` detailing the multi-layered threat model, upload defense pipeline, authentication lockout policies, CSP directives, and vulnerability disclosure policy (`security@purplefriday.in`, 48-hour response target).
+  - Created `public/.well-known/security.txt` per RFC 9116 pointing to canonical policy, contact email, and supported languages (en, hi).
+  - Created `scripts/check-headers.ts` security header scanner probing server responses and asserting all defensive headers.
+- Comprehensive Automated Security Test Suite (`src/__tests__/security.test.ts`):
+  - 10 automated test cases verifying CSRF origin rejection, CSP enforcing structure, rate limit 429 throttling, brute-force account lockout after 5 consecutive failures, DDE CSV formula injection neutralization, SVG script stripping, fake extension magic byte rejection, IDOR upload ownership boundaries, price tampering rejection, and SQL injection parameter safety.
+- Accessibility & Design Bible Contrast Audit (`src/__tests__/a11y.test.ts`):
+  - Verified WCAG 2.1 AA luminance & contrast ratios across all design tokens: Ink on Paper (>14:1, exceeds AAA), Violet text on Paper (>5.5:1), White text on Violet (>6:1), and Spot-Lime on Ink (>15:1).
+  - Verified focus ring tokens (`focus-visible:ring-2 focus-visible:ring-pf-violet focus-visible:ring-offset-2`) for all interactive elements.
+- Quality Gates passed: 0 typecheck errors, 0 lint warnings, 88/88 unit tests passed, production build passed (60/60 routes optimized).
+
 ### Step 0: Preflight & Scaffold
 
 ### Step 0: Preflight & Scaffold

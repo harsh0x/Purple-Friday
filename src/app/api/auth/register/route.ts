@@ -3,6 +3,7 @@ import { z } from "zod";
 import { checkRateLimit, getClientKey } from "@/lib/rate-limit";
 import { validatePasswordStrength } from "@/lib/security/auth-policy";
 import { createUser } from "@/lib/auth-service";
+import { isSameOrigin } from "@/lib/security/origin";
 
 const registerSchema = z.object({
   email: z.string().email("Please provide a valid email address."),
@@ -11,8 +12,15 @@ const registerSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  if (!isSameOrigin(req)) {
+    return NextResponse.json(
+      { success: false, error: "Cross-origin requests are forbidden." },
+      { status: 403 }
+    );
+  }
+
   const clientKey = getClientKey(req, "auth_register");
-  const rateLimitResult = await checkRateLimit(clientKey, 10, 60000);
+  const rateLimitResult = await checkRateLimit(clientKey, 5, 60000);
   if (!rateLimitResult.success) {
     return NextResponse.json(
       { success: false, error: "Too many registration attempts. Please wait a minute." },

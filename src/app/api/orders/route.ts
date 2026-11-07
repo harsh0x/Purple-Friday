@@ -3,6 +3,8 @@ import { z } from "zod";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { createOrder } from "@/lib/orders";
+import { checkRateLimit, getClientKey } from "@/lib/rate-limit";
+import { isSameOrigin } from "@/lib/security/origin";
 
 const orderInputSchema = z.object({
   customerName: z.string().min(2, "Name must be at least 2 characters."),
@@ -41,6 +43,24 @@ const orderInputSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  // CSRF Origin Protection
+  if (!isSameOrigin(req)) {
+    return NextResponse.json(
+      { success: false, error: "Cross-origin requests are forbidden." },
+      { status: 403 }
+    );
+  }
+
+  // Rate Limiting (10 requests/min per IP)
+  const clientKey = getClientKey(req, "orders");
+  const rateLimitResult = await checkRateLimit(clientKey, 10, 60000);
+  if (!rateLimitResult.success) {
+    return NextResponse.json(
+      { success: false, error: "Too many order attempts. Please slow down." },
+      { status: 429 }
+    );
+  }
+
   const session = await getServerSession(authOptions);
   const userId = session?.user ? (session.user as { id?: string }).id : undefined;
 

@@ -4,6 +4,8 @@ import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
 import { validatePasswordStrength } from "@/lib/security/auth-policy";
 import { RESET_TOKENS } from "@/lib/security/auth-tokens";
+import { checkRateLimit, getClientKey } from "@/lib/rate-limit";
+import { isSameOrigin } from "@/lib/security/origin";
 
 const resetPasswordSchema = z.object({
   token: z.string().min(1),
@@ -11,6 +13,22 @@ const resetPasswordSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  if (!isSameOrigin(req)) {
+    return NextResponse.json(
+      { success: false, error: "Cross-origin requests are forbidden." },
+      { status: 403 }
+    );
+  }
+
+  const clientKey = getClientKey(req, "auth_reset_password");
+  const rateLimitResult = await checkRateLimit(clientKey, 5, 60000);
+  if (!rateLimitResult.success) {
+    return NextResponse.json(
+      { success: false, error: "Too many reset attempts. Please wait." },
+      { status: 429 }
+    );
+  }
+
   try {
     const body = await req.json();
     const parsed = resetPasswordSchema.safeParse(body);

@@ -8,9 +8,9 @@ const assistantSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  // 1. Sliding Window Rate Limiting (15 requests/min)
+  // 1. Sliding Window Rate Limiting (10 requests/min)
   const clientKey = getClientKey(req, "assistant");
-  const rateLimitResult = await checkRateLimit(clientKey, 15, 60000);
+  const rateLimitResult = await checkRateLimit(clientKey, 10, 60000);
 
   if (!rateLimitResult.success) {
     return NextResponse.json(

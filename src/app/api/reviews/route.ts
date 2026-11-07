@@ -4,6 +4,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { getAllOrders } from "@/lib/orders";
+import { checkRateLimit, getClientKey } from "@/lib/rate-limit";
+import { isSameOrigin } from "@/lib/security/origin";
 
 const reviewSchema = z.object({
   productId: z.string().min(1),
@@ -15,6 +17,24 @@ const reviewSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  // CSRF Origin Protection
+  if (!isSameOrigin(req)) {
+    return NextResponse.json(
+      { success: false, error: "Cross-origin requests are forbidden." },
+      { status: 403 }
+    );
+  }
+
+  // Rate Limiting (5 reviews/min per IP)
+  const clientKey = getClientKey(req, "reviews");
+  const rateLimitResult = await checkRateLimit(clientKey, 5, 60000);
+  if (!rateLimitResult.success) {
+    return NextResponse.json(
+      { success: false, error: "Review submission limit reached. Please try again later." },
+      { status: 429 }
+    );
+  }
+
   const session = await getServerSession(authOptions);
   const userId = session?.user ? (session.user as { id?: string }).id : undefined;
 

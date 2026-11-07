@@ -27,12 +27,12 @@ import { getToken } from "next-auth/jwt";
     // Generate random base64 nonce for CSP script validation
     const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
 
-    // Content-Security-Policy in REPORT-ONLY mode for Part 1 & Part 2
+    // Content-Security-Policy in ENFORCING mode for production security
     const cspHeader = [
       `default-src 'self'`,
-      `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://checkout.razorpay.com`,
-      `frame-src 'self' https://api.razorpay.com`,
-      `connect-src 'self' https://api.razorpay.com https://lumberjack.razorpay.com`,
+      `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://checkout.razorpay.com https://challenges.cloudflare.com`,
+      `frame-src 'self' https://api.razorpay.com https://challenges.cloudflare.com`,
+      `connect-src 'self' https://api.razorpay.com https://lumberjack.razorpay.com https://res.cloudinary.com https://challenges.cloudflare.com https://generativelanguage.googleapis.com`,
       `img-src 'self' data: blob: https://res.cloudinary.com`,
       `style-src 'self' 'unsafe-inline'`,
       `object-src 'none'`,
@@ -44,7 +44,7 @@ import { getToken } from "next-auth/jwt";
 
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-nonce", nonce);
-    requestHeaders.set("Content-Security-Policy-Report-Only", cspHeader);
+    requestHeaders.set("Content-Security-Policy", cspHeader);
 
     const response = NextResponse.next({
       request: {
@@ -52,14 +52,19 @@ import { getToken } from "next-auth/jwt";
       },
     });
 
-    // Set Security Headers
-    response.headers.set("Content-Security-Policy-Report-Only", cspHeader);
+    // Set Enforcing Security Headers
+    response.headers.set("Content-Security-Policy", cspHeader);
     response.headers.set("x-nonce", nonce);
+    response.headers.set("X-Frame-Options", "DENY");
     response.headers.set("X-Content-Type-Options", "nosniff");
     response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+
+    // Camera scoped only to /design route for logo live capture
+    const isDesignRoute = pathname.startsWith("/design");
+    const cameraPolicy = isDesignRoute ? "camera=(self)" : "camera=()";
     response.headers.set(
       "Permissions-Policy",
-      'camera=(), microphone=(), geolocation=(), payment=(self "https://checkout.razorpay.com")'
+      `${cameraPolicy}, microphone=(), geolocation=(), payment=(self "https://checkout.razorpay.com")`
     );
     response.headers.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
 

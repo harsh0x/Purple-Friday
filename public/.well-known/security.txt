@@ -1,0 +1,7 @@
+Contact: mailto:security@purplefriday.in
+Canonical: https://purplefriday.in/.well-known/security.txt
+Policy: https://purplefriday.in/security
+Preferred-Languages: en, hi
+Acknowledgments: https://purplefriday.in/security#hall-of-fame
+Expires: 2027-12-31T23:59:59.000Z
+

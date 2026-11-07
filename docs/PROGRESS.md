@@ -33,8 +33,8 @@
 | **Part 3 Step 3B** | Logo Customizer (`/design/[slug]`, Konva canvas, print area clamping, background removal, text tool, AI color contrast, autosave) | ✅ COMPLETE | 2026-11-07 |
 | **Part 3 Step 3C** | Authentication (NextAuth v4 credentials, brute-force lock, password policy, guest cart sync) | ✅ COMPLETE | 2026-11-07 |
 | **Part 3 Step 3D** | Checkout & Payments (3-step checkout, Razorpay, webhook idempotency, PDF GST invoice, confirmation) | ✅ COMPLETE | 2026-11-07 |
-| **Part 3 Step 3E** | Customer Account (`/account`, order history, proof review approval/changes, `/track-order`) | ⏳ IN PROGRESS | |
-| **Part 3 Step 3F** | Admin Dashboard (`/admin`, KPI metrics, proof upload, order management, CSV injection protection) | ⏳ PENDING | |
+| **Part 3 Step 3E** | Customer Account (`/account`, order history, proof review approval/changes, `/track-order`) | ✅ COMPLETE | 2026-11-07 |
+| **Part 3 Step 3F** | Admin Dashboard (`/admin`, KPI metrics, proof upload, order management, CSV injection protection) | ⏳ IN PROGRESS | |
 | **Part 3 Step 3G** | Extra Features (Purple Assistant AI / Finder wizard, Corporate Gifts PDF quote, PWA manifest) | ⏳ PENDING | |
 | **Part 3 Step 3H** | Performance & Security Hardening (CSP enforcing, security headers script, security.txt, tests) | ⏳ PENDING | |
 | **Part 3 Step 3I** | Comprehensive Security Verification Suite | ⏳ PENDING | |
@@ -228,6 +228,25 @@
   - `/checkout/success/[orderNumber]`: Order reference display, proof timeline ("Next: Studio proof in 24 hours"), instant PDF invoice download button, and guest account registration prompt.
 - Added comprehensive Vitest suite in `src/__tests__/payments.test.ts` verifying valid signatures, tampered payloads, wrong secrets, and webhook idempotency.
 - Quality Gates passed: 0 typecheck errors, 0 lint warnings, 47/47 unit tests passed, production build passed.
+
+### Part 3 Step 3E: Customer Account & Pre-Press Proof Approval
+- Built privacy masking engine in `src/lib/security/privacy.ts`:
+  - `maskCustomerName`: Obfuscates customer names (`Vikram Sharma` -> `V*** S***`).
+  - `maskPhoneNumber`: Masks Indian mobile numbers preserving only last 4 digits (`******3210`).
+  - `maskEmail`: Masks email usernames preserving domain.
+- Built pre-press proof approval state machine in `src/lib/orders/proof.ts`:
+  - `handleProofAction`: Handles `approve` (transitions status to `APPROVED`) and `request_changes` (enforces detailed feedback and transitions to `CHANGES_REQUESTED`).
+- Created account endpoints:
+  - `GET /api/orders/user`: Retrieves filtered order portfolio for the active authenticated user.
+  - `POST /api/orders/[orderNumber]/proof`: Authenticated endpoint executing proof approval decisions.
+  - `POST /api/track-order`: Constant-time public order lookup (mitigating timing attacks) returning masked recipient metadata and production status.
+  - `POST /api/reviews`: Verified buyer review submission with status set to `PENDING` for editorial moderation.
+- Built customer account interfaces:
+  - `/account`: Multi-tab workspace (Orders & Proofs with 1-click reorder, Saved Studio Designs, Organization & GST profile).
+  - `/account/orders/[id]`: Side-by-side technical proof inspection canvas with 2x zoom loupe, original vector reference, proof approval button, and change request modal.
+  - `/track-order`: Public parcel & dispatch lookup with 5-step production timeline and express courier integration.
+- Added comprehensive Vitest suite in `src/__tests__/account-proof.test.ts` verifying privacy masking rules and proof approval state transitions.
+- Quality Gates passed: 0 typecheck errors, 0 lint warnings, 53/53 unit tests passed, production build passed.
 
 ### Step 0: Preflight & Scaffold
 

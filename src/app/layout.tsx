@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 import { bricolage, instrumentSans, dmMono } from "@/lib/fonts";
 import { AnnouncementBar } from "@/components/layout/AnnouncementBar";
 import { Header } from "@/components/layout/Header";
@@ -48,8 +47,9 @@ export default function RootLayout({
     <html
       lang="en-IN"
       className={`${bricolage.variable} ${instrumentSans.variable} ${dmMono.variable}`}
+      suppressHydrationWarning
     >
-      <body className="font-sans bg-paper text-ink antialiased min-h-screen flex flex-col">
+      <body className="font-sans bg-paper text-ink antialiased min-h-screen flex flex-col" suppressHydrationWarning>
         {/* WCAG AA Accessible Skip to Main Content Link */}
         <a
           href="#main-content"
@@ -67,7 +67,7 @@ export default function RootLayout({
         <WishlistDrawer />
 
         {/* Global Organization & WebSite JSON-LD */}
-        <Script
+        <script
           id="organization-schema-jsonld"
           type="application/ld+json"
           dangerouslySetInnerHTML={{

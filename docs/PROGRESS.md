@@ -30,8 +30,8 @@
 | **Part 2 Step 8** | Verification & Final Delivery (Part 2 Checklist & Quality Gates) | ✅ COMPLETE | 2026-11-06 |
 
 | **Part 3 Step 3A** | Secure Uploads (Magic bytes detection, SVG sanitization & sharp PNG rasterization, Cloudinary/local fallback, anonymous uploader session, test suite) | ✅ COMPLETE | 2026-11-07 |
-| **Part 3 Step 3B** | Logo Customizer (`/design/[slug]`, Konva canvas, print area clamping, background removal, text tool, AI color contrast, autosave) | ⏳ IN PROGRESS | |
-| **Part 3 Step 3C** | Authentication (NextAuth v4 credentials, brute-force lock, password policy, guest cart sync) | ⏳ PENDING | |
+| **Part 3 Step 3B** | Logo Customizer (`/design/[slug]`, Konva canvas, print area clamping, background removal, text tool, AI color contrast, autosave) | ✅ COMPLETE | 2026-11-07 |
+| **Part 3 Step 3C** | Authentication (NextAuth v4 credentials, brute-force lock, password policy, guest cart sync) | ⏳ IN PROGRESS | |
 | **Part 3 Step 3D** | Checkout & Payments (3-step checkout, Razorpay, webhook idempotency, PDF GST invoice, confirmation) | ⏳ PENDING | |
 | **Part 3 Step 3E** | Customer Account (`/account`, order history, proof review approval/changes, `/track-order`) | ⏳ PENDING | |
 | **Part 3 Step 3F** | Admin Dashboard (`/admin`, KPI metrics, proof upload, order management, CSV injection protection) | ⏳ PENDING | |
@@ -164,6 +164,26 @@
 - Created `src/app/api/uploads/[id]/route.ts` with safe MIME streaming and `X-Content-Type-Options: nosniff`.
 - Added comprehensive Vitest suite in `src/__tests__/secure-uploads.test.ts` testing empty files, oversized images, magic byte mismatches, polyglot payloads, SVG script neutralization, and valid PNG re-encoding.
 - Quality Gates passed: 0 typecheck errors, 0 lint warnings, 23/23 unit tests passed, production build passed.
+
+### Part 3 Step 3B: Logo Customizer (`/design/[slug]`)
+- Built core customizer engine libraries in `src/lib/customizer/`:
+  - `history.ts`: History stack manager with undo/redo capped at 35 steps, state branching, and deep immutability.
+  - `quality.ts`: Physical print DPI calculator calculating effective resolution against physical millimeters and method requirements (DTG, Screen Print, Embroidery), flagging low quality (<150/200 DPI) and offering free team cleanup.
+  - `contrast.ts`: WCAG 2.1 relative luminance and contrast ratio evaluator recommending top 3 contrasting blank colours with editorial reasons.
+  - `background.ts`: Canvas-based white background neutralization with tolerance threshold (0-100%) and feather edge antialiasing (pure HTML5 canvas, 0 external AGPL dependencies).
+  - `extract-colors.ts`: Canvas pixel quantizer extracting dominant logo hue for AI color matching.
+  - `print-areas.ts`: Exact coordinate bounding box mapping for all product templates (Tee, Polo, Hoodie, Badge, Cap, Pen, Keychain, Notebook, Bottle).
+- Built interactive UI components:
+  - `CustomizerCanvas.tsx`: Konva stage with product silhouette underlay, dashed print bounds, center/edge snap guidelines, arrow key nudging, clamp boundaries, and transformer controls.
+  - `CustomizerControls.tsx`: Tabbed control studio (Artwork, Text, Product) with drag-and-drop upload via Step 3A endpoint, camera capture, flip, opacity, white background remover, 8 curated fonts text tool, blank colour picker, view toggle, live debounced tier pricing, and "Try on all colours" strip.
+  - `CustomizerStudio.tsx`: Full studio connecting state, IndexedDB draft autosave via `idb-keyval`, hero logo synchronization, shareable pre-press proof modal with watermark motif, and "Add to Cart" saving design to backend and capturing 1200x1200 proof.
+  - `CustomizerSkeleton.tsx`: High-fidelity skeleton matching the studio grid for smooth client dynamic loading.
+  - `CustomizerClientWrapper.tsx`: Dynamic client component with `ssr: false` conforming to Next.js 15 App Router requirements.
+- Built backend APIs:
+  - `POST /api/designs`: Validates design payload with Zod, checks upload ownership, saves to Prisma/memory registry.
+  - `GET /api/designs/[id]`: Serves saved design record.
+- Added comprehensive Vitest suite in `src/__tests__/customizer.test.ts` covering undo/redo step limits, DPI calculations, and WCAG contrast recommendations.
+- Quality Gates passed: 0 typecheck errors, 0 lint warnings, 30/30 unit tests passed, production build passed.
 
 ### Step 0: Preflight & Scaffold
 

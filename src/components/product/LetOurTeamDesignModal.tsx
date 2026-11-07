@@ -7,16 +7,29 @@ import { toast } from "sonner";
 
 interface LetOurTeamDesignModalProps {
   productName: string;
-  productSlug: string;
+  productSlug?: string;
   triggerButton?: React.ReactNode;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
 export function LetOurTeamDesignModal({
   productName,
-  productSlug,
+  productSlug = "product",
   triggerButton,
+  isOpen,
+  onClose,
 }: LetOurTeamDesignModalProps) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = isOpen !== undefined;
+  const open = isControlled ? isOpen : internalOpen;
+  const setOpen = (val: boolean) => {
+    if (isControlled) {
+      if (!val && onClose) onClose();
+    } else {
+      setInternalOpen(val);
+    }
+  };
   const [file, setFile] = useState<File | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");

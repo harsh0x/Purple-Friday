@@ -29,6 +29,17 @@
 | **Part 2 Step 7** | SEO & Performance (`sitemap.ts`, `robots.ts`, OpenGraph, JSON-LD) | ✅ COMPLETE | 2026-11-06 |
 | **Part 2 Step 8** | Verification & Final Delivery (Part 2 Checklist & Quality Gates) | ✅ COMPLETE | 2026-11-06 |
 
+| **Part 3 Step 3A** | Secure Uploads (Magic bytes detection, SVG sanitization & sharp PNG rasterization, Cloudinary/local fallback, anonymous uploader session, test suite) | ✅ COMPLETE | 2026-11-07 |
+| **Part 3 Step 3B** | Logo Customizer (`/design/[slug]`, Konva canvas, print area clamping, background removal, text tool, AI color contrast, autosave) | ⏳ IN PROGRESS | |
+| **Part 3 Step 3C** | Authentication (NextAuth v4 credentials, brute-force lock, password policy, guest cart sync) | ⏳ PENDING | |
+| **Part 3 Step 3D** | Checkout & Payments (3-step checkout, Razorpay, webhook idempotency, PDF GST invoice, confirmation) | ⏳ PENDING | |
+| **Part 3 Step 3E** | Customer Account (`/account`, order history, proof review approval/changes, `/track-order`) | ⏳ PENDING | |
+| **Part 3 Step 3F** | Admin Dashboard (`/admin`, KPI metrics, proof upload, order management, CSV injection protection) | ⏳ PENDING | |
+| **Part 3 Step 3G** | Extra Features (Purple Assistant AI / Finder wizard, Corporate Gifts PDF quote, PWA manifest) | ⏳ PENDING | |
+| **Part 3 Step 3H** | Performance & Security Hardening (CSP enforcing, security headers script, security.txt, tests) | ⏳ PENDING | |
+| **Part 3 Step 3I** | Comprehensive Security Verification Suite | ⏳ PENDING | |
+| **Part 3 Step 3J** | Final QA, Playwright Smoke Tests, Accessibility & Launch Checklist | ⏳ PENDING | |
+
 ---
 
 ## Detailed Step Log
@@ -137,6 +148,22 @@
 - Verified responsive layouts across viewports: 320px, 375px, 768px, 1024px, 1440px, 1920px (zero horizontal scroll, responsive drawers, stacked mobile timeline, sticky mobile buy bar).
 - Preserved graceful active fallbacks for all optional third-party environment variables.
 - All Part 2 deliverables completed and committed to git repository.
+
+### Part 3 Step 3A: Secure Uploads
+- Created `src/lib/security/session.ts` for anonymous uploader identity resolution with HMAC-SHA256 cookie signing.
+- Created `src/lib/security/sanitize-svg.ts` enforcing strict DOMPurify SVG profile, forbidding all scripts, event handlers, and polyglots.
+- Created `src/lib/uploads.ts` with:
+  - Magic byte verification via `file-type` package (never trusting extensions or client headers).
+  - Size enforcement: 5 MB for images, 10 MB for team brief PDFs.
+  - Image re-encoding via `sharp` (EXIF stripped, dimensions clamped to max 4000px, converted to standardized PNG).
+  - SVG vector neutralization by sanitizing and rasterizing into high-resolution PNG.
+  - Opaque random UUID filenames preventing path traversal or guessable storage paths.
+  - Local `./storage/uploads` and Cloudinary dual-mode support with private PDF disposition (`attachment`).
+  - Strict uploader ownership verification (`verifyUploadOwnership`).
+- Created `src/app/api/uploads/route.ts` with origin validation, sliding-window rate limiting (20/min), and signed session cookie issuance.
+- Created `src/app/api/uploads/[id]/route.ts` with safe MIME streaming and `X-Content-Type-Options: nosniff`.
+- Added comprehensive Vitest suite in `src/__tests__/secure-uploads.test.ts` testing empty files, oversized images, magic byte mismatches, polyglot payloads, SVG script neutralization, and valid PNG re-encoding.
+- Quality Gates passed: 0 typecheck errors, 0 lint warnings, 23/23 unit tests passed, production build passed.
 
 ### Step 0: Preflight & Scaffold
 

@@ -216,9 +216,8 @@ export default function OrderDetailPage({ params }: PageProps) {
                 2. Pre-Press Calibrated Proof
               </div>
               <div
-                className={`aspect-square bg-white rounded-lg border border-pf-ink/10 flex items-center justify-center p-6 transition-transform ${
-                  zoomProof ? "scale-125 cursor-zoom-out" : "scale-100"
-                }`}
+                className={`aspect-square bg-white rounded-lg border border-pf-ink/10 flex items-center justify-center p-6 transition-transform ${zoomProof ? "scale-125 cursor-zoom-out" : "scale-100"
+                  }`}
                 onClick={() => setZoomProof(!zoomProof)}
               >
                 <div className="relative w-40 h-48 bg-pf-ink/90 rounded-2xl border-2 border-pf-ink flex items-center justify-center text-white shadow-lg">

@@ -35,17 +35,17 @@ export interface StoredOrder {
   gst: number;
   total: number;
   status:
-    | "PENDING_PAYMENT"
-    | "PAID"
-    | "PROOF_PENDING"
-    | "PROOF_READY"
-    | "CHANGES_REQUESTED"
-    | "APPROVED"
-    | "IN_PRODUCTION"
-    | "PACKED"
-    | "DISPATCHED"
-    | "DELIVERED"
-    | "CANCELLED";
+  | "PENDING_PAYMENT"
+  | "PAID"
+  | "PROOF_PENDING"
+  | "PROOF_READY"
+  | "CHANGES_REQUESTED"
+  | "APPROVED"
+  | "IN_PRODUCTION"
+  | "PACKED"
+  | "DISPATCHED"
+  | "DELIVERED"
+  | "CANCELLED";
   razorpayOrderId?: string;
   razorpayPaymentId?: string;
   couponCode?: string;

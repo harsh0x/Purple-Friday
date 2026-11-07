@@ -68,8 +68,8 @@ export async function POST(req: NextRequest) {
 
     const isRazorpayConfigured = Boolean(
       process.env.RAZORPAY_KEY_ID &&
-        process.env.RAZORPAY_KEY_SECRET &&
-        !process.env.RAZORPAY_KEY_ID.includes("dummy")
+      process.env.RAZORPAY_KEY_SECRET &&
+      !process.env.RAZORPAY_KEY_ID.includes("dummy")
     );
 
     return NextResponse.json({

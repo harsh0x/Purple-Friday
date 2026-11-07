@@ -27,8 +27,8 @@ export async function POST(req: NextRequest) {
     const razorpaySecret = process.env.RAZORPAY_KEY_SECRET;
     const isLiveRazorpay = Boolean(
       razorpaySecret &&
-        !razorpaySecret.includes("dummy") &&
-        !razorpaySecret.includes("sample")
+      !razorpaySecret.includes("dummy") &&
+      !razorpaySecret.includes("sample")
     );
 
     if (isLiveRazorpay && razorpaySecret) {

@@ -122,7 +122,7 @@ export function CustomizerStudio({ product }: CustomizerStudioProps) {
   // Autosave to IndexedDB
   useEffect(() => {
     const timer = setTimeout(() => {
-      idbSet(`pf_draft_${product.slug}`, state).catch(() => {});
+      idbSet(`pf_draft_${product.slug}`, state).catch(() => { });
     }, 1000);
     return () => clearTimeout(timer);
   }, [state, product.slug]);

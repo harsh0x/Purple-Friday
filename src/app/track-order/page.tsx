@@ -207,22 +207,20 @@ export default function TrackOrderPage() {
                   return (
                     <div
                       key={s.step}
-                      className={`flex items-start gap-3 p-3 rounded-xl border transition-colors ${
-                        isDone
+                      className={`flex items-start gap-3 p-3 rounded-xl border transition-colors ${isDone
                           ? "bg-emerald-50/60 border-emerald-200"
                           : isCurrent
-                          ? "bg-pf-lilac/20 border-pf-violet"
-                          : "bg-pf-paper/40 border-pf-ink/10 opacity-50"
-                      }`}
+                            ? "bg-pf-lilac/20 border-pf-violet"
+                            : "bg-pf-paper/40 border-pf-ink/10 opacity-50"
+                        }`}
                     >
                       <div
-                        className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 font-bold ${
-                          isDone
+                        className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 font-bold ${isDone
                             ? "bg-emerald-600 text-white"
                             : isCurrent
-                            ? "bg-pf-violet text-white animate-pulse"
-                            : "bg-pf-ink/10 text-pf-ink/60"
-                        }`}
+                              ? "bg-pf-violet text-white animate-pulse"
+                              : "bg-pf-ink/10 text-pf-ink/60"
+                          }`}
                       >
                         {isDone ? "✓" : s.step}
                       </div>

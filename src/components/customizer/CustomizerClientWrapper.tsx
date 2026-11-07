@@ -17,3 +17,4 @@ const CustomizerStudio = dynamic(
 export function CustomizerClientWrapper({ product }: { product: CatalogueProduct }) {
   return <CustomizerStudio product={product} />;
 }
+

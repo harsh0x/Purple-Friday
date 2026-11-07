@@ -78,3 +78,4 @@ export function sanitizeSvg(rawSvg: string | Buffer): SvgSanitizeResult {
     isPolyglot,
   };
 }
+

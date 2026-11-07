@@ -110,3 +110,4 @@ export function recommendContrastingProductColors(
   // Return top 3 recommendations
   return scored.slice(0, 3);
 }
+

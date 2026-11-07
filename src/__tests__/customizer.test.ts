@@ -121,3 +121,4 @@ describe("Customizer Colour Contrast & Recommendations", () => {
     expect(recommendations[0].reason).toContain("stands out sharply");
   });
 });
+

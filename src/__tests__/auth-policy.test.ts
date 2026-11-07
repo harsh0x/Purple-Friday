@@ -85,3 +85,4 @@ describe("Authentication Security - Brute Force Lockout Logic", () => {
     expect(status.isLocked).toBe(false);
   });
 });
+

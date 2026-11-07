@@ -53,3 +53,4 @@ export function handleProofAction({
 
   throw new Error("Invalid proof action specified.");
 }
+

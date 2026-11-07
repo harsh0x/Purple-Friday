@@ -248,6 +248,40 @@
 - Added comprehensive Vitest suite in `src/__tests__/account-proof.test.ts` verifying privacy masking rules and proof approval state transitions.
 - Quality Gates passed: 0 typecheck errors, 0 lint warnings, 53/53 unit tests passed, production build passed.
 
+### Part 3 Step 3F: Admin Dashboard & Control Room
+- Built CSV Injection / DDE Sanitizer in `src/lib/security/csv.ts`:
+  - `sanitizeCsvCell`: Defends against Dynamic Data Exchange (DDE) formula injection in Excel/Sheets by prefixing cells starting with `=`, `+`, `-`, `@`, `\t`, `\r` with `'`, preserving normal text and numbers.
+  - `exportOrdersToCsv`: Serializes orders table into fully sanitized, DDE-safe CSV format.
+- Built Live Tier Validator in `src/lib/admin/tier-validator.ts`:
+  - `validatePriceTiers`: Validates volume pricing structures for contiguity (no gaps or overlaps between tiers), strictly descending unit prices as quantities scale, positive quantities, and enforces that the final tier is open-ended (`maxQty: null`).
+  - `isUserAdmin`: Strict role-based authorization check verifying `user.role === "ADMIN"`.
+- Built Audit Logging System in `src/lib/admin/audit.ts`:
+  - `logAdminAction`: Records tamper-evident audit logs with admin user ID, email, action type, target entity, metadata, IP address, and timestamp (Prisma `AuditLog` model with in-memory fallback).
+  - `getAuditLogs`: Retrieves recent audit trail for the security drawer stream.
+- Built Unified Admin Store in `src/lib/admin/admin-store.ts`:
+  - Centralized CRUD operations for products & live price tiers, discount coupons, customer reviews, and "Let our team design it" quote briefs.
+- Built Admin API Endpoints:
+  - `GET /api/admin/orders/export`: Streams DDE-sanitized CSV export with `Content-Disposition: attachment`.
+  - `PUT/POST /api/admin/orders/[orderNumber]/status`: Advances order stage (with reason note and waybill tracking), logs to audit stream.
+  - `POST /api/admin/orders/[orderNumber]/proof`: Attaches high-res prepress proof file, flips order status to `PROOF_READY`, logs to audit stream.
+  - `GET/PUT /api/admin/products`: Retrieves and updates product MOQ, base rates, struck MRP, and price tiers with live validation.
+  - `GET/POST/DELETE /api/admin/coupons`: Manages discount vouchers (percentage/flat, thresholds, expiry, first-order limits).
+  - `GET/PATCH /api/admin/reviews`: Moderates customer testimonials (1-click Approve / Reject).
+  - `GET/PATCH /api/admin/quotes`: Tracks enterprise design brief requests across status pipeline (`IN_TOUCH`, `QUOTED`, `WON`, `LOST`).
+  - `GET /api/admin/quotes/[id]/pdf`: Generates and downloads official A4 PDF Design Brief using `pdf-lib`.
+  - `GET /api/admin/audit`: Streams real-time tamper-evident admin action logs.
+- Built Admin Interfaces:
+  - `/admin`: Control room overview with KPI cards, pure SVG 30-day revenue trendline curve (zero external heavy graphing libraries), volume by category bar chart, and recent orders table.
+  - `AdminHeader`: Global admin top bar with instant search, live microservice health telemetry (DB, Cloudinary, Razorpay, Turnstile, Redis/Memory), and slide-out Audit Stream drawer.
+  - `/admin/orders`: Full orders table with status filter pills, search, status advance modal with shift reason, pre-press proof uploader, and courier waybill tracking integration (Delhivery, BlueDart, DTDC).
+  - `/admin/products`: Inline product and price tier editor with live validation error reporting and add/remove tier capabilities.
+  - `/admin/coupons`: Coupon management table with creation modal and 1-click active toggle.
+  - `/admin/reviews`: Moderation queue with photo preview and 1-click Approve/Reject.
+  - `/admin/quotes`: Enterprise design briefs management with contact links and 1-click A4 PDF export.
+  - `/admin/settings`: Operational shopfloor parameters and pre-press tolerances overview.
+- Added comprehensive Vitest suite in `src/__tests__/admin.test.ts` (11 tests covering DDE formula protection, price tier contiguity validation, descending prices, overlap detection, and audit logging).
+- Quality Gates passed: 0 typecheck errors, 0 lint warnings, 64/64 unit tests passed, production build passed (57/57 routes optimized).
+
 ### Step 0: Preflight & Scaffold
 
 ### Step 0: Preflight & Scaffold

@@ -102,3 +102,4 @@ export function getPrintAreaForTemplate(templateName: string): PrintAreaBounds {
   }
   return PRODUCT_PRINT_AREAS.tee;
 }
+

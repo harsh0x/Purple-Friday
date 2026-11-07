@@ -115,22 +115,22 @@ export default function RootLayout({
           }}
         />
 
-        <AuthProvider>
-          <LenisProvider>
-            {/* App Shell Header */}
-            <AnnouncementBar />
-            <Header />
+          <AuthProvider>
+            <LenisProvider>
+              {/* App Shell Header */}
+              <AnnouncementBar />
+              <Header />
 
-            {/* Main Content Landmark with Page Transitions */}
-            <main id="main-content" className="flex-1 flex flex-col">
-              <PageTransition>{children}</PageTransition>
-            </main>
+              {/* Main Content Landmark with Page Transitions */}
+              <main id="main-content" className="flex-1 flex flex-col">
+                <PageTransition>{children}</PageTransition>
+              </main>
 
             {/* App Shell Footer */}
             <Footer />
-          </LenisProvider>
-        </AuthProvider>
-      </body>
-    </html>
+        </LenisProvider>
+      </AuthProvider>
+    </body>
+    </html >
   );
 }

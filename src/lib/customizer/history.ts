@@ -70,3 +70,4 @@ export class HistoryManager<T> {
     this.present = JSON.parse(JSON.stringify(initialState));
   }
 }
+

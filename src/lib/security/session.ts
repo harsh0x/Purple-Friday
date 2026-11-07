@@ -62,3 +62,4 @@ export function resolveUploaderIdentity(req: NextRequest): {
   const signed = signSessionId(newId);
   return { uploaderId: newId, isNew: true, signedCookieValue: signed };
 }
+

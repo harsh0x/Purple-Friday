@@ -60,17 +60,17 @@ export function DeliveryEstimator({ subtotal = 3000 }: DeliveryEstimatorProps) {
   };
 
   return (
-    <div className="border-2 border-pf-ink bg-pf-paper p-4 shadow-[3px_3px_0_0_#15101F] space-y-3">
+    <div className="border-2 border-ink bg-paper p-4 shadow-[3px_3px_0_0_#15101F] space-y-3">
       <div className="flex items-center gap-2">
-        <Truck className="h-4 w-4 text-pf-violet" />
-        <span className="font-mono text-xs font-bold uppercase tracking-wider text-pf-ink">
+        <Truck className="h-4 w-4 text-violet" />
+        <span className="font-mono text-xs font-bold uppercase tracking-wider text-ink">
           Pan-India Delivery Estimator
         </span>
       </div>
 
       <form onSubmit={checkPinCode} className="flex gap-2">
         <div className="relative flex-1">
-          <MapPin className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-pf-ink/50" />
+          <MapPin className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink/50" />
           <input
             type="text"
             maxLength={6}
@@ -80,13 +80,13 @@ export function DeliveryEstimator({ subtotal = 3000 }: DeliveryEstimatorProps) {
               setPinCode(e.target.value.replace(/\D/g, ""));
               if (estimate.status) setEstimate({ status: null });
             }}
-            className="w-full h-10 pl-9 pr-3 border-2 border-pf-ink bg-white font-mono text-xs font-bold placeholder:text-pf-ink/40 focus:outline-none focus:ring-2 focus:ring-pf-violet"
+            className="w-full h-10 pl-9 pr-3 border-2 border-ink bg-white font-mono text-xs font-bold placeholder:text-ink/40 focus:outline-none focus:ring-2 focus:ring-violet"
           />
         </div>
 
         <button
           type="submit"
-          className="h-10 px-4 border-2 border-pf-ink bg-pf-ink text-white font-mono text-xs font-bold uppercase tracking-wider hover:bg-pf-violet transition-colors shrink-0"
+          className="h-10 px-4 border-2 border-ink bg-ink text-white font-mono text-xs font-bold uppercase tracking-wider hover:bg-violet transition-colors shrink-0"
         >
           Check
         </button>
@@ -94,13 +94,13 @@ export function DeliveryEstimator({ subtotal = 3000 }: DeliveryEstimatorProps) {
 
       {/* Result Status */}
       {estimate.status === "valid" && (
-        <div className="flex items-start gap-2 pt-1 text-xs text-pf-ink font-sans">
+        <div className="flex items-start gap-2 pt-1 text-xs text-ink font-sans">
           <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
           <div>
-            <p className="font-bold font-mono text-pf-ink">
+            <p className="font-bold font-mono text-ink">
               {estimate.message}
             </p>
-            <p className="text-[11px] text-pf-ink/70">
+            <p className="text-[11px] text-ink/70">
               Dispatched from our closest atelier. 18% GST input invoice included.
             </p>
           </div>

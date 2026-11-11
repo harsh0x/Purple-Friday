@@ -127,18 +127,18 @@ export function PurpleAssistant() {
       {!isOpen && (
         <button
           onClick={handleToggle}
-          className="relative flex items-center gap-2.5 px-4 py-3 bg-pf-ink text-white rounded-full shadow-[4px_4px_0_0_#6A2CFF] border-2 border-pf-violet hover:scale-105 active:scale-95 transition-all group"
+          className="relative flex items-center gap-2.5 px-4 py-3 bg-ink text-white rounded-full shadow-[4px_4px_0_0_#6A2CFF] border-2 border-violet hover:scale-105 active:scale-95 transition-all group"
           aria-label="Open Purple Assistant"
         >
           <div className="relative">
-            <Printer className="w-5 h-5 text-pf-lime animate-pulse" />
+            <Printer className="w-5 h-5 text-spot-lime animate-pulse" />
             {unreadCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-pf-ink">
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-ink">
                 {unreadCount}
               </span>
             )}
           </div>
-          <span className="font-display font-bold text-sm tracking-tight hidden sm:inline">
+          <span className="font-display font-bold text-xs sm:text-sm tracking-tight inline-block text-white select-none">
             Print Assistant
           </span>
           <span className="w-2 h-2 rounded-full bg-emerald-400" />
@@ -147,11 +147,11 @@ export function PurpleAssistant() {
 
       {/* Expanded Chat Drawer */}
       {isOpen && (
-        <div className="w-[92vw] sm:w-96 bg-[#181324] text-white border-2 border-pf-violet rounded-2xl shadow-[8px_8px_0_0_#15101F] flex flex-col overflow-hidden max-h-[80vh] sm:max-h-[580px]">
+        <div className="w-[92vw] sm:w-96 bg-[#181324] text-white border-2 border-violet rounded-2xl shadow-[8px_8px_0_0_#15101F] flex flex-col overflow-hidden max-h-[80vh] sm:max-h-[580px]">
           {/* Header */}
           <div className="bg-[#110D1A] p-3.5 border-b border-white/10 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-pf-violet/20 border border-pf-violet/50 flex items-center justify-center text-pf-lime">
+              <div className="w-8 h-8 rounded-full bg-violet/20 border border-violet/50 flex items-center justify-center text-spot-lime">
                 <Printer className="w-4 h-4" />
               </div>
               <div>
@@ -185,7 +185,7 @@ export function PurpleAssistant() {
                 >
                   <div
                     className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs font-mono leading-relaxed shadow-sm ${isUser
-                        ? "bg-pf-violet text-white rounded-br-none"
+                        ? "bg-violet text-white rounded-br-none"
                         : "bg-[#110D1A] text-white/90 border border-white/10 rounded-bl-none"
                       }`}
                   >
@@ -198,7 +198,7 @@ export function PurpleAssistant() {
             })}
 
             {loading && (
-              <div className="flex items-center gap-1.5 text-pf-lime text-[11px] p-2 bg-[#110D1A] rounded-xl w-fit border border-white/5">
+              <div className="flex items-center gap-1.5 text-spot-lime text-[11px] p-2 bg-[#110D1A] rounded-xl w-fit border border-white/5">
                 <Sparkles className="w-3.5 h-3.5 animate-spin" />
                 <span>Consulting workshop spec sheets...</span>
               </div>
@@ -231,13 +231,13 @@ export function PurpleAssistant() {
               placeholder="Ask about MOQs, turnaround, GST..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              className="flex-1 bg-[#181324] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder-white/40 focus:outline-none focus:border-pf-violet"
+              className="flex-1 bg-[#181324] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder-white/40 focus:outline-none focus:border-violet"
               disabled={loading}
             />
             <button
               type="submit"
               disabled={loading || !input.trim()}
-              className="p-2 rounded-xl bg-pf-violet text-white hover:bg-pf-violet/90 disabled:opacity-40 transition-colors shrink-0"
+              className="p-2 rounded-xl bg-violet text-white hover:bg-violet/90 disabled:opacity-40 transition-colors shrink-0"
               aria-label="Send query"
             >
               <Send className="w-4 h-4" />

@@ -86,7 +86,7 @@ import { ProductCardData } from "@/components/product/ProductCard";
   }));
 
         return (
-        <div className="flex flex-col w-full bg-pf-paper">
+        <div className="flex flex-col w-full bg-paper">
           {/* 1. Hero Section (Above the fold, instant render) */}
           <HeroSection />
 
@@ -94,12 +94,12 @@ import { ProductCardData } from "@/components/product/ProductCard";
               <TrustStrip />
 
       {/* 3. Best Sellers Carousel */}
-      <div className="py-16 md:py-20 border-b-2 border-pf-ink bg-pf-paper">
+      <div className="py-16 md:py-20 border-b-2 border-ink bg-paper">
         <BestSellersCarousel products={products} />
       </div>
 
         {/* 4. Category Bento Grid */}
-        <div className="py-16 md:py-20 border-b-2 border-pf-ink bg-white">
+        <div className="py-16 md:py-20 border-b-2 border-ink bg-white">
           <CategoryBentoGrid />
         </div>
 
@@ -107,7 +107,7 @@ import { ProductCardData } from "@/components/product/ProductCard";
             <HowItWorksSequence />
 
                 {/* 6. Customer Review Wall Marquee */}
-                <div className="py-16 md:py-20 border-b-2 border-pf-ink bg-white">
+                <div className="py-16 md:py-20 border-b-2 border-ink bg-white">
                   <CustomerReviewMarquee />
                 </div>
 

@@ -78,27 +78,27 @@ export function OrderProcessTimeline() {
   return (
     <section
       ref={containerRef}
-      className="relative border-b-2 border-pf-ink bg-pf-paper py-20 px-4 md:px-8 overflow-hidden"
+      className="relative border-b-2 border-ink bg-paper py-20 px-4 md:px-8 overflow-hidden"
     >
       {/* Decorative Registration Marks */}
-      <span className="absolute top-4 left-4 font-mono text-xs text-pf-ink/30 select-none">
+      <span className="absolute top-4 left-4 font-mono text-xs text-ink/30 select-none">
         ⌖ 5-STAGE PIPELINE // CALIBRATED
       </span>
-      <span className="absolute top-4 right-4 font-mono text-xs text-pf-ink/30 select-none">
+      <span className="absolute top-4 right-4 font-mono text-xs text-ink/30 select-none">
         SPEC: PROOF-TO-DOOR ⌖
       </span>
 
       <div className="mx-auto max-w-7xl">
         {/* Section Header */}
         <div className="mb-14 text-center">
-          <div className="inline-flex items-center gap-2 border border-pf-ink/20 bg-pf-violet/10 px-3 py-1 text-xs font-mono font-medium text-pf-violet uppercase tracking-wider mb-3">
-            <span className="h-1.5 w-1.5 rounded-full bg-pf-violet animate-pulse" />
+          <div className="inline-flex items-center gap-2 border border-ink/20 bg-violet/10 px-3 py-1 text-xs font-mono font-medium text-violet uppercase tracking-wider mb-3">
+            <span className="h-1.5 w-1.5 rounded-full bg-violet animate-pulse" />
             Clear Delivery Guarantee
           </div>
-          <h2 className="font-display text-3xl font-extrabold tracking-tight text-pf-ink sm:text-4xl md:text-5xl">
+          <h2 className="font-display text-3xl font-extrabold tracking-tight text-ink sm:text-4xl md:text-5xl">
             From your proof to your door
           </h2>
-          <p className="mt-3 text-base text-pf-ink/70 max-w-2xl mx-auto font-sans">
+          <p className="mt-3 text-base text-ink/70 max-w-2xl mx-auto font-sans">
             No guessing games. Track every stage of your run in real time with our calibrated 5-point production pipeline.
           </p>
         </div>
@@ -106,7 +106,7 @@ export function OrderProcessTimeline() {
         {/* Desktop / Horizontal Timeline */}
         <div className="relative hidden md:block pt-8 pb-12">
           {/* Background Track Line */}
-          <div className="absolute top-14 left-[10%] right-[10%] h-[3px] bg-pf-ink/15 -z-0" />
+          <div className="absolute top-14 left-[10%] right-[10%] h-[3px] bg-ink/15 -z-0" />
 
           {/* Animated SVG Progress Line */}
           <svg
@@ -137,25 +137,25 @@ export function OrderProcessTimeline() {
                 <div key={step.id} className="flex flex-col items-center text-center px-2 group">
                   {/* Step node icon */}
                   <div
-                    className={`h-12 w-12 rounded-full border-2 border-pf-ink flex items-center justify-center transition-all duration-300 ${
+                    className={`h-12 w-12 rounded-full border-2 border-ink flex items-center justify-center transition-all duration-300 ${
                       isPassed
-                        ? "bg-pf-violet text-white shadow-[3px_3px_0_0_#15101F]"
-                        : "bg-pf-paper text-pf-ink/50"
+                        ? "bg-violet text-white shadow-[3px_3px_0_0_#15101F]"
+                        : "bg-white text-ink shadow-[2px_2px_0_0_#15101F]"
                     }`}
                   >
-                    <Icon className="h-5 w-5" />
+                    <Icon className="h-5 w-5 stroke-[2.2]" />
                   </div>
 
-                  <span className="mt-4 font-mono text-xs font-bold text-pf-violet tracking-wider">
+                  <span className="mt-4 font-mono text-xs font-bold text-violet tracking-wider">
                     STAGE {step.stepNumber}
                   </span>
-                  <h3 className="mt-1 font-display text-lg font-bold text-pf-ink leading-snug">
+                  <h3 className="mt-1 font-display text-lg font-bold text-ink leading-snug">
                     {step.title}
                   </h3>
-                  <span className="mt-1 inline-block font-mono text-[11px] text-pf-ink/60 bg-pf-ink/5 px-2 py-0.5 border border-pf-ink/10">
+                  <span className="mt-1 inline-block font-mono text-[11px] font-bold text-ink bg-ink/10 px-2.5 py-0.5 border border-ink/20 rounded-xs">
                     {step.duration}
                   </span>
-                  <p className="mt-2 text-xs font-sans text-pf-ink/70 leading-relaxed">
+                  <p className="mt-2 text-xs font-sans text-ink leading-relaxed">
                     {step.description}
                   </p>
                 </div>
@@ -164,38 +164,38 @@ export function OrderProcessTimeline() {
           </div>
         </div>
 
-        {/* Mobile / Vertical Timeline */}
-        <div className="relative md:hidden pl-6 border-l-2 border-pf-ink/20 space-y-8 my-6">
-          {STEPS.map((step) => {
-            const Icon = step.icon;
-            return (
-              <div key={step.id} className="relative pl-6">
-                {/* Node icon on line */}
-                <div className="absolute -left-[31px] top-0 h-9 w-9 rounded-full border-2 border-pf-ink bg-pf-violet text-white flex items-center justify-center shadow-[2px_2px_0_0_#15101F]">
-                  <Icon className="h-4 w-4" />
-                </div>
-
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-pf-violet">
-                      STAGE {step.stepNumber}
-                    </span>
-                    <span className="font-mono text-[10px] text-pf-ink/60 bg-pf-ink/5 px-1.5 py-0.5 border border-pf-ink/10">
-                      {step.duration}
-                    </span>
+          {/* Mobile / Vertical Timeline */}
+          <div className="relative md:hidden pl-6 border-l-2 border-ink/20 space-y-8 my-6">
+            {STEPS.map((step) => {
+              const Icon = step.icon;
+              return (
+                <div key={step.id} className="relative pl-6">
+                  {/* Node icon on line */}
+                  <div className="absolute -left-[31px] top-0 h-9 w-9 rounded-full border-2 border-ink bg-violet text-white flex items-center justify-center shadow-[2px_2px_0_0_#15101F]">
+                    <Icon className="h-4 w-4" />
                   </div>
-                  <h3 className="mt-1 font-display text-base font-bold text-pf-ink">
-                    {step.title}
-                  </h3>
-                  <p className="mt-1 text-xs text-pf-ink/75 leading-relaxed font-sans">
-                    {step.description}
-                  </p>
+
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs font-bold text-violet">
+                        STAGE {step.stepNumber}
+                      </span>
+                      <span className="font-mono text-[10px] text-ink/60 bg-ink/5 px-1.5 py-0.5 border border-ink/10">
+                        {step.duration}
+                      </span>
+                    </div>
+                    <h3 className="mt-1 font-display text-base font-bold text-ink">
+                      {step.title}
+                    </h3>
+                    <p className="mt-1 text-xs text-ink/75 leading-relaxed font-sans">
+                      {step.description}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      </div>
     </section>
   );
 }

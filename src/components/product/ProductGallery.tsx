@@ -2,34 +2,31 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Maximize2, X, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { Maximize2, X, ChevronLeft, ChevronRight, Sparkles, ZoomIn } from "lucide-react";
 import { ProductMockup } from "@/components/mockup/ProductMockup";
 import { useCustomerLogo } from "@/hooks/useCustomerLogo";
 
 interface ProductGalleryProps {
   template: string;
+  slug?: string;
   selectedColor?: string;
   productName: string;
+  isApparel?: boolean;
 }
 
 export function ProductGallery({
   template,
+  slug,
   selectedColor = "#FFFFFF",
   productName,
+  isApparel = false,
 }: ProductGalleryProps) {
   const { logoUrl } = useCustomerLogo();
-  const [activeSlide, setActiveSlide] = useState<number>(0);
+  const [activeView, setActiveView] = useState<"front" | "back">("front");
   const [isZooming, setIsZooming] = useState<boolean>(false);
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
   const [lightboxOpen, setLightboxOpen] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // Slides: 0 = Vector Mockup (with customer logo), 1 = Detail Angle, 2 = Macro Texture Proof
-  const slides = [
-    { id: "mockup", label: "Specimen Proof", isMockup: true },
-    { id: "detail-front", label: "Front View", isMockup: true },
-    { id: "detail-texture", label: "Material Texture", isMockup: false },
-  ];
 
   // Mouse move for desktop zoom lens
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -43,195 +40,205 @@ export function ProductGallery({
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "ArrowLeft") {
-        setActiveSlide((prev) => (prev > 0 ? prev - 1 : slides.length - 1));
-      } else if (e.key === "ArrowRight") {
-        setActiveSlide((prev) => (prev < slides.length - 1 ? prev + 1 : 0));
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        setActiveView((prev) => (prev === "front" ? "back" : "front"));
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [slides.length]);
+  }, []);
 
   return (
-    <div className="flex flex-col gap-4 select-none">
-      {/* Main Viewport */}
+    <div className="flex flex-col gap-3 select-none">
+      {/* Main Photographic Stage */}
       <div
         ref={containerRef}
         onMouseEnter={() => setIsZooming(true)}
         onMouseLeave={() => setIsZooming(false)}
         onMouseMove={handleMouseMove}
-        className="relative aspect-square w-full border-2 border-pf-ink bg-white overflow-hidden shadow-[4px_4px_0_0_#15101F] cursor-crosshair group"
+        className="relative aspect-square w-full border-2 border-ink bg-[#F5F3EF] overflow-hidden shadow-stamp group cursor-crosshair"
       >
         {/* Registration Marks Motif */}
-        <span className="absolute top-2 left-2 font-mono text-[10px] text-pf-ink/30 z-10 pointer-events-none">
-          + FRAME_PROOF_01
+        <span className="absolute top-2 left-2 font-mono text-[10px] text-ink/30 z-10 pointer-events-none">
+          + PROOF_FRAME
         </span>
-        <span className="absolute top-2 right-2 font-mono text-[10px] text-pf-ink/30 z-10 pointer-events-none">
-          C•M•Y•K +
+        <span className="absolute top-2 right-2 font-mono text-[10px] text-ink/30 z-10 pointer-events-none">
+          {activeView === "front" ? "VIEW: FRONT" : "VIEW: REAR"} +
         </span>
 
         {/* Customer Logo Notification Badge */}
         {logoUrl && (
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 inline-flex items-center gap-1.5 border border-pf-ink bg-pf-lime px-2.5 py-0.5 text-[11px] font-mono font-bold text-pf-ink shadow-[2px_2px_0_0_#15101F]">
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 inline-flex items-center gap-1.5 border border-ink bg-spot-lime px-2.5 py-0.5 text-[11px] font-mono font-bold text-ink shadow-stamp-sm">
             <Sparkles className="h-3 w-3" />
-            Your Uploaded Logo Applied
+            Live Logo Projected
           </div>
         )}
 
-        {/* Content of Slide */}
-        <div className="h-full w-full p-8 flex items-center justify-center">
-          {slides[activeSlide].isMockup ? (
-            <div className="h-full w-full max-h-[380px] max-w-[380px] transition-transform duration-200">
-              <ProductMockup
-                template={template}
-                color={selectedColor}
-                logoUrl={logoUrl}
-                className="w-full h-full"
-              />
-            </div>
-          ) : (
-            /* Material Texture Macro Shot */
-            <div className="h-full w-full flex flex-col items-center justify-center bg-pf-paper/50 border-2 border-dashed border-pf-ink/20 p-6 text-center">
-              <div className="font-mono text-xs font-bold text-pf-violet uppercase tracking-wider mb-2">
-                Macro Weave Inspection
-              </div>
-              <p className="font-sans text-xs text-pf-ink/75 max-w-xs leading-relaxed">
-                High-density 230–320 GSM combed fibers inspected under 5000K daylight simulation. Zero pinholes, double-needle lockstitched seams.
-              </p>
-              <span className="mt-3 font-mono text-[10px] bg-pf-ink text-white px-2 py-0.5">
-                ISO 12647-2 CALIBRATED
-              </span>
-            </div>
-          )}
-        </div>
+        {/* Real Product Photo with Logo Compositing */}
+        <div className="h-full w-full p-4 flex items-center justify-center relative">
+          <ProductMockup
+            slug={slug}
+            template={template}
+            color={selectedColor}
+            view={activeView}
+            size="gallery"
+            showBadge
+            className="w-full h-full max-h-[460px] max-w-[460px]"
+          />
 
-        {/* Desktop Zoom Lens Label & Magnifier */}
-        {isZooming && (
-          <div className="hidden lg:block absolute bottom-3 right-3 z-20 bg-pf-ink text-white font-mono text-[11px] font-bold px-2 py-1 border border-white/20 shadow-sm pointer-events-none">
-            Zoom Lens 2.5x • Real image
-          </div>
-        )}
-
-        {isZooming && (
-          <div
-            className="hidden lg:block absolute inset-0 pointer-events-none overflow-hidden bg-white z-10"
-            style={{
-              backgroundImage: slides[activeSlide].isMockup ? undefined : "none",
-            }}
-          >
+          {/* Desktop Hover Zoom Lens (Magnifies 2.5x) */}
+          {isZooming && (
             <div
-              className="absolute w-[250%] h-[250%]"
+              className="hidden lg:block absolute pointer-events-none rounded-full border-2 border-ink shadow-2xl overflow-hidden bg-white z-30"
               style={{
-                left: `-${zoomPos.x * 1.5}%`,
-                top: `-${zoomPos.y * 1.5}%`,
+                width: 140,
+                height: 140,
+                left: `calc(${zoomPos.x}% - 70px)`,
+                top: `calc(${zoomPos.y}% - 70px)`,
               }}
             >
-              <div className="h-full w-full p-20 flex items-center justify-center">
+              <div
+                className="w-full h-full relative"
+                style={{
+                  transform: "scale(2.5)",
+                  transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
+                }}
+              >
                 <ProductMockup
+                  slug={slug}
                   template={template}
                   color={selectedColor}
-                  logoUrl={logoUrl}
+                  view={activeView}
+                  size="gallery"
                   className="w-full h-full"
                 />
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Mobile / Fullscreen Lightbox Button */}
+          {/* Fabric Macro Inset Bubble ("Real image" lens) */}
+          <div className="absolute bottom-4 left-4 z-20 flex items-center gap-2">
+            <div className="h-16 w-16 rounded-full border-2 border-ink overflow-hidden shadow-stamp-sm bg-white/90 backdrop-blur-xs relative group/lens">
+              <div className="w-full h-full scale-[2.2] origin-center flex items-center justify-center">
+                <ProductMockup
+                  slug={slug}
+                  template={template}
+                  color={selectedColor}
+                  view={activeView}
+                  size="thumb"
+                  className="w-full h-full"
+                />
+              </div>
+              <div className="absolute inset-0 bg-ink/10 flex items-center justify-center opacity-0 group-hover/lens:opacity-100 transition-opacity">
+                <ZoomIn className="h-4 w-4 text-white" />
+              </div>
+            </div>
+            <span className="font-mono text-[10px] uppercase font-bold text-ink/70 bg-white/80 px-1.5 py-0.5 rounded-xs border border-ink/20 shadow-xs">
+              Fabric Weave 2.5x
+            </span>
+          </div>
+        </div>
+
+        {/* Left & Right Switcher Arrows for Apparel / Multi-View Products */}
         <button
+          type="button"
+          onClick={() => setActiveView((prev) => (prev === "front" ? "back" : "front"))}
+          aria-label="Previous View"
+          className="absolute left-3 top-1/2 -translate-y-1/2 z-20 h-9 w-9 rounded-full border-2 border-ink bg-white/90 text-ink hover:bg-violet hover:text-white flex items-center justify-center shadow-stamp-sm transition-all"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveView((prev) => (prev === "front" ? "back" : "front"))}
+          aria-label="Next View"
+          className="absolute right-3 top-1/2 -translate-y-1/2 z-20 h-9 w-9 rounded-full border-2 border-ink bg-white/90 text-ink hover:bg-violet hover:text-white flex items-center justify-center shadow-stamp-sm transition-all"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
+
+        {/* Fullscreen Expand Action */}
+        <button
+          type="button"
           onClick={() => setLightboxOpen(true)}
           aria-label="Open Fullscreen Lightbox"
-          className="absolute bottom-3 left-3 z-20 h-9 w-9 rounded-full border-2 border-pf-ink bg-white flex items-center justify-center shadow-[2px_2px_0_0_#15101F] hover:bg-pf-paper active:translate-x-[1px] active:translate-y-[1px]"
+          className="absolute bottom-3 right-3 z-20 h-8 w-8 rounded-xs border-2 border-ink bg-white text-ink hover:bg-spot-lime flex items-center justify-center shadow-stamp-sm transition-colors"
         >
-          <Maximize2 className="h-4 w-4 text-pf-ink" />
-        </button>
-
-        {/* Carousel Arrow Navigation */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setActiveSlide((prev) => (prev > 0 ? prev - 1 : slides.length - 1));
-          }}
-          aria-label="Previous image"
-          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 h-8 w-8 rounded-full border border-pf-ink bg-white/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setActiveSlide((prev) => (prev < slides.length - 1 ? prev + 1 : 0));
-          }}
-          aria-label="Next image"
-          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 h-8 w-8 rounded-full border border-pf-ink bg-white/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
-        >
-          <ChevronRight className="h-4 w-4" />
+          <Maximize2 className="h-4 w-4" />
         </button>
       </div>
 
-      {/* Thumbnails Row */}
-      <div className="flex items-center gap-3">
-        {slides.map((s, idx) => (
-          <button
-            key={s.id}
-            onClick={() => setActiveSlide(idx)}
-            className={`relative flex-1 aspect-square max-w-[80px] border-2 bg-white p-2 transition-all ${
-              activeSlide === idx
-                ? "border-pf-ink shadow-[3px_3px_0_0_#6A2CFF] ring-2 ring-pf-violet"
-                : "border-pf-ink/30 hover:border-pf-ink opacity-70 hover:opacity-100"
-            }`}
-          >
-            {s.isMockup ? (
-              <ProductMockup
-                template={template}
-                color={selectedColor}
-                logoUrl={logoUrl}
-                className="w-full h-full"
-              />
-            ) : (
-              <div className="h-full w-full bg-pf-ink/10 flex items-center justify-center font-mono text-[9px] text-pf-ink font-bold text-center leading-tight">
-                Macro Weave
-              </div>
-            )}
-          </button>
-        ))}
+      {/* Available Sizes Strip under the photo (Matches reference screenshot) */}
+      {isApparel && (
+        <div className="flex items-center justify-center gap-2 py-1.5 px-3 bg-paper-pure border border-ink/20 rounded-xs font-mono text-xs text-ink/80">
+          <span className="font-bold text-[11px] text-ink uppercase">Available Sizes:</span>
+          {["S", "M", "L", "XL", "2XL", "3XL", "4XL"].map((sz) => (
+            <span
+              key={sz}
+              className="px-2 py-0.5 bg-paper rounded-xs border border-ink/20 font-bold text-[11px]"
+            >
+              {sz}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* View Switcher Thumbnails */}
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => setActiveView("front")}
+          className={`py-2 px-3 border-2 font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
+            activeView === "front"
+              ? "border-violet bg-violet text-white shadow-stamp-sm"
+              : "border-ink/20 bg-white text-ink hover:border-ink"
+          }`}
+        >
+          <span>Front View (Chest)</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveView("back")}
+          className={`py-2 px-3 border-2 font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
+            activeView === "back"
+              ? "border-violet bg-violet text-white shadow-stamp-sm"
+              : "border-ink/20 bg-white text-ink hover:border-ink"
+          }`}
+        >
+          <span>Rear View (Upper Back)</span>
+        </button>
       </div>
 
-      {/* Mobile / Desktop Lightbox Modal */}
+      {/* Fullscreen Lightbox Modal */}
       <Dialog.Root open={lightboxOpen} onOpenChange={setLightboxOpen}>
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 bg-pf-ink/90 z-50 backdrop-blur-md" />
-          <Dialog.Content className="fixed inset-4 sm:inset-10 z-50 flex flex-col items-center justify-between bg-white border-2 border-pf-ink p-6 shadow-2xl focus:outline-none overflow-hidden">
-            <div className="w-full flex items-center justify-between pb-3 border-b-2 border-pf-ink">
-              <Dialog.Title className="font-display text-lg font-bold text-pf-ink">
-                {productName} — Production Specimen Lightbox
-              </Dialog.Title>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-ink/80 backdrop-blur-sm" />
+          <Dialog.Content className="fixed inset-4 sm:inset-12 z-50 bg-paper-pure border-2 border-ink p-6 rounded-sm shadow-2xl flex flex-col items-center justify-center max-w-4xl mx-auto my-auto overflow-hidden">
+            <div className="w-full flex items-center justify-between pb-3 border-b border-ink/20 mb-4">
+              <span className="font-display font-black text-lg text-ink">
+                {productName} — 1:1 Scale Inspection
+              </span>
               <Dialog.Close asChild>
                 <button
-                  aria-label="Close lightbox"
-                  className="p-1 rounded-full border-2 border-pf-ink hover:bg-pf-paper"
+                  type="button"
+                  aria-label="Close Lightbox"
+                  className="p-1 border border-ink rounded-xs hover:bg-paper"
                 >
-                  <X className="h-5 w-5 text-pf-ink" />
+                  <X className="h-5 w-5" />
                 </button>
               </Dialog.Close>
             </div>
 
-            <div className="w-full flex-1 flex items-center justify-center p-4">
-              <div className="w-full max-w-lg aspect-square">
-                <ProductMockup
-                  template={template}
-                  color={selectedColor}
-                  logoUrl={logoUrl}
-                  className="w-full h-full"
-                />
-              </div>
-            </div>
-
-            <div className="w-full pt-3 border-t border-pf-ink/20 flex items-center justify-between text-xs font-mono text-pf-ink/70">
-              <span>COLORWAY: {selectedColor.toUpperCase()}</span>
-              <span>PINCH / ZOOM SUPPORTED</span>
+            <div className="flex-1 w-full flex items-center justify-center max-h-[70vh]">
+              <ProductMockup
+                slug={slug}
+                template={template}
+                color={selectedColor}
+                view={activeView}
+                size="gallery"
+                showBadge
+                className="w-full h-full max-w-2xl max-h-full"
+              />
             </div>
           </Dialog.Content>
         </Dialog.Portal>
@@ -239,4 +246,3 @@ export function ProductGallery({
     </div>
   );
 }
-

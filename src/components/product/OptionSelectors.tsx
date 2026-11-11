@@ -60,15 +60,25 @@ export function OptionSelectors({
   selectedSize,
   onSelectSize,
 }: OptionSelectorsProps) {
+  const activeColorName =
+    colors?.find((c) => c.hex.toLowerCase() === selectedColor?.toLowerCase())?.name ||
+    (selectedColor === "#FFFFFF" ? "White" : "Selected");
+
   return (
     <div className="space-y-6">
-      {/* 1. Shape Cards (Distinct Style #1: Shape cards with small preview icons) */}
+      {/* 1. Shape Cards for Badges (Logo Cutout, Circle, Square, Rectangle) */}
       {shapes && shapes.length > 0 && (
         <div className="space-y-2.5">
-          <label className="block font-mono text-xs font-bold text-pf-ink uppercase tracking-wider">
-            Die-Cut Geometry
-          </label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="flex items-center justify-between">
+            <label className="block font-mono text-xs font-bold text-ink uppercase tracking-wider">
+              Choose Badge Shape
+            </label>
+            <span className="font-mono text-xs text-violet font-bold capitalize">
+              {shapes.find((s) => s.id === selectedShape)?.name || "Select Shape"}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             {shapes.map((s) => {
               const isSelected = selectedShape === s.id;
               return (
@@ -76,24 +86,37 @@ export function OptionSelectors({
                   key={s.id}
                   type="button"
                   onClick={() => onSelectShape && onSelectShape(s.id)}
-                  className={`flex flex-col items-center justify-center p-3 border-2 transition-all text-center ${
+                  className={`p-3 border-2 rounded-sm text-left transition-all relative flex flex-col justify-between ${
                     isSelected
-                      ? "border-pf-ink bg-pf-lilac/30 shadow-[3px_3px_0_0_#15101F]"
-                      : "border-pf-ink/20 bg-white hover:border-pf-ink hover:bg-pf-paper"
+                      ? "border-violet bg-violet/5 shadow-stamp-sm"
+                      : "border-ink/20 bg-paper-pure hover:border-ink hover:bg-paper"
                   }`}
                 >
-                  <div className="mb-2 text-pf-ink">
-                    {s.icon === "circle" && <Circle className="h-5 w-5" />}
-                    {s.icon === "rect" && <RectangleHorizontal className="h-5 w-5" />}
-                    {s.icon === "square" && <Square className="h-5 w-5" />}
-                    {s.icon === "contour" && <Scissors className="h-5 w-5 text-pf-violet" />}
+                  <div className="flex items-center justify-between mb-2">
+                    <div
+                      className={`p-1.5 rounded-xs border ${
+                        isSelected
+                          ? "bg-violet text-white border-violet"
+                          : "bg-paper text-ink border-ink/20"
+                      }`}
+                    >
+                      {s.icon === "circle" && <Circle className="h-4 w-4" />}
+                      {s.icon === "rect" && <RectangleHorizontal className="h-4 w-4" />}
+                      {s.icon === "square" && <Square className="h-4 w-4" />}
+                      {s.icon === "contour" && <Scissors className="h-4 w-4" />}
+                    </div>
+                    {isSelected && (
+                      <span className="h-2 w-2 rounded-full bg-spot-lime border border-ink" />
+                    )}
                   </div>
-                  <span className="font-display text-xs font-bold text-pf-ink leading-tight">
-                    {s.name}
-                  </span>
-                  <span className="font-mono text-[10px] text-pf-ink/60 mt-0.5">
-                    {s.description}
-                  </span>
+                  <div>
+                    <span className="font-display font-bold text-xs text-ink block">
+                      {s.name}
+                    </span>
+                    <span className="font-mono text-[10px] text-ink/60 block mt-0.5">
+                      {s.description}
+                    </span>
+                  </div>
                 </button>
               );
             })}
@@ -101,24 +124,31 @@ export function OptionSelectors({
         </div>
       )}
 
-      {/* 2. Colour Swatches (Distinct Style #2: Circular Tokens with Radix Tooltip) */}
+      {/* 2. Colour Swatches Grid (Matches Reference Layout with Name Labels) */}
       {colors && colors.length > 0 && (
         <div className="space-y-2.5">
           <div className="flex items-center justify-between">
-            <label className="block font-mono text-xs font-bold text-pf-ink uppercase tracking-wider">
-              Colourway Base
-            </label>
-            <span className="font-mono text-xs text-pf-violet font-bold">
-              {colors.find((c) => c.hex.toLowerCase() === selectedColor?.toLowerCase())?.name ||
-                "Select Tone"}
+            <div className="flex items-center gap-2">
+              <label className="block font-mono text-xs font-bold text-ink uppercase tracking-wider">
+                Select Colour
+              </label>
+              <span className="px-2 py-0.5 bg-ink text-white font-mono text-[11px] font-bold rounded-xs shadow-xs">
+                {activeColorName}
+              </span>
+            </div>
+            <span className="font-mono text-[11px] text-ink/60">
+              {colors.length} Available Tones
             </span>
           </div>
 
           <Tooltip.Provider delayDuration={150}>
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="grid grid-cols-4 sm:grid-cols-8 gap-2.5 pt-1">
               {colors.map((c) => {
                 const isSelected = selectedColor?.toLowerCase() === c.hex.toLowerCase();
-                const isLight = c.hex.toLowerCase() === "#ffffff" || c.hex.toLowerCase() === "#f5f0e8";
+                const isLight =
+                  c.hex.toLowerCase() === "#ffffff" ||
+                  c.hex.toLowerCase() === "#f5f0e8" ||
+                  c.hex.toLowerCase() === "#fafafa";
                 return (
                   <Tooltip.Root key={c.name}>
                     <Tooltip.Trigger asChild>
@@ -126,29 +156,38 @@ export function OptionSelectors({
                         type="button"
                         onClick={() => onSelectColor && onSelectColor(c.hex)}
                         aria-label={`Select ${c.name}`}
-                        className={`relative h-9 w-9 rounded-full border-2 border-pf-ink transition-transform ${
+                        className={`flex flex-col items-center p-1.5 rounded-xs border-2 transition-all group ${
                           isSelected
-                            ? "scale-110 shadow-[2px_2px_0_0_#15101F] ring-2 ring-pf-violet"
-                            : "hover:scale-105 opacity-90 hover:opacity-100"
+                            ? "border-violet bg-violet/10 shadow-stamp-sm scale-105"
+                            : "border-ink/15 bg-paper hover:border-ink/50 hover:bg-white"
                         }`}
-                        style={{ backgroundColor: c.hex }}
                       >
-                        {isSelected && (
-                          <Check
-                            className={`h-4 w-4 absolute inset-0 m-auto ${
-                              isLight ? "text-pf-ink" : "text-white"
-                            }`}
-                          />
-                        )}
+                        <div
+                          className={`relative h-7 w-7 rounded-full border-2 border-ink flex items-center justify-center shadow-xs transition-transform ${
+                            isSelected ? "ring-2 ring-violet" : "group-hover:scale-110"
+                          }`}
+                          style={{ backgroundColor: c.hex }}
+                        >
+                          {isSelected && (
+                            <Check
+                              className={`h-3.5 w-3.5 ${
+                                isLight ? "text-ink" : "text-white"
+                              }`}
+                            />
+                          )}
+                        </div>
+                        <span className="font-mono text-[10px] text-ink/80 truncate w-full text-center mt-1">
+                          {c.name}
+                        </span>
                       </button>
                     </Tooltip.Trigger>
                     <Tooltip.Portal>
                       <Tooltip.Content
                         side="top"
-                        className="bg-pf-ink text-white font-mono text-xs px-2.5 py-1 rounded shadow-md z-50 border border-white/20"
+                        className="bg-ink text-white font-mono text-xs px-2.5 py-1 rounded shadow-md z-50 border border-white/20"
                       >
                         {c.name}
-                        <Tooltip.Arrow className="fill-pf-ink" />
+                        <Tooltip.Arrow className="fill-ink" />
                       </Tooltip.Content>
                     </Tooltip.Portal>
                   </Tooltip.Root>
@@ -159,11 +198,11 @@ export function OptionSelectors({
         </div>
       )}
 
-      {/* 3. Fabric Cards (Distinct Style #3: Structural Cards with Badges & GSM) */}
+      {/* 3. Fabric Specification Cards */}
       {fabrics && fabrics.length > 0 && (
         <div className="space-y-2.5">
-          <label className="block font-mono text-xs font-bold text-pf-ink uppercase tracking-wider">
-            Fabric Construction & Weight
+          <label className="block font-mono text-xs font-bold text-ink uppercase tracking-wider">
+            Fabric Weight & Weave
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {fabrics.map((f) => {
@@ -173,32 +212,24 @@ export function OptionSelectors({
                   key={f.id}
                   type="button"
                   onClick={() => onSelectFabric && onSelectFabric(f.id)}
-                  className={`flex flex-col justify-between p-3.5 border-2 text-left transition-all ${
+                  className={`p-3.5 border-2 rounded-sm text-left transition-all ${
                     isSelected
-                      ? "border-pf-ink bg-pf-lilac/20 shadow-[3px_3px_0_0_#15101F]"
-                      : "border-pf-ink/20 bg-white hover:border-pf-ink"
+                      ? "border-violet bg-violet/5 shadow-stamp-sm"
+                      : "border-ink/20 bg-paper-pure hover:border-ink hover:bg-paper"
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <span className="font-display text-sm font-bold text-pf-ink">
-                      {f.name}
-                    </span>
+                    <span className="font-mono text-xs font-bold text-ink">{f.name}</span>
                     {f.badge && (
-                      <span
-                        className={`text-[10px] font-mono font-bold px-2 py-0.5 border border-pf-ink/30 ${
-                          f.badge === "Popular"
-                            ? "bg-pf-lime text-pf-ink"
-                            : "bg-pf-violet text-white"
-                        }`}
-                      >
+                      <span className="font-mono text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full border border-ink/30 bg-spot-lime text-ink">
                         {f.badge}
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center justify-between text-xs font-mono text-pf-ink/70">
-                    <span>{f.description}</span>
-                    <span className="font-bold text-pf-ink">{f.weightGsm} GSM</span>
+                  <div className="font-mono text-xs text-violet font-bold">
+                    {f.weightGsm} GSM
                   </div>
+                  <p className="font-sans text-xs text-ink/70 mt-1">{f.description}</p>
                 </button>
               );
             })}
@@ -206,33 +237,27 @@ export function OptionSelectors({
         </div>
       )}
 
-      {/* 4. Size Chips (Distinct Style #4: Clean Letter Chips) */}
+      {/* 4. Size letter chips for non-apparel products */}
       {sizes && sizes.length > 0 && (
-        <div className="space-y-2.5">
-          <div className="flex items-center justify-between">
-            <label className="block font-mono text-xs font-bold text-pf-ink uppercase tracking-wider">
-              Garment Size
-            </label>
-            <span className="font-mono text-xs text-pf-ink/60 underline cursor-pointer hover:text-pf-violet">
-              Size Chart Guide
-            </span>
-          </div>
-
-          <div className="flex flex-wrap gap-2.5">
-            {sizes.map((sz) => {
-              const isSelected = selectedSize === sz;
+        <div className="space-y-2">
+          <label className="block font-mono text-xs font-bold text-ink uppercase tracking-wider">
+            Dimension Specification
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {sizes.map((s) => {
+              const isSelected = selectedSize === s;
               return (
                 <button
-                  key={sz}
+                  key={s}
                   type="button"
-                  onClick={() => onSelectSize && onSelectSize(sz)}
-                  className={`min-w-[44px] h-11 px-3.5 border-2 font-mono text-xs font-bold uppercase transition-all flex items-center justify-center ${
+                  onClick={() => onSelectSize && onSelectSize(s)}
+                  className={`px-3 py-1.5 font-mono text-xs font-bold border-2 rounded-xs transition-all ${
                     isSelected
-                      ? "border-pf-ink bg-pf-ink text-white shadow-[2px_2px_0_0_#6A2CFF]"
-                      : "border-pf-ink/20 bg-white text-pf-ink hover:border-pf-ink"
+                      ? "border-ink bg-violet text-white shadow-stamp-sm"
+                      : "border-ink/20 bg-white text-ink hover:border-ink"
                   }`}
                 >
-                  {sz}
+                  {s}
                 </button>
               );
             })}
@@ -242,4 +267,3 @@ export function OptionSelectors({
     </div>
   );
 }
-

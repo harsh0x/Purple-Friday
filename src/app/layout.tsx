@@ -49,6 +49,15 @@ export default function RootLayout({
       className={`${bricolage.variable} ${instrumentSans.variable} ${dmMono.variable}`}
       suppressHydrationWarning
     >
+      <head>
+        {/* Intercept and suppress external chrome-extension errors (e.g. Urban VPN M_ID injection) */}
+        <script
+          id="suppress-extension-errors"
+          dangerouslySetInnerHTML={{
+            __html: `(function(){if(typeof window==='undefined')return;function isExtErr(e){var s=(e&&e.stack)||'';var m=(e&&e.message)||'';var f=(e&&e.filename)||'';return f.indexOf('chrome-extension://')!==-1||s.indexOf('chrome-extension://')!==-1||m.indexOf('M_ID')!==-1||m.indexOf('bis_skin_checked')!==-1;}window.addEventListener('error',function(ev){if(isExtErr(ev)||isExtErr(ev.error)){ev.preventDefault();ev.stopImmediatePropagation();return true;}},true);window.addEventListener('unhandledrejection',function(ev){if(isExtErr(ev.reason)){ev.preventDefault();ev.stopImmediatePropagation();}},true);})();`,
+          }}
+        />
+      </head>
       <body className="font-sans bg-paper text-ink antialiased min-h-screen flex flex-col" suppressHydrationWarning>
         {/* WCAG AA Accessible Skip to Main Content Link */}
         <a

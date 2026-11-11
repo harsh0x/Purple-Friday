@@ -64,8 +64,10 @@ export function PosterCard({ product }: { product: ProductCardData }) {
       <Link href={`/product/${product.slug}`} className="block my-auto py-2">
         <div className="h-44 sm:h-52 w-full flex items-center justify-center p-3 bg-paper-pure rounded-xs border border-ink/10 transition-transform duration-300 group-hover:scale-105">
           <ProductMockup
+            slug={product.slug}
             template={product.template}
-            color={product.color || "#15101F"}
+            color={product.color}
+            size="card"
             className="max-h-full max-w-full drop-shadow-md"
           />
         </div>

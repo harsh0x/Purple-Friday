@@ -41,8 +41,9 @@ export function CategoryBentoGrid() {
 
           <div className="h-56 sm:h-64 w-full flex items-center justify-center p-4 my-4">
             <ProductMockup
+              slug="round-gloss-badge-58mm"
               template="badge"
-              color="#F5F0E8"
+              color="#FFFFFF"
               className="max-h-full max-w-full drop-shadow-md transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6"
             />
           </div>
@@ -75,8 +76,9 @@ export function CategoryBentoGrid() {
 
           <div className="h-48 sm:h-56 w-full flex items-center justify-center p-3 my-2">
             <ProductMockup
+              slug="classic-crewneck-tshirt"
               template="tee"
-              color="#15101F"
+              color="#FFFFFF"
               className="max-h-full max-w-full drop-shadow-md transition-transform duration-300 group-hover:scale-105"
             />
           </div>
@@ -107,8 +109,9 @@ export function CategoryBentoGrid() {
 
           <div className="h-44 w-full flex items-center justify-center p-2 my-2">
             <ProductMockup
+              slug="classic-pullover-hoodie"
               template="hoodie"
-              color="#312540"
+              color="#FFFFFF"
               className="max-h-full max-w-full drop-shadow-sm transition-transform group-hover:scale-105"
             />
           </div>
@@ -137,8 +140,9 @@ export function CategoryBentoGrid() {
 
           <div className="h-44 w-full flex items-center justify-center p-2 my-2">
             <ProductMockup
+              slug="structured-cotton-twill-cap"
               template="cap"
-              color="#15101F"
+              color="#FFFFFF"
               className="max-h-full max-w-full drop-shadow-sm transition-transform group-hover:scale-105"
             />
           </div>
@@ -167,8 +171,9 @@ export function CategoryBentoGrid() {
 
           <div className="h-44 w-full flex items-center justify-center p-2 my-2">
             <ProductMockup
+              slug="matte-insulated-steel-flask"
               template="bottle"
-              color="#221A31"
+              color="#FFFFFF"
               className="max-h-full max-w-full drop-shadow-sm transition-transform group-hover:scale-105"
             />
           </div>

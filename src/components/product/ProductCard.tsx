@@ -74,9 +74,11 @@ export function ProductCard({ product }: { product: ProductCardData }) {
           <Link href={`/product/${product.slug}`} className="block">
             <div className="aspect-square w-full flex items-center justify-center p-3 bg-paper rounded-xs mb-3 overflow-hidden relative">
               <ProductMockup
+                slug={product.slug}
                 template={product.template}
-                color={product.color || "#15101F"}
+                color={product.color}
                 view={isHovered ? "back" : "front"}
+                size="card"
                 className="max-h-full max-w-full drop-shadow-sm transition-transform duration-300 group-hover:scale-105"
               />
             </div>

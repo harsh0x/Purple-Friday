@@ -140,43 +140,43 @@ export function ProductReviewsSection({
   };
 
   return (
-    <section className="border-t-2 border-pf-ink bg-white py-16 px-4 md:px-8">
+    <section className="border-t-2 border-ink bg-white py-16 px-4 md:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
           <div>
-            <div className="inline-flex items-center gap-2 border border-pf-ink/20 bg-pf-lilac/30 px-3 py-1 text-xs font-mono font-bold text-pf-ink uppercase tracking-wider mb-3">
-              <ShieldCheck className="h-3.5 w-3.5 text-pf-violet" />
+            <div className="inline-flex items-center gap-2 border border-ink/20 bg-lilac/30 px-3 py-1 text-xs font-mono font-bold text-ink uppercase tracking-wider mb-3">
+              <ShieldCheck className="h-3.5 w-3.5 text-violet" />
               100% Verified Buyer Feedback
             </div>
-            <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-pf-ink tracking-tight">
+            <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-ink tracking-tight">
               Client proofs & reviews
             </h2>
-            <p className="mt-2 text-sm text-pf-ink/75 font-sans">
+            <p className="mt-2 text-sm text-ink/75 font-sans">
               Real Indian companies, real print runs. Read how {productName} performs in the field.
             </p>
           </div>
 
           <button
             onClick={() => setDialogOpen(true)}
-            className="self-start md:self-end border-2 border-pf-ink bg-pf-violet text-white font-mono text-xs font-bold uppercase tracking-wider px-5 py-3 shadow-[3px_3px_0_0_#15101F] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_0_#15101F] transition-all"
+            className="self-start md:self-end border-2 border-ink bg-violet text-white font-mono text-xs font-bold uppercase tracking-wider px-5 py-3 shadow-[3px_3px_0_0_#15101F] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_0_#15101F] transition-all"
           >
             Write a Review
           </button>
         </div>
 
         {/* Rating Breakdown Summary Bar */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 p-6 border-2 border-pf-ink bg-pf-paper mb-10 shadow-[4px_4px_0_0_#15101F]">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 p-6 border-2 border-ink bg-paper mb-10 shadow-[4px_4px_0_0_#15101F]">
           {/* Overall Score */}
-          <div className="md:col-span-4 flex flex-col items-center justify-center text-center border-b md:border-b-0 md:border-r border-pf-ink/15 pb-6 md:pb-0 md:pr-6">
-            <span className="font-mono text-5xl font-black text-pf-ink">
+          <div className="md:col-span-4 flex flex-col items-center justify-center text-center border-b md:border-b-0 md:border-r border-ink/15 pb-6 md:pb-0 md:pr-6">
+            <span className="font-mono text-5xl font-black text-ink">
               {overallRating.toFixed(1)}
             </span>
-            <div className="flex items-center gap-1 text-pf-violet my-2">
+            <div className="flex items-center gap-1 text-violet my-2">
               {[...Array(5)].map((_, i) => (
-                <Star key={i} className="h-4 w-4 fill-pf-violet text-pf-violet" />
+                <Star key={i} className="h-4 w-4 fill-violet text-violet" />
               ))}
             </div>
-            <span className="font-mono text-xs text-pf-ink/60">
+            <span className="font-mono text-xs text-ink/60">
               Based on {totalReviews} client runs
             </span>
           </div>
@@ -191,24 +191,24 @@ export function ProductReviewsSection({
               { stars: 1, pct: 0, count: 0 },
             ].map((row) => (
               <div key={row.stars} className="flex items-center gap-3 text-xs font-mono">
-                <span className="w-12 text-pf-ink font-bold">{row.stars} Stars</span>
-                <div className="flex-1 h-3 bg-pf-ink/10 rounded-full overflow-hidden border border-pf-ink/20">
+                <span className="w-12 text-ink font-bold">{row.stars} Stars</span>
+                <div className="flex-1 h-3 bg-ink/10 rounded-full overflow-hidden border border-ink/20">
                   <div
-                    className="h-full bg-pf-violet"
+                    className="h-full bg-violet"
                     style={{ width: `${row.pct}%` }}
                   />
                 </div>
-                <span className="w-8 text-pf-ink/60 text-right">{row.count}</span>
+                <span className="w-8 text-ink/60 text-right">{row.count}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Filter & Sort Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b-2 border-pf-ink mb-8">
+        <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b-2 border-ink mb-8">
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-pf-violet" />
-            <span className="font-mono text-xs font-bold text-pf-ink uppercase">Filter:</span>
+            <Filter className="h-4 w-4 text-violet" />
+            <span className="font-mono text-xs font-bold text-ink uppercase">Filter:</span>
             <div className="flex flex-wrap gap-1.5">
               {[null, 5, 4].map((star) => (
                 <button
@@ -216,8 +216,8 @@ export function ProductReviewsSection({
                   onClick={() => setRatingFilter(star)}
                   className={`px-3 py-1 font-mono text-xs border transition-all ${
                     ratingFilter === star
-                      ? "border-pf-ink bg-pf-ink text-white font-bold"
-                      : "border-pf-ink/20 bg-white text-pf-ink hover:border-pf-ink"
+                      ? "border-ink bg-ink text-white font-bold"
+                      : "border-ink/20 bg-white text-ink hover:border-ink"
                   }`}
                 >
                   {star ? `${star} Stars` : "All Reviews"}
@@ -227,18 +227,18 @@ export function ProductReviewsSection({
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="font-mono text-xs text-pf-ink/60">Sort:</span>
+            <span className="font-mono text-xs text-ink/60">Sort:</span>
             <div className="relative inline-flex items-center">
               <select
                 value={sortOrder}
                 onChange={(e) => setSortOrder(e.target.value as "newest" | "highest")}
                 aria-label="Sort reviews"
-                className="appearance-none border-2 border-pf-ink bg-white font-mono text-xs font-bold pl-3 pr-7 py-1 shadow-[2px_2px_0_0_#15101F] focus:outline-none cursor-pointer"
+                className="appearance-none border-2 border-ink bg-white font-mono text-xs font-bold pl-3 pr-7 py-1 shadow-[2px_2px_0_0_#15101F] focus:outline-none cursor-pointer"
               >
                 <option value="newest">Most Recent</option>
                 <option value="highest">Highest Rated</option>
               </select>
-              <ChevronDown className="h-3 w-3 absolute right-2 pointer-events-none text-pf-ink" />
+              <ChevronDown className="h-3 w-3 absolute right-2 pointer-events-none text-ink" />
             </div>
           </div>
         </div>
@@ -248,43 +248,43 @@ export function ProductReviewsSection({
           {filteredReviews.map((rev) => (
             <article
               key={rev.id}
-              className="border-2 border-pf-ink bg-white p-6 shadow-[3px_3px_0_0_#15101F] flex flex-col justify-between"
+              className="border-2 border-ink bg-white p-6 shadow-[3px_3px_0_0_#15101F] flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-1 text-pf-violet">
+                  <div className="flex items-center gap-1 text-violet">
                     {[...Array(rev.rating)].map((_, i) => (
-                      <Star key={i} className="h-3.5 w-3.5 fill-pf-violet text-pf-violet" />
+                      <Star key={i} className="h-3.5 w-3.5 fill-violet text-violet" />
                     ))}
                   </div>
-                  <span className="font-mono text-xs text-pf-ink/50">{rev.date}</span>
+                  <span className="font-mono text-xs text-ink/50">{rev.date}</span>
                 </div>
 
-                <h3 className="font-display text-base font-bold text-pf-ink leading-snug mb-2">
+                <h3 className="font-display text-base font-bold text-ink leading-snug mb-2">
                   {rev.title}
                 </h3>
-                <p className="text-xs font-sans text-pf-ink/75 leading-relaxed mb-4">
+                <p className="text-xs font-sans text-ink/75 leading-relaxed mb-4">
                   {rev.comment}
                 </p>
 
                 {/* Customer Photo Attachment */}
                 {rev.hasPhoto && (
-                  <div className="mb-4 p-3 border border-dashed border-pf-ink/30 bg-pf-paper flex items-center gap-3">
-                    <div className="h-10 w-10 border border-pf-ink bg-pf-violet/10 flex items-center justify-center shrink-0">
-                      <Camera className="h-5 w-5 text-pf-violet" />
+                  <div className="mb-4 p-3 border border-dashed border-ink/30 bg-paper flex items-center gap-3">
+                    <div className="h-10 w-10 border border-ink bg-violet/10 flex items-center justify-center shrink-0">
+                      <Camera className="h-5 w-5 text-violet" />
                     </div>
-                    <div className="text-left font-mono text-[11px] text-pf-ink">
+                    <div className="text-left font-mono text-[11px] text-ink">
                       <span className="font-bold block">Specimen Photo Verified</span>
-                      <span className="text-pf-ink/60">{rev.photoCaption}</span>
+                      <span className="text-ink/60">{rev.photoCaption}</span>
                     </div>
                   </div>
                 )}
               </div>
 
-              <div className="pt-3 border-t border-pf-ink/10 flex items-center justify-between font-mono text-xs">
+              <div className="pt-3 border-t border-ink/10 flex items-center justify-between font-mono text-xs">
                 <div>
-                  <span className="font-bold text-pf-ink block">{rev.name}</span>
-                  <span className="text-[11px] text-pf-ink/60">
+                  <span className="font-bold text-ink block">{rev.name}</span>
+                  <span className="text-[11px] text-ink/60">
                     {rev.role} • {rev.company}
                   </span>
                 </div>
@@ -303,18 +303,18 @@ export function ProductReviewsSection({
       {/* Write a Review Modal (Radix Dialog) */}
       <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 bg-pf-ink/70 z-50 backdrop-blur-sm" />
-          <Dialog.Content className="fixed inset-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 z-50 w-full sm:max-w-lg bg-white border-2 border-pf-ink p-6 shadow-[8px_8px_0_0_#15101F] focus:outline-none max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b-2 border-pf-ink mb-4">
-              <Dialog.Title className="font-display text-lg font-bold text-pf-ink">
+          <Dialog.Overlay className="fixed inset-0 bg-ink/70 z-50 backdrop-blur-sm" />
+          <Dialog.Content className="fixed inset-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 z-50 w-full sm:max-w-lg bg-white border-2 border-ink p-6 shadow-[8px_8px_0_0_#15101F] focus:outline-none max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b-2 border-ink mb-4">
+              <Dialog.Title className="font-display text-lg font-bold text-ink">
                 Review Your Run: {productName}
               </Dialog.Title>
               <Dialog.Close asChild>
                 <button
                   aria-label="Close dialog"
-                  className="p-1 rounded-full border border-pf-ink hover:bg-pf-paper"
+                  className="p-1 rounded-full border border-ink hover:bg-paper"
                 >
-                  <X className="h-5 w-5 text-pf-ink" />
+                  <X className="h-5 w-5 text-ink" />
                 </button>
               </Dialog.Close>
             </div>
@@ -322,7 +322,7 @@ export function ProductReviewsSection({
             <form onSubmit={handleReviewSubmit} className="space-y-4">
               {/* Star Rating Picker */}
               <div>
-                <label className="block font-mono text-xs font-bold text-pf-ink uppercase mb-2">
+                <label className="block font-mono text-xs font-bold text-ink uppercase mb-2">
                   Your Overall Rating
                 </label>
                 <div className="flex items-center gap-2">
@@ -331,16 +331,16 @@ export function ProductReviewsSection({
                       key={s}
                       type="button"
                       onClick={() => setNewRating(s)}
-                      className="p-1 text-pf-violet hover:scale-110 transition-transform"
+                      className="p-1 text-violet hover:scale-110 transition-transform"
                     >
                       <Star
                         className={`h-6 w-6 ${
-                          s <= newRating ? "fill-pf-violet text-pf-violet" : "text-pf-ink/30"
+                          s <= newRating ? "fill-violet text-violet" : "text-ink/30"
                         }`}
                       />
                     </button>
                   ))}
-                  <span className="font-mono text-xs font-bold ml-2 text-pf-ink">
+                  <span className="font-mono text-xs font-bold ml-2 text-ink">
                     {newRating} of 5 Stars
                   </span>
                 </div>
@@ -348,7 +348,7 @@ export function ProductReviewsSection({
 
               {/* Review Title */}
               <div>
-                <label className="block font-mono text-xs font-bold text-pf-ink uppercase mb-1">
+                <label className="block font-mono text-xs font-bold text-ink uppercase mb-1">
                   Headline
                 </label>
                 <input
@@ -357,13 +357,13 @@ export function ProductReviewsSection({
                   placeholder="e.g. Sharp typography, solid magnets, arrived in 3 days"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  className="w-full h-10 px-3 border-2 border-pf-ink bg-white font-sans text-xs text-pf-ink focus:outline-none focus:ring-2 focus:ring-pf-violet"
+                  className="w-full h-10 px-3 border-2 border-ink bg-white font-sans text-xs text-ink focus:outline-none focus:ring-2 focus:ring-violet"
                 />
               </div>
 
               {/* Review Body */}
               <div>
-                <label className="block font-mono text-xs font-bold text-pf-ink uppercase mb-1">
+                <label className="block font-mono text-xs font-bold text-ink uppercase mb-1">
                   Detailed Experience
                 </label>
                 <textarea
@@ -372,14 +372,14 @@ export function ProductReviewsSection({
                   placeholder="How was the print clarity? Did the colors match? How did the fabric or fasteners feel?"
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
-                  className="w-full p-3 border-2 border-pf-ink bg-white font-sans text-xs text-pf-ink focus:outline-none focus:ring-2 focus:ring-pf-violet resize-none"
+                  className="w-full p-3 border-2 border-ink bg-white font-sans text-xs text-ink focus:outline-none focus:ring-2 focus:ring-violet resize-none"
                 />
               </div>
 
               {/* Author & Company */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-mono text-xs font-bold text-pf-ink uppercase mb-1">
+                  <label className="block font-mono text-xs font-bold text-ink uppercase mb-1">
                     Your Name
                   </label>
                   <input
@@ -388,11 +388,11 @@ export function ProductReviewsSection({
                     placeholder="e.g. Vikram Mehta"
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
-                    className="w-full h-10 px-3 border-2 border-pf-ink bg-white font-sans text-xs text-pf-ink focus:outline-none"
+                    className="w-full h-10 px-3 border-2 border-ink bg-white font-sans text-xs text-ink focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block font-mono text-xs font-bold text-pf-ink uppercase mb-1">
+                  <label className="block font-mono text-xs font-bold text-ink uppercase mb-1">
                     Company / Organization
                   </label>
                   <input
@@ -400,16 +400,16 @@ export function ProductReviewsSection({
                     placeholder="e.g. Zerodha"
                     value={newCompany}
                     onChange={(e) => setNewCompany(e.target.value)}
-                    className="w-full h-10 px-3 border-2 border-pf-ink bg-white font-sans text-xs text-pf-ink focus:outline-none"
+                    className="w-full h-10 px-3 border-2 border-ink bg-white font-sans text-xs text-ink focus:outline-none"
                   />
                 </div>
               </div>
 
               {/* Optional Photo Attachment */}
-              <div className="border border-dashed border-pf-ink/40 p-3 bg-pf-paper flex items-center justify-between">
+              <div className="border border-dashed border-ink/40 p-3 bg-paper flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Camera className="h-4 w-4 text-pf-violet" />
-                  <span className="font-mono text-xs text-pf-ink">
+                  <Camera className="h-4 w-4 text-violet" />
+                  <span className="font-mono text-xs text-ink">
                     Attach specimen photo proof
                   </span>
                 </div>
@@ -419,7 +419,7 @@ export function ProductReviewsSection({
                   className={`font-mono text-xs px-2.5 py-1 border transition-all ${
                     photoAdded
                       ? "border-emerald-600 bg-emerald-100 text-emerald-800 font-bold"
-                      : "border-pf-ink/30 bg-white text-pf-ink hover:border-pf-ink"
+                      : "border-ink/30 bg-white text-ink hover:border-ink"
                   }`}
                 >
                   {photoAdded ? "Photo Attached ✓" : "Upload Photo"}
@@ -429,7 +429,7 @@ export function ProductReviewsSection({
               <div className="pt-2">
                 <button
                   type="submit"
-                  className="w-full border-2 border-pf-ink bg-pf-violet text-white font-mono text-sm font-bold uppercase tracking-wider py-3 shadow-[4px_4px_0_0_#15101F] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_#15101F] transition-all"
+                  className="w-full border-2 border-ink bg-violet text-white font-mono text-sm font-bold uppercase tracking-wider py-3 shadow-[4px_4px_0_0_#15101F] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_#15101F] transition-all"
                 >
                   Submit Verified Review
                 </button>

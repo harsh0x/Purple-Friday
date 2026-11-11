@@ -20,12 +20,12 @@ const QUICK_PRODUCTS = [
 ];
 
 const PREVIEW_TEMPLATES = [
-  { id: "badge", name: "Magnetic Badge", template: "badge", color: "#F5F0E8" },
-  { id: "tee", name: "Crewneck Tee", template: "tee", color: "#15101F" },
-  { id: "polo", name: "Piqué Polo", template: "polo", color: "#221A31" },
-  { id: "cap", name: "Twill Cap", template: "cap", color: "#15101F" },
-  { id: "bottle", name: "Steel Flask", template: "bottle", color: "#221A31" },
-  { id: "notebook", name: "A5 Journal", template: "notebook", color: "#15101F" },
+  { id: "badge", name: "Magnetic Badge", slug: "round-gloss-badge-58mm", template: "badge", color: "#FFFFFF" },
+  { id: "tee", name: "Crewneck Tee", slug: "classic-crewneck-tshirt", template: "tee", color: "#FFFFFF" },
+  { id: "polo", name: "Piqué Polo", slug: "executive-pique-polo", template: "polo", color: "#FFFFFF" },
+  { id: "cap", name: "Twill Cap", slug: "structured-cotton-twill-cap", template: "cap", color: "#FFFFFF" },
+  { id: "bottle", name: "Steel Flask", slug: "matte-insulated-steel-flask", template: "bottle", color: "#FFFFFF" },
+  { id: "notebook", name: "A5 Journal", slug: "hardbound-leather-journal-a5", template: "notebook", color: "#FFFFFF" },
 ];
 
 export function HeroSection() {
@@ -228,6 +228,7 @@ export function HeroSection() {
                   >
                     <div className="h-20 w-full flex items-center justify-center p-1">
                       <ProductMockup
+                        slug={item.slug}
                         template={item.template}
                         color={item.color}
                         logoUrl={showLogo ? logoUrl : null}

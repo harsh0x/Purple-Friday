@@ -3,11 +3,12 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Star, ShieldCheck, ShoppingCart, Sparkles, Heart } from "lucide-react";
+import { Star, ShieldCheck, ShoppingCart, Sparkles, Heart, Share2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { ProductGallery } from "./ProductGallery";
 import { OptionSelectors, ColorOption, ShapeOption, FabricOption } from "./OptionSelectors";
 import { QuantityPriceTiers, PriceTier } from "./QuantityPriceTiers";
+import { ApparelSizePicker } from "./ApparelSizePicker";
 import { DeliveryEstimator } from "./DeliveryEstimator";
 import { ProductAccordionTabs } from "./ProductAccordionTabs";
 import { ProductReviewsSection } from "./ProductReviewsSection";
@@ -17,6 +18,26 @@ import { ProductCard, ProductCardData } from "./ProductCard";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import { formatINR, calculateDiscountPercent } from "@/lib/utils";
+import { categoryHref } from "@/lib/urls";
+
+// Complete 15-color studio palette as specified by user
+const STORE_PALETTE: ColorOption[] = [
+  { name: "Black", hex: "#15101F" },
+  { name: "Navy", hex: "#1B2A4A" },
+  { name: "Red", hex: "#C81E1E" },
+  { name: "Grey", hex: "#9E9E9E" },
+  { name: "White", hex: "#FFFFFF" },
+  { name: "Maroon", hex: "#800020" },
+  { name: "Royal Blue", hex: "#2B4C7E" },
+  { name: "Orange", hex: "#F97316" },
+  { name: "Purple", hex: "#6A2CFF" },
+  { name: "Pink", hex: "#EC4899" },
+  { name: "Yellow", hex: "#EAB308" },
+  { name: "Sky Blue", hex: "#38BDF8" },
+  { name: "Dark Green", hex: "#14532D" },
+  { name: "Lime", hex: "#A3E635" },
+  { name: "Green", hex: "#16A34A" },
+];
 
 export interface ProductDetailProps {
   product: {
@@ -24,6 +45,7 @@ export interface ProductDetailProps {
     slug: string;
     name: string;
     shortName: string;
+    categorySlug?: string;
     description: string;
     badges: string[];
     specChips: string[];
@@ -47,6 +69,26 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailPro
   const { addItem, openCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
 
+  // Category Flags
+  const isBadge =
+    product.template.includes("badge") ||
+    product.categorySlug === "magnetic-badges";
+  const isApparel =
+    product.template.includes("tee") ||
+    product.template.includes("polo") ||
+    product.template.includes("hoodie") ||
+    product.categorySlug === "t-shirts" ||
+    product.categorySlug === "polo-shirts" ||
+    product.categorySlug === "hoodies";
+  const isCap =
+    product.template.includes("cap") || product.categorySlug === "caps";
+  const isCorporateGift =
+    product.categorySlug === "corporate-gifts" ||
+    product.template.includes("bottle") ||
+    product.template.includes("notebook") ||
+    product.template.includes("pen") ||
+    product.template.includes("keychain");
+
   // State
   const [quantity, setQuantity] = useState<number>(product.minQty);
   const [selectedColor, setSelectedColor] = useState<string>(
@@ -55,6 +97,25 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailPro
   const [selectedShape, setSelectedShape] = useState<string>("circle");
   const [selectedFabric, setSelectedFabric] = useState<string>("cotton-100");
   const [selectedSize, setSelectedSize] = useState<string>("L");
+  const [selectedFinish, setSelectedFinish] = useState<string>("gloss");
+  const [selectedEngraving, setSelectedEngraving] = useState<string>("laser-mirror");
+
+  // Apparel Size-Wise Distribution State
+  const [sizeSplit, setSizeSplit] = useState<Record<string, number>>({
+    L: product.minQty,
+  });
+
+  const totalSizeSelected = Object.values(sizeSplit).reduce((sum, n) => sum + (n || 0), 0);
+  const sizeSplitMatches = !isApparel || totalSizeSelected === quantity;
+
+  // Handle Quantity Change from Tier Stepper
+  const handleQuantityChange = (newQty: number) => {
+    setQuantity(newQty);
+    if (isApparel) {
+      // Re-allocate remaining or default to L
+      setSizeSplit({ L: newQty });
+    }
+  };
 
   const isFavorited = isInWishlist(product.slug);
 
@@ -69,21 +130,27 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailPro
   const lineTotal = quantity * unitPrice;
   const discountPercent = calculateDiscountPercent(product.mrp, unitPrice);
 
-  // Dynamic Options by Category
-  const isBadge = product.template.includes("badge");
-  const isApparel =
-    product.template.includes("tee") ||
-    product.template.includes("polo") ||
-    product.template.includes("hoodie");
-
+  // Dynamic Options: Badge Shapes
   const shapes: ShapeOption[] = isBadge
     ? [
+        { id: "contour", name: "Logo Cutout", description: "Contour Die Cut", icon: "contour" },
         { id: "circle", name: "Circle", description: "58mm Standard", icon: "circle" },
-        { id: "rect", name: "Rectangle", description: "70x25mm Name", icon: "rect" },
         { id: "square", name: "Square", description: "50x50mm Edge", icon: "square" },
-        { id: "contour", name: "Contour Cut", description: "Custom Die", icon: "contour" },
+        { id: "rect", name: "Rectangle", description: "70x25mm Name", icon: "rect" },
       ]
     : [];
+
+  // Determine effective photo slug (Badges switch photo based on shape card!)
+  let effectivePhotoSlug = product.slug;
+  if (isBadge) {
+    if (selectedShape === "rect") effectivePhotoSlug = "matte-rectangle-name-badge";
+    else if (selectedShape === "contour") effectivePhotoSlug = "metallic-gold-lapel-badge";
+    else if (selectedShape === "square") effectivePhotoSlug = "clear-acrylic-conference-badge";
+    else effectivePhotoSlug = "round-gloss-badge-58mm";
+  }
+
+  // Color options: for apparel use 15-color palette, else product palette
+  const effectiveColors: ColorOption[] = isApparel ? STORE_PALETTE : product.colors;
 
   const fabrics: FabricOption[] = isApparel
     ? [
@@ -102,17 +169,46 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailPro
           description: "Structured streetwear drape",
         },
       ]
+    : isCap
+    ? [
+        {
+          id: "cotton-twill",
+          name: "100% Brushed Cotton Twill",
+          weightGsm: 280,
+          badge: "Popular",
+          description: "Heavyweight structured 6-panel",
+        },
+        {
+          id: "breathable-mesh",
+          name: "Breathable Nylon Trucker Mesh",
+          weightGsm: 180,
+          badge: "Eco-Choice",
+          description: "Airflow cooling back panels",
+        },
+      ]
     : [];
 
-  const sizes = isApparel ? ["S", "M", "L", "XL", "2XL"] : [];
+  const nonApparelSizes = isBadge ? ["44mm", "58mm", "70x25mm"] : [];
 
-  // Direct Add to Cart (Blank / Previously Designed Order)
+  // Direct Add to Cart
   const handleAddToCart = () => {
+    if (isApparel && !sizeSplitMatches) {
+      toast.error(`Please allocate sizes to match your quantity of ${quantity} pcs!`);
+      return;
+    }
+
     const selectedColorName =
-      product.colors?.find((c) => c.hex.toLowerCase() === selectedColor.toLowerCase())?.name ||
+      effectiveColors.find((c) => c.hex.toLowerCase() === selectedColor.toLowerCase())?.name ||
       "Standard";
 
-    const optionKey = `${product.slug}-${selectedColorName}-${selectedSize}-${selectedShape}-${selectedFabric}`;
+    const sizeSummary = isApparel
+      ? Object.entries(sizeSplit)
+          .filter(([, count]) => count > 0)
+          .map(([s, count]) => `${s}: ${count}`)
+          .join(", ")
+      : selectedSize;
+
+    const optionKey = `${product.slug}-${selectedColorName}-${sizeSummary}-${selectedShape}-${selectedFabric}-${selectedFinish}-${selectedEngraving}`;
 
     addItem({
       productId: product.id,
@@ -124,16 +220,17 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailPro
       template: product.template,
       options: {
         Colour: selectedColorName,
-        ...(isApparel ? { Size: selectedSize, Fabric: selectedFabric } : {}),
-        ...(isBadge ? { Shape: selectedShape } : {}),
+        ...(isApparel ? { "Size Distribution": sizeSummary, Fabric: selectedFabric } : {}),
+        ...(isBadge ? { Shape: selectedShape, Finish: selectedFinish, Size: selectedSize } : {}),
+        ...(isCorporateGift ? { Engraving: selectedEngraving } : {}),
       },
     });
 
-    toast.success(`${quantity}x ${product.shortName} added to cart!`);
+    toast.success(`Added ${quantity}x ${product.shortName} to your cart!`);
     openCart();
   };
 
-  // Nav to customizer
+  // Nav to customizer studio
   const handleDesignNow = () => {
     const query = new URLSearchParams();
     query.set("qty", String(quantity));
@@ -145,41 +242,65 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailPro
     if (isBadge) {
       query.set("shape", selectedShape);
     }
-    router.push(`/customize/${product.slug}?${query.toString()}`);
+    router.push(`/design/${product.slug}?${query.toString()}`);
+  };
+
+  // Web Share API
+  const handleShare = async () => {
+    if (typeof window !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({
+          title: product.name,
+          text: `Check out ${product.name} on Purple Friday:`,
+          url: window.location.href,
+        });
+      } catch {
+        // Ignored
+      }
+    } else if (typeof window !== "undefined" && navigator.clipboard) {
+      await navigator.clipboard.writeText(window.location.href);
+      toast.success("Product URL copied to clipboard!");
+    }
   };
 
   return (
-    <div className="min-h-screen bg-pf-paper pb-20">
-      {/* Breadcrumb Strip */}
-      <div className="border-b border-pf-ink/10 bg-white px-4 md:px-8 py-3">
-        <div className="mx-auto max-w-7xl flex items-center gap-2 font-mono text-xs text-pf-ink/60">
-          <Link href="/" className="hover:text-pf-violet">
+    <div className="bg-paper min-h-screen">
+      {/* Breadcrumb Navigation */}
+      <nav
+        aria-label="Breadcrumb"
+        className="border-b border-ink/20 bg-paper-pure px-4 md:px-8 py-3 text-xs font-mono text-ink/70"
+      >
+        <div className="mx-auto max-w-7xl flex items-center gap-2">
+          <Link href="/" className="hover:text-violet transition-colors">
             Home
           </Link>
           <span>/</span>
-          <Link href="/collections/all" className="hover:text-pf-violet">
-            Collections
-          </Link>
-          <span>/</span>
-          <span className="font-bold text-pf-ink truncate">{product.shortName}</span>
+          {product.categorySlug && (
+            <>
+              <Link
+                href={categoryHref(product.categorySlug)}
+                className="hover:text-violet transition-colors capitalize"
+              >
+                {product.categorySlug.replace(/-/g, " ")}
+              </Link>
+              <span>/</span>
+            </>
+          )}
+          <span className="text-ink font-bold truncate">{product.name}</span>
         </div>
-      </div>
+      </nav>
 
-      {/* Main 2-Column Product Grid */}
-      <div className="mx-auto max-w-7xl px-4 md:px-8 pt-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-          {/* Left Column: Gallery & Technical Accordion (6 cols) */}
-          <div className="lg:col-span-6 space-y-8">
+      {/* Main Viewport Grid */}
+      <div className="mx-auto max-w-7xl px-4 md:px-8 py-8 md:py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+          {/* Left Column: Real Photographic Gallery & Zoom Stage (6 cols) */}
+          <div className="lg:col-span-6 sticky top-24">
             <ProductGallery
               template={product.template}
+              slug={effectivePhotoSlug}
               selectedColor={selectedColor}
               productName={product.name}
-            />
-
-            <ProductAccordionTabs
-              specs={product.specChips.map((s) => ({ label: "Feature", value: s }))}
-              printMethod={product.printMethod}
-              minQty={product.minQty}
+              isApparel={isApparel}
             />
           </div>
 
@@ -192,36 +313,36 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailPro
                 {product.badges.map((b) => (
                   <span
                     key={b}
-                    className="font-mono text-[10px] font-bold uppercase tracking-wider bg-pf-lime text-pf-ink px-2 py-0.5 border border-pf-ink/30"
+                    className="font-mono text-[10px] font-bold uppercase tracking-wider bg-spot-lime text-ink px-2.5 py-0.5 border border-ink/30 rounded-xs"
                   >
                     {b}
                   </span>
                 ))}
-                <span className="font-mono text-[10px] text-pf-ink/60 bg-pf-ink/5 px-2 py-0.5 border border-pf-ink/10">
-                  Pre-Flight Proof Included
+                <span className="font-mono text-[10px] text-ink/70 bg-ink/5 px-2.5 py-0.5 border border-ink/10 rounded-xs">
+                  100% Studio Proof Included
                 </span>
               </div>
 
               {/* Product Title */}
-              <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-extrabold text-pf-ink leading-tight">
+              <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-extrabold text-ink leading-tight">
                 {product.name}
               </h1>
 
               {/* Rating & Orders Count */}
               <div className="mt-2.5 flex items-center gap-3">
-                <div className="flex items-center gap-1 text-pf-violet">
+                <div className="flex items-center gap-1 text-violet">
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-3.5 w-3.5 fill-pf-violet text-pf-violet" />
+                    <Star key={i} className="h-3.5 w-3.5 fill-violet text-violet" />
                   ))}
-                  <span className="font-mono text-xs font-bold text-pf-ink ml-1.5">
+                  <span className="font-mono text-xs font-bold text-ink ml-1.5">
                     {product.rating}
                   </span>
                 </div>
-                <span className="text-pf-ink/30">•</span>
-                <span className="font-mono text-xs text-pf-ink/70">
+                <span className="text-ink/30">•</span>
+                <span className="font-mono text-xs text-ink/70">
                   {product.reviewCount} Verified Reviews
                 </span>
-                <span className="text-pf-ink/30">•</span>
+                <span className="text-ink/30">•</span>
                 <span className="font-mono text-xs text-emerald-700 font-bold flex items-center gap-1">
                   <ShieldCheck className="h-3.5 w-3.5" />
                   1,200+ runs delivered
@@ -230,47 +351,105 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailPro
             </div>
 
             {/* Price Block */}
-            <div className="border-2 border-pf-ink bg-white p-4 shadow-[4px_4px_0_0_#15101F]">
+            <div className="border-2 border-ink bg-white p-4 shadow-stamp">
               <div className="flex items-baseline gap-3">
-                <span className="font-mono text-3xl font-black text-pf-ink">
+                <span className="font-mono text-3xl font-black text-ink">
                   {formatINR(unitPrice)}
                 </span>
-                <span className="font-mono text-base text-pf-ink/40 line-through">
+                <span className="font-mono text-base text-ink/40 line-through">
                   {formatINR(product.mrp)}
                 </span>
                 {discountPercent > 0 && (
-                  <span className="font-mono text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 border border-emerald-200 rounded">
+                  <span className="font-mono text-xs font-bold text-ink bg-spot-lime px-2 py-0.5 border border-ink/20 rounded">
                     Save {discountPercent}%
                   </span>
                 )}
-                <span className="font-mono text-xs text-pf-ink/60">/ piece</span>
+                <span className="font-mono text-xs text-ink/60">/ piece</span>
               </div>
-              <div className="mt-1 flex items-center justify-between text-xs font-mono text-pf-ink/60">
-                <span>Inclusive of all taxes (18% GST)</span>
-                <span>Minimum Order: {product.minQty} pcs</span>
+              <div className="mt-1 flex items-center justify-between text-xs font-mono text-ink/70">
+                <span>Inclusive of all taxes (18% GST input credit eligible)</span>
+                <span>Min Order: {product.minQty} pcs</span>
               </div>
             </div>
 
-            {/* Option Selectors: Shapes, Colours, Fabrics, Sizes */}
-            <div className="border-2 border-pf-ink bg-white p-5 shadow-[4px_4px_0_0_#15101F] space-y-6">
+            {/* Option Selectors: Shapes, Colours, Fabrics */}
+            <div className="border-2 border-ink bg-white p-5 shadow-stamp space-y-6">
               <OptionSelectors
                 shapes={shapes}
                 selectedShape={selectedShape}
                 onSelectShape={setSelectedShape}
-                colors={product.colors}
+                colors={effectiveColors}
                 selectedColor={selectedColor}
                 onSelectColor={setSelectedColor}
                 fabrics={fabrics}
                 selectedFabric={selectedFabric}
                 onSelectFabric={setSelectedFabric}
-                sizes={sizes}
+                sizes={nonApparelSizes}
                 selectedSize={selectedSize}
                 onSelectSize={setSelectedSize}
               />
+
+              {/* Custom Badges Finish Selector */}
+              {isBadge && (
+                <div className="space-y-2 pt-2 border-t border-ink/10">
+                  <label className="block font-mono text-xs font-bold text-ink uppercase tracking-wider">
+                    Surface Finish
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: "gloss", label: "Artisan Gloss" },
+                      { id: "matte", label: "Anti-Glare Matte" },
+                      { id: "brushed", label: "Metallic Brushed" },
+                    ].map((fin) => (
+                      <button
+                        key={fin.id}
+                        type="button"
+                        onClick={() => setSelectedFinish(fin.id)}
+                        className={`p-2 font-mono text-xs font-bold border-2 transition-all ${
+                          selectedFinish === fin.id
+                            ? "border-ink bg-violet text-white shadow-stamp-sm"
+                            : "border-ink/20 bg-white text-ink hover:border-ink"
+                        }`}
+                      >
+                        {fin.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Corporate Gifts Engraving Selector */}
+              {isCorporateGift && (
+                <div className="space-y-2 pt-2 border-t border-ink/10">
+                  <label className="block font-mono text-xs font-bold text-ink uppercase tracking-wider">
+                    Custom Marking Technique
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {[
+                      { id: "laser-mirror", label: "Mirror Gold Laser" },
+                      { id: "fiber-matte", label: "Fiber Matte Etch" },
+                      { id: "blind-deboss", label: "Blind Debossing" },
+                    ].map((eng) => (
+                      <button
+                        key={eng.id}
+                        type="button"
+                        onClick={() => setSelectedEngraving(eng.id)}
+                        className={`p-2 font-mono text-xs font-bold border-2 transition-all ${
+                          selectedEngraving === eng.id
+                            ? "border-ink bg-violet text-white shadow-stamp-sm"
+                            : "border-ink/20 bg-white text-ink hover:border-ink"
+                        }`}
+                      >
+                        {eng.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Quantity Stepper, Dynamic Upsell & Price Tiers */}
-            <div className="border-2 border-pf-ink bg-white p-5 shadow-[4px_4px_0_0_#15101F]">
+            {/* Quantity Price Tier Selector with Stepper */}
+            <div className="border-2 border-ink bg-white p-5 shadow-[4px_4px_0_0_#15101F]">
               <QuantityPriceTiers
                 tiers={product.priceTiers}
                 quantity={quantity}
@@ -278,46 +457,81 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailPro
                 qtyStep={product.qtyStep}
                 basePrice={product.basePrice}
                 mrp={product.mrp}
-                onQuantityChange={setQuantity}
+                onQuantityChange={handleQuantityChange}
               />
             </div>
 
+            {/* Apparel Size-Wise Quantity Picker */}
+            {isApparel && (
+              <ApparelSizePicker
+                targetQuantity={quantity}
+                sizeSplit={sizeSplit}
+                onChange={setSizeSplit}
+              />
+            )}
+
             {/* CTAs Block */}
             <div className="space-y-3 pt-2">
-              {/* Primary Stamp CTA */}
+              {/* Primary Stamp CTA: Customizer */}
               <button
                 type="button"
                 onClick={handleDesignNow}
-                className="w-full flex items-center justify-center gap-3 border-2 border-pf-ink bg-pf-violet text-white font-mono text-base font-extrabold uppercase tracking-wider py-4 shadow-[5px_5px_0_0_#15101F] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[3px_3px_0_0_#15101F] active:translate-x-[5px] active:translate-y-[5px] active:shadow-none transition-all"
+                className="w-full flex items-center justify-center gap-3 border-2 border-ink bg-violet text-white font-mono text-base font-extrabold uppercase tracking-wider py-4 shadow-stamp hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-stamp-hover active:translate-x-[4px] active:translate-y-[4px] active:shadow-stamp-active transition-all"
               >
-                <Sparkles className="h-5 w-5 text-pf-lime" />
+                <Sparkles className="h-5 w-5 text-spot-lime" />
                 <span>Design Your {product.shortName}</span>
               </button>
 
-              {/* Secondary Direct Add to Cart & Wishlist */}
+              {/* Secondary Direct Add to Cart, Wishlist & Share */}
               <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={handleAddToCart}
-                  className="flex-1 flex items-center justify-center gap-2 border-2 border-pf-ink bg-white text-pf-ink font-mono text-xs font-bold uppercase tracking-wider py-3 shadow-[3px_3px_0_0_#15101F] hover:bg-pf-paper hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+                  disabled={isApparel && !sizeSplitMatches}
+                  className={`flex-1 flex items-center justify-center gap-2 border-2 border-ink font-mono text-xs font-bold uppercase tracking-wider py-3 shadow-stamp-sm transition-all ${
+                    isApparel && !sizeSplitMatches
+                      ? "bg-paper text-ink/40 border-ink/40 cursor-not-allowed shadow-none"
+                      : "bg-white text-ink hover:bg-paper hover:translate-x-[1px] hover:translate-y-[1px]"
+                  }`}
                 >
                   <ShoppingCart className="h-4 w-4" />
-                  <span>Add Plain / Blank Order ({quantity} pcs)</span>
+                  <span>
+                    {isApparel && !sizeSplitMatches
+                      ? `Select Sizes (${totalSizeSelected}/${quantity})`
+                      : `Add Plain / Blank Order (${quantity} pcs)`}
+                  </span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => toggleWishlist(product.slug)}
-                  aria-label="Add to wishlist"
-                  className={`h-11 w-11 shrink-0 rounded-full border-2 border-pf-ink flex items-center justify-center shadow-[2px_2px_0_0_#15101F] transition-all ${
+                  aria-label={isFavorited ? "Remove from wishlist" : "Add to wishlist"}
+                  className={`h-11 w-11 shrink-0 rounded-sm border-2 border-ink flex items-center justify-center shadow-stamp-sm hover:bg-paper transition-all ${
                     isFavorited
                       ? "bg-rose-50 text-rose-600 border-rose-600"
-                      : "bg-white text-pf-ink hover:bg-pf-paper"
+                      : "bg-white text-ink"
                   }`}
                 >
                   <Heart className={`h-4 w-4 ${isFavorited ? "fill-rose-600" : ""}`} />
                 </button>
+
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  aria-label="Share product"
+                  className="h-11 w-11 shrink-0 rounded-sm border-2 border-ink bg-white text-ink hover:bg-paper flex items-center justify-center shadow-stamp-sm transition-all"
+                >
+                  <Share2 className="h-4 w-4" />
+                </button>
               </div>
+
+              {/* Size mismatch helper warning */}
+              {isApparel && !sizeSplitMatches && (
+                <div className="flex items-center justify-center gap-1.5 text-xs font-mono text-violet font-semibold pt-1">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  <span>Please allocate all {quantity} pieces across sizes above before ordering</span>
+                </div>
+              )}
 
               {/* Let Our Team Design It Modal Trigger */}
               <div className="text-center pt-1">
@@ -330,6 +544,13 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailPro
 
             {/* Delivery Estimator */}
             <DeliveryEstimator subtotal={lineTotal} />
+
+            {/* Technical Specifications Accordion Tabs */}
+            <ProductAccordionTabs
+              specs={product.specChips.map((s) => ({ label: "Feature", value: s }))}
+              printMethod={product.printMethod}
+              minQty={product.minQty}
+            />
           </div>
         </div>
       </div>
@@ -345,13 +566,13 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailPro
 
       {/* Related Products Carousel */}
       {relatedProducts && relatedProducts.length > 0 && (
-        <section className="border-t-2 border-pf-ink bg-pf-paper py-16 px-4 md:px-8">
+        <section className="border-t-2 border-ink bg-paper py-16 px-4 md:px-8">
           <div className="mx-auto max-w-7xl">
             <div className="mb-8">
-              <span className="font-mono text-xs uppercase font-bold text-pf-violet tracking-wider">
+              <span className="font-mono text-xs uppercase font-bold text-violet tracking-wider">
                 Explore More Blanks
               </span>
-              <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-pf-ink mt-1">
+              <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-ink mt-1">
                 Related custom merchandise
               </h2>
             </div>
@@ -376,4 +597,3 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailPro
     </div>
   );
 }
-

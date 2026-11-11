@@ -40,6 +40,7 @@
 | **Part 3 Step 3I** | Comprehensive Security Hardening (CSP Enforcing, CSRF origin checks, rate limits, docs/SECURITY.md, security.txt, 10-test suite) | ✅ COMPLETE | 2026-11-07 |
 | **Part 3 Step 3J** | Final Verification, Playwright E2E Smoke Tests, Launch Checklist & Delivery (94 passing tests, 60 routes) | ✅ COMPLETE | 2026-11-07 |
 | **Post-Launch Polish** | Browser Extension Hydration Protection (`bis_skin_checked`) & Workspace Root Runner | ✅ COMPLETE | 2026-11-07 |
+| **Real Studio Photography** | Real studio photography, 2D canvas compositor, 15-colour palette, fabric lens, and size-wise distribution picker across 24 products | ✅ COMPLETE | 2026-11-11 |
 
 ---
 
@@ -382,11 +383,22 @@
 
 ### Core Libraries & Fonts
 - `purple-friday/src/lib/fonts.ts`
+- `purple-friday/src/lib/mockup-canvas.ts`
 - `purple-friday/src/fonts/BricolageGrotesque.woff2`
 - `purple-friday/src/fonts/InstrumentSans-Regular.woff2`
 - `purple-friday/src/fonts/InstrumentSans-Italic.woff2`
 - `purple-friday/src/fonts/DMMono-Regular.woff2`
 - `purple-friday/src/fonts/DMMono-Medium.woff2`
+
+### Real Studio Photography & Canvas Engine (2026-11-11)
+- **Source Photos**: Sourced 37 high-res studio photographs (`source-photos/*.jpg`) covering all 24 catalogue products and apparel front/back views (Option B AI generation, Option C verified Unsplash commercial photography, and procedural 1600x1600 Sharp vector-to-raster renders). Full provenance in `docs/ASSETS.md`.
+- **Image Pipeline**: Built `scripts/prepare-images.mjs` generating transparent alpha cut-out masks (`mask-front.png`, `mask-back.png`) and responsive WebP images in 3 sizes (`front.webp` 1600px < 140KB, `card.webp` 800px < 35KB, `thumb.webp` 320px < 10KB) under `public/products/[slug]/`. Built `/dev/print-areas` interactive calibration tool.
+- **Canvas 2D Engine**: Implemented `src/lib/mockup-canvas.ts` providing realistic garment tinting (multiply for midtones, multiply + highlight for dark tones), 24-strip cosine cylindrical warping for curved surfaces, print methods (embroidery, engrave, emboss, print), fabric fold soft-light overlay pass (30%), in-memory image caching, and `exportProductPreview()`.
+- **Storefront Integration**:
+  - `ProductGallery`: Front/rear switcher (`<` and `>` arrows + tabs), 2.5x hover magnifier lens, circular fabric macro lens ("Real image"), available sizes strip (`S` to `4XL`), and fullscreen lightbox.
+  - `ProductDetailView`: 15-color studio palette (`Black`, `Navy`, `Red`, `Grey`, `White`, `Maroon`, `Royal Blue`, `Orange`, `Purple`, `Pink`, `Yellow`, `Sky Blue`, `Dark Green`, `Lime`, `Green`), badge silhouette shape switching (`Logo Cutout`, `Circle`, `Square`, `Rectangle`), and `ApparelSizePicker` stepper controls with progress bar and target sum gating.
+  - `ProductMockup`, `PosterCard`, `ProductCard`, `HeroSection`, `CategoryBentoGrid`: Updated all 13 invocation locations to render real photos with realistic logo projection.
+- **Verification**: 14 test files, 101 tests passing including `src/__tests__/print-area.test.ts`, 0 typecheck errors, 0 ESLint warnings, 63/63 Next.js routes built cleanly.
 
 ---
 

@@ -102,65 +102,65 @@ export function HowItWorksSequence() {
                 </p>
               </div>
 
-              <div className="pt-8 font-mono text-xs text-ink/60 space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-violet" />
-                  <span>Stage 1: Artwork resolution verification</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-spot-lime-dark" />
-                  <span>Stage 2: Customer digital proof sign-off</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-ink" />
-                  <span>Stage 3: Automated courier tracking update</span>
+                <div className="pt-8 font-mono text-xs text-ink/80 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-violet" />
+                    <span className="font-medium text-ink">Stage 1: Artwork resolution verification</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-spot-lime-dark" />
+                    <span className="font-medium text-ink">Stage 2: Customer digital proof sign-off</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-ink" />
+                    <span className="font-medium text-ink">Stage 3: Automated courier tracking update</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Right Sliding Steps Column */}
-            <div className="lg:col-span-7 h-[500px] overflow-hidden relative">
-              <div className="h-full flex flex-col">
-                {STEPS.map((step, idx) => {
-                  const Icon = step.icon;
-                  return (
-                    <div
-                      key={step.step}
-                      className="how-it-works-card h-[500px] p-8 sm:p-12 flex flex-col justify-center space-y-6 shrink-0 bg-paper-pure relative"
-                    >
-                      <CropCorners offset={6} length={12} />
-                      <div className="flex items-center justify-between">
-                        <span className="font-display font-black text-5xl text-violet">
-                          {step.step}
-                        </span>
-                        <span className="font-mono text-xs uppercase font-bold text-ink bg-spot-lime px-3 py-1 rounded-full border border-ink/20 flex items-center gap-1.5">
-                          <Icon className="h-3.5 w-3.5" />
-                          <span>{step.tag}</span>
-                        </span>
-                      </div>
+                  {/* Right Sliding Steps Column — Natural flow on mobile, pinned scroll on desktop */}
+                  <div className="lg:col-span-7 lg:h-[500px] lg:overflow-hidden relative">
+                    <div className="flex flex-col">
+                      {STEPS.map((step, idx) => {
+                        const Icon = step.icon;
+                        return (
+                          <div
+                            key={step.step}
+                            className="how-it-works-card min-h-[380px] lg:h-[500px] p-6 sm:p-10 lg:p-12 flex flex-col justify-center space-y-5 shrink-0 bg-paper-pure relative border-b lg:border-b-0 border-ink/10"
+                          >
+                            <CropCorners offset={6} length={12} />
+                            <div className="flex items-center justify-between">
+                                <span className="font-display font-black text-4xl sm:text-5xl text-violet">
+                                  {step.step}
+                                </span>
+                                  <span className="font-mono text-xs uppercase font-bold text-ink bg-spot-lime px-3 py-1 rounded-full border border-ink/20 flex items-center gap-1.5 shadow-sm">
+                                    <Icon className="h-3.5 w-3.5 text-ink" />
+                                    <span>{step.tag}</span>
+                                  </span>
+                                </div>
 
-                      <div className="space-y-3">
-                        <h4 className="heading-sub font-extrabold text-ink">
-                          {step.title}
-                        </h4>
-                        <p className="text-sm sm:text-base font-sans text-ink/75 leading-relaxed">
-                          {step.description}
-                        </p>
-                      </div>
+                                <div className="space-y-3">
+                                  <h4 className="heading-sub font-extrabold text-ink">
+                                    {step.title}
+                                  </h4>
+                                    <p className="text-sm sm:text-base font-sans text-ink leading-relaxed font-normal">
+                                      {step.description}
+                                    </p>
+                                </div>
 
-                      <div className="pt-4 border-t border-ink/10 flex items-center justify-between text-xs font-mono text-ink/50">
-                        <span>Quality Checked Step {idx + 1} of 3</span>
-                        <span>Stage Verified</span>
-                      </div>
-                    </div>
-                  );
+                                  <div className="pt-4 border-t border-ink/20 flex items-center justify-between text-xs font-mono font-bold text-ink/80">
+                                    <span>Quality Checked, Step {idx + 1} of 3</span>
+                                    <span className="text-violet">Stage Verified ✓</span>
+                                  </div>
+                                </div>
+                                );
                 })}
-              </div>
-            </div>
+                            </div>
+                          </div>
           </div>
-        </div>
-      </div>
-    </div>
-  );
+                  </div>
+                </div>
+              </div>
+              );
 }
 

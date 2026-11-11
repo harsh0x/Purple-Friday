@@ -77,22 +77,22 @@ export function QuantityPriceTiers({
       {/* 1. Quantity Stepper */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="block font-mono text-xs font-bold text-pf-ink uppercase tracking-wider">
+          <label className="block font-mono text-xs font-bold text-ink uppercase tracking-wider">
             Order Quantity
           </label>
-          <span className="font-mono text-xs text-pf-ink/60">
+          <span className="font-mono text-xs text-ink/60">
             Min. {minQty} pcs (Step: {qtyStep})
           </span>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center border-2 border-pf-ink bg-white shadow-[3px_3px_0_0_#15101F]">
+          <div className="flex items-center border-2 border-ink bg-white shadow-[3px_3px_0_0_#15101F]">
             <button
               type="button"
               onClick={handleDecrement}
               disabled={quantity <= minQty}
               aria-label="Decrease quantity"
-              className="h-11 w-11 flex items-center justify-center text-pf-ink hover:bg-pf-paper disabled:opacity-30 disabled:cursor-not-allowed border-r-2 border-pf-ink transition-colors"
+              className="h-11 w-11 flex items-center justify-center text-ink hover:bg-paper disabled:opacity-30 disabled:cursor-not-allowed border-r-2 border-ink transition-colors"
             >
               <Minus className="h-4 w-4" />
             </button>
@@ -105,22 +105,22 @@ export function QuantityPriceTiers({
               onChange={handleInputChange}
               onBlur={handleInputBlur}
               aria-label="Target quantity"
-              className="h-11 w-20 text-center font-mono text-base font-bold text-pf-ink focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              className="h-11 w-20 text-center font-mono text-base font-bold text-ink focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
 
             <button
               type="button"
               onClick={handleIncrement}
               aria-label="Increase quantity"
-              className="h-11 w-11 flex items-center justify-center text-pf-ink hover:bg-pf-paper border-l-2 border-pf-ink transition-colors"
+              className="h-11 w-11 flex items-center justify-center text-ink hover:bg-paper border-l-2 border-ink transition-colors"
             >
               <Plus className="h-4 w-4" />
             </button>
           </div>
 
           <div className="flex flex-col">
-            <span className="font-mono text-xs text-pf-ink/60">Total Estimated Line</span>
-            <span className="font-mono text-lg font-black text-pf-ink">
+            <span className="font-mono text-xs text-ink/60">Total Estimated Line</span>
+            <span className="font-mono text-lg font-black text-ink">
               {formatINR(quantity * currentUnitPrice)}
             </span>
           </div>
@@ -129,22 +129,22 @@ export function QuantityPriceTiers({
 
       {/* 2. Dynamic Upsell Nudge (Make it N chip) */}
       {nextTier && piecesToNextTier > 0 && savingPerPiece > 0 && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-2 border-pf-ink bg-pf-lilac/30 p-3.5 shadow-[3px_3px_0_0_#15101F] transition-all">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-2 border-ink bg-lilac/30 p-3.5 shadow-[3px_3px_0_0_#15101F] transition-all">
           <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-full bg-pf-violet text-white flex items-center justify-center shrink-0">
+            <div className="h-7 w-7 rounded-full bg-violet text-white flex items-center justify-center shrink-0">
               <TrendingDown className="h-4 w-4" />
             </div>
-            <p className="font-sans text-xs text-pf-ink font-medium leading-tight">
+            <p className="font-sans text-xs text-ink font-medium leading-tight">
               Add{" "}
-              <strong className="font-mono font-bold text-pf-violet">
+              <strong className="font-mono font-bold text-violet">
                 {piecesToNextTier} more pieces
               </strong>
               , pay{" "}
-              <strong className="font-mono font-bold text-pf-ink">
+              <strong className="font-mono font-bold text-ink">
                 {formatINR(nextTier.unitPrice)}
               </strong>{" "}
               per piece and save{" "}
-              <strong className="font-mono font-bold text-pf-ink">
+              <strong className="font-mono font-bold text-ink">
                 {formatINR(savingPerPiece)}
               </strong>{" "}
               on every piece.
@@ -154,7 +154,7 @@ export function QuantityPriceTiers({
           <button
             type="button"
             onClick={() => onQuantityChange(nextTier.minQty)}
-            className="shrink-0 inline-flex items-center gap-1.5 border-2 border-pf-ink bg-pf-lime px-3.5 py-1.5 font-mono text-xs font-black uppercase text-pf-ink shadow-[2px_2px_0_0_#15101F] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all"
+            className="shrink-0 inline-flex items-center gap-1.5 border-2 border-ink bg-spot-lime px-3.5 py-1.5 font-mono text-xs font-black uppercase text-ink shadow-[2px_2px_0_0_#15101F] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all"
           >
             <span>Make it {nextTier.minQty}</span>
             <ArrowUpRight className="h-3.5 w-3.5" />
@@ -165,10 +165,10 @@ export function QuantityPriceTiers({
       {/* 3. Quantity-Wise Price Grid */}
       <div className="space-y-2.5">
         <div className="flex items-center justify-between">
-          <span className="font-mono text-xs font-bold text-pf-ink uppercase tracking-wider">
+          <span className="font-mono text-xs font-bold text-ink uppercase tracking-wider">
             Volume Pricing Brackets
           </span>
-          <span className="font-mono text-[11px] text-pf-ink/60">Per Piece Rate</span>
+          <span className="font-mono text-[11px] text-ink/60">Per Piece Rate</span>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 relative">
@@ -183,20 +183,20 @@ export function QuantityPriceTiers({
                 onClick={() => onQuantityChange(tier.minQty)}
                 className={`relative flex flex-col p-3 border-2 text-left transition-all bg-white ${
                   isActive
-                    ? "border-pf-violet shadow-[3px_3px_0_0_#6A2CFF] ring-2 ring-pf-violet"
-                    : "border-pf-ink/20 hover:border-pf-ink"
+                    ? "border-violet shadow-[3px_3px_0_0_#6A2CFF] ring-2 ring-violet"
+                    : "border-ink/20 hover:border-ink"
                 }`}
               >
                 {isActive && (
                   <motion.div
                     layoutId={`active-tier-glow-${layoutId}`}
-                    className="absolute inset-0 bg-pf-lilac/15 pointer-events-none -z-0"
+                    className="absolute inset-0 bg-lilac/15 pointer-events-none -z-0"
                     transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
                   />
                 )}
 
                 <div className="relative z-10 flex items-center justify-between mb-1">
-                  <span className="font-mono text-xs font-bold text-pf-ink">
+                  <span className="font-mono text-xs font-bold text-ink">
                     {tier.maxQty ? `${tier.minQty}–${tier.maxQty} pcs` : `${tier.minQty}+ pcs`}
                   </span>
                   {savingsPercent > 0 && (
@@ -206,9 +206,9 @@ export function QuantityPriceTiers({
                   )}
                 </div>
 
-                <div className="relative z-10 font-mono text-base font-extrabold text-pf-ink">
+                <div className="relative z-10 font-mono text-base font-extrabold text-ink">
                   {formatINR(tier.unitPrice)}
-                  <span className="text-[10px] font-normal text-pf-ink/60"> /pc</span>
+                  <span className="text-[10px] font-normal text-ink/60"> /pc</span>
                 </div>
               </button>
             );

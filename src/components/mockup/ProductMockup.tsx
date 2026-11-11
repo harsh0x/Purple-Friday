@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { useCustomerLogo } from "@/hooks/useCustomerLogo";
 import {
   renderMockupToCanvas,
   PrintArea,
@@ -227,10 +226,8 @@ export function ProductMockup({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isRendered, setIsRendered] = useState(false);
 
-  // Sync with global customer logo store
-  const { logoUrl: sessionLogo } = useCustomerLogo();
-  const effectiveLogo =
-    logoUrl !== undefined ? logoUrl || null : sessionLogo || null;
+  // Only render a dynamic composite if an explicit logo is passed via props (e.g. Hero preview)
+  const effectiveLogo = logoUrl ? logoUrl : null;
 
   // Resolve canonical slug
   let resolvedSlug = explicitSlug || "";
@@ -262,6 +259,10 @@ export function ProductMockup({
     let isCancelled = false;
 
     const render = async () => {
+      if (!effectiveLogo) {
+        setIsRendered(false);
+        return;
+      }
       const canvas = canvasRef.current;
       const container = containerRef.current;
       if (!canvas || !container) return;
@@ -318,26 +319,34 @@ export function ProductMockup({
       ref={containerRef}
       className={`relative overflow-hidden flex items-center justify-center bg-paper-pure select-none ${className}`}
     >
-      {/* Real photographic canvas */}
-      <canvas
-        ref={canvasRef}
-        className={`w-full h-full object-contain transition-opacity duration-300 ${
-          isRendered ? "opacity-100" : "opacity-0"
-        }`}
-      />
-
-      {/* Instant static fallback while canvas initializes */}
-      {!isRendered && (
+      {effectiveLogo ? (
+        <>
+          <canvas
+            ref={canvasRef}
+            className={`w-full h-full object-contain transition-opacity duration-300 ${
+              isRendered ? "opacity-100" : "opacity-0"
+            }`}
+          />
+          {!isRendered && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={staticFallback}
+              alt={resolvedSlug}
+              className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+              loading="lazy"
+            />
+          )}
+        </>
+      ) : (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={staticFallback}
           alt={resolvedSlug}
-          className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+          className="w-full h-full object-contain pointer-events-none"
           loading="lazy"
         />
       )}
 
-      {/* Editorial preview chip */}
       {showBadge && (
         <span className="absolute bottom-2 left-2 z-10 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider bg-ink/80 text-white rounded-xs backdrop-blur-xs">
           Studio Proof

@@ -2,9 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Maximize2, X, ChevronLeft, ChevronRight, Sparkles, ZoomIn } from "lucide-react";
+import { Maximize2, X, ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
 import { ProductMockup } from "@/components/mockup/ProductMockup";
-import { useCustomerLogo } from "@/hooks/useCustomerLogo";
 
 interface ProductGalleryProps {
   template: string;
@@ -21,7 +20,6 @@ export function ProductGallery({
   productName,
   isApparel = false,
 }: ProductGalleryProps) {
-  const { logoUrl } = useCustomerLogo();
   const [activeView, setActiveView] = useState<"front" | "back">("front");
   const [isZooming, setIsZooming] = useState<boolean>(false);
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
@@ -65,14 +63,6 @@ export function ProductGallery({
         <span className="absolute top-2 right-2 font-mono text-[10px] text-ink/30 z-10 pointer-events-none">
           {activeView === "front" ? "VIEW: FRONT" : "VIEW: REAR"} +
         </span>
-
-        {/* Customer Logo Notification Badge */}
-        {logoUrl && (
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 inline-flex items-center gap-1.5 border border-ink bg-spot-lime px-2.5 py-0.5 text-[11px] font-mono font-bold text-ink shadow-stamp-sm">
-            <Sparkles className="h-3 w-3" />
-            Live Logo Projected
-          </div>
-        )}
 
         {/* Real Product Photo with Logo Compositing */}
         <div className="h-full w-full p-4 flex items-center justify-center relative">

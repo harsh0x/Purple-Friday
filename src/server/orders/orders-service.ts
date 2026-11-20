@@ -4,12 +4,8 @@ import {
   StoredOrderRecord,
   OrderStatus,
   canTransition,
-  changeOrderStatus,
-  recordQcRework,
   normalizeOrderStatus,
-  ActorRole,
 } from "./state-machine";
-import prisma from "@/lib/prisma";
 import { safeCsvCell } from "@/lib/security/csv";
 import { writeAudit } from "@/lib/admin/audit";
 

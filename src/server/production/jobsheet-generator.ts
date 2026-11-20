@@ -1,5 +1,5 @@
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
-import { ORDER_STORE, StoredOrderRecord } from "../orders/state-machine";
+import { ORDER_STORE } from "../orders/state-machine";
 import { getPrintAreaForTemplate } from "@/lib/customizer/print-areas";
 
 /**
@@ -89,7 +89,7 @@ export async function generateProductionJobSheetPdf(orderNumber: string): Promis
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontMono = await pdfDoc.embedFont(StandardFonts.CourierBold);
 
-  const { width, height } = page.getSize();
+  const { height } = page.getSize();
   let y = height - 40;
 
   // Header Banner: Dark Ink (#15101F)

@@ -1,10 +1,8 @@
 import crypto from "crypto";
 import {
   ORDER_STORE,
-  StoredOrderRecord,
   changeOrderStatus,
 } from "./state-machine";
-import { writeAudit } from "@/lib/admin/audit";
 
 export interface PublicProofDetails {
   orderNumber: string;

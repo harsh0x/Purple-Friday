@@ -81,14 +81,13 @@ export function rgbToHex(r: number, g: number, b: number): string {
 export async function extractDominantColors(imageBuffer: Buffer): Promise<ColorProfile[]> {
   try {
     // Resize down to 64x64 to sample color distribution efficiently
-    const { data, info } = await sharp(imageBuffer)
+    const { data } = await sharp(imageBuffer)
       .resize(64, 64, { fit: "cover" })
       .ensureAlpha()
       .raw()
       .toBuffer({ resolveWithObject: true });
 
     const colorBins = new Map<string, { r: number; g: number; b: number; count: number }>();
-    const totalPixels = info.width * info.height;
     let validPixels = 0;
 
     for (let i = 0; i < data.length; i += 4) {

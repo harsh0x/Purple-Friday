@@ -2,7 +2,7 @@
 
 > Project: Purple Friday Admin Dashboard  
 > Parts: 6 Parts Planned  
-> Current Active Part: **PART 3** (Status: **COMPLETE**)  
+> Current Active Part: **PART 5** (Status: **COMPLETE**)  
 
 ---
 
@@ -350,3 +350,144 @@
 - `purple-friday/src/__tests__/refunds.test.ts` (5 tests)
 - `purple-friday/src/__tests__/admin-responsive.test.ts` (4 tests)
 - `purple-friday/e2e/admin-payments-shipping.spec.ts` (6 tests)
+
+
+---
+
+## Part 5 Tracker: Analytics and Intelligence (COMPLETE)
+
+### Steps Overview
+- [x] **Step 1: Seed Demo Realistic Order Data (Development Only)**
+  - Script `scripts/seed-analytics-demo.ts` and server module `src/server/analytics/demo-seed.ts`.
+  - Generates 425 realistic orders spanning 12 months with seasonal spikes (Diwali in Oct/Nov, New Year in Dec/Jan, April onboarding rush).
+  - Simulates corporate gifting accounts (Infosys, Wipro, Swiggy, Cred, Zerodha, Razorpay), sample orders (1-2 pcs) converting to bulk orders (25-500 pcs), and realistic RTOs across Indian PIN codes.
+  - Environment safety gate: strictly throws and refuses execution in production (`process.env.NODE_ENV === "production"`).
+  - API endpoint: `/api/admin/analytics/seed-demo` (restricted to Super Admin).
+
+- [x] **Step 2: Command-Centre Overview (Design Spec Layout)**
+  - Replaced empty Overview with full Command-Centre in `src/app/admin/page.tsx`, `src/components/admin/OverviewCommandCentre.tsx`, and `src/server/analytics/overview-service.ts`.
+  - Time-aware Indian greeting ("Good morning / afternoon / evening") with real-time count of items needing attention.
+  - Live operational funnel strip with real order counts: Pending design approvals, In production, In production overdue (>48h SLA breach), Ready to dispatch, In transit, and RTO this month. Each count links to filtered order lists.
+  - Interactive revenue and margin chart card with 7-day, 30-day, and 90-day segmented range control.
+  - Category breakdown donut card with interactive legends.
+  - Count-up KPI tiles: Orders, Net Revenue, Average Order Value (AOV), Repeat Corporate Customers %, Sample-to-Bulk Conversion %, and On-Time Dispatch SLA %.
+  - Super Admin financial visibility vs Operational masking for other roles enforced on the server.
+  - "Needs your attention" urgency cards and recent activity audit feed.
+
+- [x] **Step 3: True Net Margin Tracker**
+  - Pure calculation engine `src/server/analytics/margin-engine.ts` with integer paise precision and explicit rounding.
+  - Unit economics waterfall breakdown:
+    $$\text{True Net Margin} = \text{Revenue (excl. GST)} - \text{COGS} - \text{Gateway Fees} - \text{Shipping} - \text{RTO Losses} - \text{Ad Spend}$$
+  - RTO custom merchandise scrapped loss rule: custom branded merchandise cannot be restocked as blank inventory; loss equals outbound shipping + return shipping + full COGS.
+  - Monthly ad spend ledger with audit logging.
+  - Admin UI `/admin/margin`: Waterfall visualization, Order-by-order unit economics table, Product catalog margin contribution, and 12-month trajectory.
+  - Low margin (<15%) and negative margin alert badges.
+  - Safe DDE formula-injection sanitized CSV export.
+
+- [x] **Step 4: Corporate vs Retail Analytics & Cohorts**
+  - Pure analytics module `src/server/analytics/cohorts.ts` and Admin UI `/admin/analytics`.
+  - Sample-to-Bulk conversion rate tracker: monitors customers whose first order was $\le 2$ pieces and subsequent order $\ge 20$ pieces within a configurable window (default 60 days).
+  - 12-Month Cohort Retention Matrix: tracks repeat order activity by customer acquisition month with visual heatmap shading.
+  - Geographic Pan-India reach analysis: Tier 1 metro (BLR, BOM, DEL, HYD, MAA, PNQ) vs Tier 2/3 revenue distribution and top PIN codes with RTO rates.
+  - Top corporate accounts ledger sorted by lifetime volume.
+
+- [x] **Step 5: RFM Customer Segments & Reorder Nudges**
+  - Pure RFM engine `src/server/analytics/rfm.ts` and Admin UI `/admin/customers`.
+  - Quintile distribution scoring (1 to 5) for Recency, Frequency, and Monetary spend.
+  - Customer segmentation: VIP Corporate, High-Value Repeat, At-Risk Corporate, Promising Regular, One-Time Sample, New Customer, and Lapsed.
+  - Customer profile drawer with order history, lifetime units, and reorder gap tracking.
+  - Reorder Due alert badge: flags when days since last order exceeds the customer's typical reorder cycle.
+  - 1-Click personalized Email and WhatsApp reorder nudge message generation with strict safety guard against automatic unsolicited sending.
+
+- [x] **Step 6: Merchandising Intelligence (FBT & Smart Ranking)**
+  - Association rule mining engine `src/server/recommendations/fbt.ts`:
+    - Computes support, confidence, and lift for product pairs in order baskets.
+    - Data-thin safeguard: suppresses recommendations if catalog orders $<3$ or pair support $<2$.
+    - Public storefront recommendation endpoint: `/api/recommendations/fbt`.
+  - Smart catalog ranking engine `src/server/recommendations/smart-ranking.ts`:
+    - Computes composite merchandise score: 30% sales conversion velocity + 30% gross margin contribution + 20% inventory availability + 20% verified review rating.
+    - Hard penalty constraints: out-of-stock items capped at 10 points; negative-margin products heavily penalized (never boosted).
+    - Public storefront ranking endpoint: `/api/recommendations/smart-ranking`.
+
+- [x] **Step 7: Raw Material Forecasting & Reorder Point**
+  - Pure forecasting engine `src/server/inventory/forecasting.ts` and Admin UI `/admin/forecasting`.
+  - 4-week and 8-week blended moving velocity calculations.
+  - Monthly seasonal multipliers: baseline (1.0x), Diwali peak (2.2x), New Year swag (1.8x), April fresher onboarding rush (2.0x).
+  - Safety stock and lead time demand forecasting:
+    $$\text{Reorder Point} = \max(\text{reorderLevel}, \text{Lead Time Demand} + \text{Safety Stock})$$
+  - Stock runout day estimates and low stock reorder alerts dispatched via cron tick.
+  - Formula-injection sanitized Supplier Purchase Order CSV export.
+
+- [x] **Step 8: Customer Reviews & Support Loop**
+  - Customer review and support pipeline in `src/server/reviews/review-service.ts`.
+  - Post-delivery review invitation scheduled in cron tick (`/api/cron/tick`) 3 days post-delivery with secure HMAC verification token.
+  - Customer review screen `/review/[token]`: star ratings plus custom-print feedback chips (Print Clarity, Fabric Feel, Colour Match) and image upload.
+  - Smart triage: 4-5★ reviews auto-approved; 1-3★ reviews quarantined for moderation and automatically spawn a private `SupportTicket`.
+  - Admin moderation UI `/admin/reviews` and ticket resolution workspace `/admin/support`.
+
+- [x] **Step 9: Navigation Registry & Verification**
+  - Updated `src/lib/admin/navigation.ts` revealing `Overview`, `Margin Tracker` (`/admin/margin`), `Analytics` (`/admin/analytics`), `Customers` (`/admin/customers`), `Forecasting` (`/admin/forecasting`), `Reviews` (`/admin/reviews`), and `Support` (`/admin/support`).
+  - Unit tests: 41 test files, 326 unit tests passed 100%.
+  - Typecheck: 0 errors (`tsc --noEmit`).
+  - Lint: 0 warnings, 0 errors (`next lint`).
+  - Production build: 106 static and dynamic routes compiled cleanly.
+  - Storefront bundle invariance: `/` route remains exactly 28.1 kB (216 kB first load JS) and shared JS remains 106 kB.
+
+---
+
+## Part 5 Files Created & Modified
+
+### Analytics, Margin & Intelligence Engines:
+- `purple-friday/src/server/analytics/demo-seed.ts`
+- `purple-friday/scripts/seed-analytics-demo.ts`
+- `purple-friday/src/server/analytics/margin-engine.ts`
+- `purple-friday/src/server/analytics/cohorts.ts`
+- `purple-friday/src/server/analytics/rfm.ts`
+- `purple-friday/src/server/recommendations/fbt.ts`
+- `purple-friday/src/server/recommendations/smart-ranking.ts`
+- `purple-friday/src/server/inventory/forecasting.ts`
+- `purple-friday/src/server/reviews/review-service.ts`
+- `purple-friday/src/server/analytics/overview-service.ts`
+
+### UI Pages & Components:
+- `purple-friday/src/app/admin/page.tsx`
+- `purple-friday/src/components/admin/OverviewCommandCentre.tsx`
+- `purple-friday/src/app/admin/margin/page.tsx`
+- `purple-friday/src/app/admin/analytics/page.tsx`
+- `purple-friday/src/app/admin/customers/page.tsx`
+- `purple-friday/src/app/admin/forecasting/page.tsx`
+- `purple-friday/src/app/admin/reviews/page.tsx`
+- `purple-friday/src/app/admin/support/page.tsx`
+- `purple-friday/src/app/review/[token]/page.tsx`
+
+### Admin & Public API Endpoints:
+- `purple-friday/src/app/api/admin/overview/route.ts`
+- `purple-friday/src/app/api/admin/margin/route.ts`
+- `purple-friday/src/app/api/admin/analytics/route.ts`
+- `purple-friday/src/app/api/admin/analytics/seed-demo/route.ts`
+- `purple-friday/src/app/api/admin/customers/route.ts`
+- `purple-friday/src/app/api/admin/customers/[id]/route.ts`
+- `purple-friday/src/app/api/admin/forecasting/route.ts`
+- `purple-friday/src/app/api/admin/reviews/route.ts`
+- `purple-friday/src/app/api/admin/support/route.ts`
+- `purple-friday/src/app/api/admin/support/[ticketNumber]/route.ts`
+- `purple-friday/src/app/api/recommendations/fbt/route.ts`
+- `purple-friday/src/app/api/recommendations/smart-ranking/route.ts`
+- `purple-friday/src/app/api/reviews/route.ts`
+- `purple-friday/src/app/api/cron/tick/route.ts`
+
+### Schema, Settings & Navigation:
+- `purple-friday/prisma/schema.prisma`
+- `purple-friday/src/lib/admin/app-settings.ts`
+- `purple-friday/src/lib/admin/navigation.ts`
+- `purple-friday/src/lib/utils.ts`
+
+### Verification & Test Suites:
+- `purple-friday/src/__tests__/net-margin.test.ts` (4 tests)
+- `purple-friday/src/__tests__/cohorts-analytics.test.ts` (4 tests)
+- `purple-friday/src/__tests__/rfm-segments.test.ts` (4 tests)
+- `purple-friday/src/__tests__/recommendations-ranking.test.ts` (3 tests)
+- `purple-friday/src/__tests__/forecasting.test.ts` (2 tests)
+- `purple-friday/src/__tests__/reviews-support.test.ts` (3 tests)
+- `purple-friday/src/__tests__/admin-responsive.test.ts` (4 tests)
+- `purple-friday/e2e/admin-analytics-intelligence.spec.ts` (8 tests)

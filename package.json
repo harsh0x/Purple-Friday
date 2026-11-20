@@ -12,7 +12,8 @@
     "contrast-check": "tsx scripts/contrast-check.ts",
     "test:e2e": "playwright test",
     "db:migrate": "tsx scripts/db-migrate.ts",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "seed:analytics": "tsx scripts/seed-analytics-demo.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

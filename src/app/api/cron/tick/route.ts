@@ -3,6 +3,10 @@ import { ORDER_STORE } from "@/server/orders/state-machine";
 import { computeOrderSla } from "@/server/orders/orders-service";
 import { createNotification } from "@/lib/admin/notifications";
 import prisma from "@/lib/prisma";
+import { triggerScheduledReviewRequests } from "@/server/reviews/review-service";
+import { computeFrequentlyBoughtTogether, FBT_RECOMMENDATIONS_STORE } from "@/server/recommendations/fbt";
+import { triggerLowStockForecastingAlerts } from "@/server/inventory/forecasting";
+import { computeRfmCustomerProfiles } from "@/server/analytics/rfm";
 
 export async function GET(req: NextRequest) {
   return handleCronTick(req);
@@ -113,10 +117,30 @@ async function handleCronTick(req: NextRequest) {
     }
   }
 
+  // 3. Automated Review Requests (runs in cron tick for orders delivered >= 3 days ago)
+  const reviewResult = await triggerScheduledReviewRequests();
+
+  // 4. Heavy Analytics & Merchandising Intelligence Computations
+  // A. Frequently Bought Together Mining
+  const fbtResult = computeFrequentlyBoughtTogether(orders);
+  for (const [k, v] of fbtResult.entries()) {
+    FBT_RECOMMENDATIONS_STORE.set(k, v);
+  }
+
+  // B. Raw Material Forecasting & Low Stock Alerts
+  const forecastAlerts = await triggerLowStockForecastingAlerts();
+
+  // C. RFM Customer Segments & Reorder Overdue Tracking
+  const rfmProfiles = computeRfmCustomerProfiles(orders);
+
   return NextResponse.json({
     success: true,
     nudgesSent,
     overdueOrders: overdueCount,
+    reviewsTriggered: reviewResult.requestsSent,
+    fbtProductsCount: fbtResult.size,
+    lowStockForecastAlerts: forecastAlerts.alertsCount,
+    rfmCustomerCount: rfmProfiles.length,
     timestamp: new Date().toISOString(),
   });
 }

@@ -311,11 +311,10 @@ export default function AdminOrdersListPage() {
 
             <button
               onClick={handleOverdueToggle}
-              className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl border transition-all ${
-                isOverdueOnly
+              className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl border transition-all ${isOverdueOnly
                   ? "bg-rose-500/15 border-rose-500 text-rose-600 dark:text-rose-400 font-bold"
                   : "bg-white/70 dark:bg-white/5 border-zinc-200 dark:border-white/10 text-zinc-600 dark:text-zinc-300 hover:bg-white"
-              }`}
+                }`}
             >
               <AlertCircle className="w-3.5 h-3.5" />
               <span>Overdue Only</span>
@@ -396,18 +395,18 @@ export default function AdminOrdersListPage() {
             <tbody className="divide-y divide-zinc-200/60 dark:divide-white/5 text-[#15101F] dark:text-[#F5F0E8]">
               {loading ? (
                 <tr>
-                  <td colSpan={10} className="py-16 text-center text-zinc-400">
-                    <RefreshCw className="w-6 h-6 animate-spin mx-auto text-[#6A2CFF] mb-2" />
-                    <span>Loading pipeline orders...</span>
-                  </td>
+                    <td colSpan={10} className="py-16 text-center text-zinc-400">
+                      <RefreshCw className="w-6 h-6 animate-spin mx-auto text-[#6A2CFF] mb-2" />
+                      <span>Loading pipeline orders...</span>
+                    </td>
                 </tr>
               ) : orders.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-16 text-center text-zinc-400">
-                    <SlidersHorizontal className="w-8 h-8 mx-auto text-zinc-300 dark:text-zinc-600 mb-2" />
-                    <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">No orders found matching filters</p>
-                    <p className="text-xs text-zinc-400 mt-1">Try widening your search terms or clearing status filters.</p>
-                  </td>
+                    <td colSpan={10} className="py-16 text-center text-zinc-400">
+                      <SlidersHorizontal className="w-8 h-8 mx-auto text-zinc-300 dark:text-zinc-600 mb-2" />
+                      <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">No orders found matching filters</p>
+                      <p className="text-xs text-zinc-400 mt-1">Try widening your search terms or clearing status filters.</p>
+                    </td>
                 </tr>
               ) : (
                 orders.map((o) => {
@@ -415,9 +414,8 @@ export default function AdminOrdersListPage() {
                   return (
                     <tr
                       key={o.id}
-                      className={`hover:bg-zinc-50/70 dark:hover:bg-white/5 transition-colors ${
-                        isSelected ? "bg-[#6A2CFF]/5 dark:bg-[#6A2CFF]/10" : ""
-                      }`}
+                      className={`hover:bg-zinc-50/70 dark:hover:bg-white/5 transition-colors ${isSelected ? "bg-[#6A2CFF]/5 dark:bg-[#6A2CFF]/10" : ""
+                        }`}
                     >
                       <td className="py-3.5 px-4 text-center">
                         <button

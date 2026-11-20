@@ -49,36 +49,36 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const existingOrder = getOrderById(orderId);
-    if (!existingOrder) {
-      return NextResponse.json(
-        { success: false, error: "Order not found." },
-        { status: 404 }
-      );
-    }
+      const existingOrder = getOrderById(orderId);
+      if (!existingOrder) {
+        return NextResponse.json(
+          { success: false, error: "Order not found." },
+          { status: 404 }
+        );
+      }
 
-    if (existingOrder.paymentMethod === "COD") {
-      const advancePaise = existingOrder.advancePaidPaise || Math.round(toPaise(existingOrder.total) * 0.25);
-      await processCodAdvancePayment({
+      if (existingOrder.paymentMethod === "COD") {
+        const advancePaise = existingOrder.advancePaidPaise || Math.round(toPaise(existingOrder.total) * 0.25);
+        await processCodAdvancePayment({
+          orderNumber: existingOrder.orderNumber,
+          paymentId,
+          amountPaise: advancePaise,
+        });
+        existingOrder.status = "PAID";
+        existingOrder.paymentStatus = "ADVANCE_PAID";
+        existingOrder.razorpayPaymentId = paymentId;
+      } else {
+        await markOrderPaid(orderId, paymentId);
+      }
+
+      return NextResponse.json({
+        success: true,
         orderNumber: existingOrder.orderNumber,
-        paymentId,
-        amountPaise: advancePaise,
+        paymentMethod: existingOrder.paymentMethod,
+        paymentStatus: existingOrder.paymentStatus,
       });
-      existingOrder.status = "PAID";
-      existingOrder.paymentStatus = "ADVANCE_PAID";
-      existingOrder.razorpayPaymentId = paymentId;
-    } else {
-      await markOrderPaid(orderId, paymentId);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Payment verification failed";
+      return NextResponse.json({ success: false, error: msg }, { status: 500 });
     }
-
-    return NextResponse.json({
-      success: true,
-      orderNumber: existingOrder.orderNumber,
-      paymentMethod: existingOrder.paymentMethod,
-      paymentStatus: existingOrder.paymentStatus,
-    });
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Payment verification failed";
-    return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
-}

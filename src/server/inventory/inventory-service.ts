@@ -52,8 +52,8 @@ export interface StockMovementData {
 }
 
 // In-Memory stores for resilient execution
-const BLANK_SKU_STORE = new Map<string, BlankSkuData>();
-const MOVEMENT_STORE: StockMovementData[] = [];
+export const BLANK_SKU_STORE = new Map<string, BlankSkuData>();
+export const MOVEMENT_STORE: StockMovementData[] = [];
 
 function initializeDefaultBlanks() {
   if (BLANK_SKU_STORE.size > 0) return;

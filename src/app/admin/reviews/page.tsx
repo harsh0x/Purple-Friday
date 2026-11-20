@@ -1,226 +1,259 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import Image from "next/image";
-import { Star, CheckCircle2, XCircle, ShieldCheck } from "lucide-react";
-import { toast } from "sonner";
-import { AdminReview } from "@/lib/admin/admin-store";
+import React, { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import { PageTransition } from "@/components/admin/PageTransition";
+import {
+  Star,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  ShieldCheck,
+} from "lucide-react";
+import { StoredReview } from "@/server/reviews/review-service";
 
 export default function AdminReviewsPage() {
-  const [reviews, setReviews] = useState<AdminReview[]>([]);
+  const [reviews, setReviews] = useState<StoredReview[]>([]);
+  const [counts, setCounts] = useState<Record<string, number>>({ all: 0, pending: 0, approved: 0, rejected: 0 });
+  const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"ALL" | "PENDING" | "APPROVED" | "REJECTED">("PENDING");
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const loadReviews = async () => {
+  const fetchReviews = useCallback(async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const res = await fetch("/api/admin/reviews");
-      const data = await res.json();
-      if (data.reviews) {
-        setReviews(data.reviews);
+      const url = new URL("/api/admin/reviews", window.location.origin);
+      if (selectedStatus !== "ALL") url.searchParams.set("status", selectedStatus);
+      const res = await fetch(url.toString());
+      if (res.ok) {
+        const json = await res.json();
+        setReviews(json.reviews || []);
+        if (json.counts) setCounts(json.counts);
       }
     } catch {
-      toast.error("Failed to load customer reviews");
+      // ignore
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedStatus]);
 
   useEffect(() => {
-    loadReviews();
-  }, []);
+    fetchReviews();
+  }, [fetchReviews]);
 
-  const handleModerate = async (id: string, status: "APPROVED" | "REJECTED") => {
+  const handleModerate = async (reviewId: string, action: "APPROVE" | "REJECT") => {
+    setActionLoading(reviewId);
     try {
       const res = await fetch("/api/admin/reviews", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, status }),
+        body: JSON.stringify({ reviewId, action }),
       });
-
-      const data = await res.json();
-      if (data.success) {
-        toast.success(`Review ${status.toLowerCase()} successfully!`);
-        setReviews((prev) =>
-          prev.map((r) => (r.id === id ? { ...r, status } : r))
-        );
-      } else {
-        toast.error(data.error || "Failed to moderate review");
+      if (res.ok) {
+        fetchReviews();
       }
-    } catch {
-      toast.error("Network error updating review");
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setActionLoading(null);
     }
   };
 
-  const filtered = reviews.filter((r) => {
-    if (filter === "ALL") return true;
-    return r.status === filter;
-  });
-
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/10">
-        <div>
-          <h1 className="font-display font-black text-3xl text-white tracking-tight">
-            Review Moderation Queue
-          </h1>
-          <p className="text-xs font-mono text-white/50 mt-1">
-            Audit customer feedback, inspect print proof photos, verify genuine buyers before publication
-          </p>
+    <PageTransition>
+      <div className="space-y-8">
+        {/* Header Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#15101F]/10">
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="font-display font-black text-2xl sm:text-3xl text-[#15101F] tracking-tight">
+                Customer Reviews & Moderation
+              </h1>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-[#6A2CFF]/10 text-[#6A2CFF]">
+                Quality Feedback Loop
+              </span>
+            </div>
+            <p className="mt-1 text-xs font-mono text-[#15101F]/60">
+              Automated review invitations (3 days post-delivery), smart triage (4-5★ approved, 1-3★ quarantined to Support)
+            </p>
+          </div>
         </div>
 
-        {/* Filter Pills */}
-        <div className="flex items-center gap-2 bg-[#181324] p-1.5 rounded-xl border border-white/10">
-          {(["PENDING", "APPROVED", "REJECTED", "ALL"] as const).map((st) => (
+        {/* Filter Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-[#15101F]/10">
+          {[
+            { id: "ALL", label: `All Reviews (${counts.all})` },
+            { id: "PENDING", label: `Pending Queue (${counts.pending})` },
+            { id: "APPROVED", label: `Approved Public (${counts.approved})` },
+            { id: "REJECTED", label: `Quarantined (1-3★) (${counts.rejected})` },
+          ].map((tab) => (
             <button
-              key={st}
-              onClick={() => setFilter(st)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-mono uppercase tracking-wider transition-colors ${filter === st
-                  ? "bg-pf-violet text-white font-bold"
-                  : "text-white/60 hover:text-white"
-                }`}
+              key={tab.id}
+              onClick={() => setSelectedStatus(tab.id)}
+              className={`px-4 py-2 rounded-2xl text-xs font-mono font-bold transition-all ${
+                selectedStatus === tab.id
+                  ? "bg-[#15101F] text-white shadow-sm"
+                  : "bg-white text-[#15101F]/70 hover:bg-[#FAF7F2] border border-[#15101F]/10"
+              }`}
             >
-              {st}
+              {tab.label}
             </button>
           ))}
         </div>
-      </div>
 
-      {/* Reviews Stream */}
-      <div className="space-y-4">
-        {loading ? (
-          <div className="p-10 text-center font-mono text-xs text-white/50">
-            Loading reviews...
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="bg-[#181324] p-12 text-center rounded-2xl border border-white/10 space-y-2">
-            <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto" />
-            <h3 className="font-display font-bold text-white text-base">
-              No Reviews in this queue
-            </h3>
-            <p className="text-xs font-mono text-white/50">
-              All submitted testimonials are currently moderated and processed.
-            </p>
-          </div>
-        ) : (
-          filtered.map((rev) => (
-            <div
-              key={rev.id}
-              className="bg-[#181324] p-6 rounded-2xl border border-white/10 space-y-4 transition-colors"
-            >
-              {/* Review Card Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2.5">
-                    <span className="font-display font-bold text-base text-white">
-                      {rev.authorName}
-                    </span>
-
-                    {rev.verified && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono font-bold">
-                        <ShieldCheck className="w-3 h-3" />
-                        <span>Verified Buyer</span>
-                      </span>
-                    )}
-
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase ${rev.status === "APPROVED"
-                          ? "bg-emerald-500/20 text-emerald-300"
-                          : rev.status === "REJECTED"
-                            ? "bg-rose-500/20 text-rose-300"
-                            : "bg-amber-500/20 text-amber-300"
-                        }`}
-                    >
-                      {rev.status}
-                    </span>
-                  </div>
-
-                  <div className="text-xs font-mono text-white/50">
-                    Product: <span className="text-white/80">{rev.productName}</span> • Submitted:{" "}
-                    {new Date(rev.createdAt).toLocaleDateString("en-IN", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </div>
-                </div>
-
-                {/* Star Rating */}
-                <div className="flex items-center gap-1 text-amber-400">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`w-4 h-4 ${i < rev.rating ? "fill-amber-400" : "text-white/20"
-                        }`}
-                    />
-                  ))}
-                  <span className="text-xs font-mono font-bold text-white ml-1">
-                    {rev.rating}.0
-                  </span>
-                </div>
-              </div>
-
-              {/* Review Title & Body */}
-              <div className="space-y-2">
-                <h4 className="font-display font-bold text-sm text-white">
-                  &ldquo;{rev.title}&rdquo;
-                </h4>
-                <p className="text-xs font-mono text-white/70 leading-relaxed">
-                  {rev.body}
-                </p>
-              </div>
-
-              {/* Attached Photos if present */}
-              {rev.photoUrls.length > 0 && (
-                <div className="flex items-center gap-3 pt-2">
-                  <span className="text-[11px] font-mono text-white/40 uppercase">
-                    Customer Photos:
-                  </span>
-                  <div className="flex gap-2">
-                    {rev.photoUrls.map((url, i) => (
-                      <div
-                        key={i}
-                        className="w-14 h-14 rounded-lg bg-[#110D1A] border border-white/10 overflow-hidden relative"
-                      >
-                        <Image
-                          src={url}
-                          alt="Customer verification photo"
-                          fill
-                          className="object-contain p-1"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/5">
-                {rev.status !== "REJECTED" && (
-                  <button
-                    onClick={() => handleModerate(rev.id, "REJECTED")}
-                    className="px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-rose-500/20 text-white/70 hover:text-rose-300 border border-white/10 hover:border-rose-500/30 text-xs font-mono flex items-center gap-1.5 transition-colors"
-                  >
-                    <XCircle className="w-3.5 h-3.5" />
-                    <span>Reject</span>
-                  </button>
-                )}
-
-                {rev.status !== "APPROVED" && (
-                  <button
-                    onClick={() => handleModerate(rev.id, "APPROVED")}
-                    className="px-4 py-1.5 rounded-xl bg-pf-violet hover:bg-pf-violet/90 text-white text-xs font-mono font-bold flex items-center gap-1.5 transition-colors shadow-sm"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Approve & Publish</span>
-                  </button>
-                )}
-              </div>
+        {/* Reviews List */}
+        <div className="space-y-4">
+          {loading ? (
+            <div className="p-12 text-center text-xs font-mono text-[#15101F]/60">
+              Loading verified review feedback...
             </div>
-          ))
-        )}
+          ) : reviews.length === 0 ? (
+            <div className="bg-white rounded-3xl p-12 text-center border border-[#15101F]/10 shadow-sm">
+              <p className="text-xs font-mono text-[#15101F]/60">
+                No reviews found for this status.
+              </p>
+            </div>
+          ) : (
+            reviews.map((r) => {
+              const isQuarantined = r.status === "REJECTED";
+
+              return (
+                <div
+                  key={r.id}
+                  className={`bg-white rounded-3xl p-6 border shadow-sm transition-all ${
+                    isQuarantined
+                      ? "border-rose-200 bg-rose-50/20"
+                      : r.status === "APPROVED"
+                      ? "border-emerald-200"
+                      : "border-[#15101F]/10"
+                  }`}
+                >
+                  <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                    <div className="space-y-2 flex-1">
+                      {/* Rating & Status Badges */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex items-center">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star
+                              key={s}
+                              className={`w-4 h-4 ${
+                                r.rating >= s
+                                  ? "fill-amber-400 text-amber-400"
+                                  : "text-[#15101F]/15"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="font-bold font-mono text-sm text-[#15101F]">
+                          {r.rating}.0 / 5.0
+                        </span>
+
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                            r.status === "APPROVED"
+                              ? "bg-emerald-100 text-emerald-800"
+                              : r.status === "REJECTED"
+                              ? "bg-rose-100 text-rose-800"
+                              : "bg-amber-100 text-amber-800"
+                          }`}
+                        >
+                          {r.status === "REJECTED" ? "QUARANTINED (1-3★)" : r.status}
+                        </span>
+
+                        {r.verified && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-mono text-[#6A2CFF] bg-[#6A2CFF]/10 px-2 py-0.5 rounded font-bold">
+                            <ShieldCheck className="w-3 h-3" />
+                            <span>Verified Buyer</span>
+                          </span>
+                        )}
+
+                        {r.orderNumber && (
+                          <span className="text-[11px] font-mono text-[#15101F]/50">
+                            Order #{r.orderNumber}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Title & Body */}
+                      <h3 className="font-sans font-bold text-base text-[#15101F]">
+                        {r.title}
+                      </h3>
+                      <p className="text-xs text-[#15101F]/80 font-sans whitespace-pre-wrap leading-relaxed">
+                        {r.body}
+                      </p>
+
+                      {/* Author & Product Info */}
+                      <div className="text-[11px] font-mono text-[#15101F]/60 flex items-center gap-3 pt-1">
+                        <span>By {r.authorName}</span>
+                        <span>•</span>
+                        <span>Product: {r.productTitle || r.productId}</span>
+                        <span>•</span>
+                        <span>{new Date(r.createdAt).toLocaleDateString("en-IN")}</span>
+                      </div>
+
+                      {/* Support Ticket Link if Quarantined */}
+                      {r.supportTicketId && (
+                        <div className="pt-2">
+                          <Link
+                            href="/admin/support"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-100 text-rose-800 text-xs font-mono font-bold hover:bg-rose-200 transition-colors"
+                          >
+                            <AlertCircle className="w-3.5 h-3.5" />
+                            <span>Linked Support Ticket #{r.supportTicketId} &rarr;</span>
+                          </Link>
+                        </div>
+                      )}
+
+                      {/* Photo Thumbnail if uploaded */}
+                      {r.photoUrls && r.photoUrls.length > 0 && (
+                        <div className="pt-2 flex items-center gap-2">
+                          {r.photoUrls.map((url, idx) => (
+                            <a
+                              key={idx}
+                              href={url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="w-16 h-16 rounded-xl border border-[#15101F]/10 overflow-hidden bg-cover bg-center flex items-center justify-center hover:opacity-90"
+                              style={{ backgroundImage: `url(${url})` }}
+                            >
+                              <span className="sr-only">Review image {idx + 1}</span>
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Moderation Actions */}
+                    <div className="flex md:flex-col items-center gap-2 shrink-0 pt-2 md:pt-0">
+                      {r.status !== "APPROVED" && (
+                        <button
+                          onClick={() => handleModerate(r.id, "APPROVE")}
+                          disabled={actionLoading === r.id}
+                          className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-mono text-xs font-bold hover:bg-emerald-700 transition-colors flex items-center gap-1.5 shadow-sm"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Approve</span>
+                        </button>
+                      )}
+
+                      {r.status !== "REJECTED" && (
+                        <button
+                          onClick={() => handleModerate(r.id, "REJECT")}
+                          disabled={actionLoading === r.id}
+                          className="px-4 py-2 rounded-xl bg-white border border-rose-300 text-rose-700 font-mono text-xs font-bold hover:bg-rose-50 transition-colors flex items-center gap-1.5"
+                        >
+                          <XCircle className="w-3.5 h-3.5" />
+                          <span>Reject</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
-    </div>
+    </PageTransition>
   );
 }

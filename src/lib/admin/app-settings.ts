@@ -66,12 +66,73 @@ export const DEFAULT_SUPPORT_REFUND_SETTINGS: SupportRefundSettings = {
   supportAgentRefundLimitPaise: 500000,
 };
 
+export interface MarginSettings {
+  paymentGatewayFeePercent: number; // default 2.0%
+  paymentGatewayFixedFeePaise: number; // default 0 paise
+}
+
+export const DEFAULT_MARGIN_SETTINGS: MarginSettings = {
+  paymentGatewayFeePercent: 2.0,
+  paymentGatewayFixedFeePaise: 0,
+};
+
+export interface SampleToBulkSettings {
+  sampleMaxQty: number; // default 2
+  bulkMinQty: number; // default 20
+  conversionWindowDays: number; // default 60
+}
+
+export const DEFAULT_SAMPLE_TO_BULK_SETTINGS: SampleToBulkSettings = {
+  sampleMaxQty: 2,
+  bulkMinQty: 20,
+  conversionWindowDays: 60,
+};
+
+export interface ReorderNudgeSettings {
+  autoSendReorderNudge: boolean; // default false (never send automatically without explicit setting)
+  defaultReorderGapDays: number; // default 90 days
+}
+
+export const DEFAULT_REORDER_NUDGE_SETTINGS: ReorderNudgeSettings = {
+  autoSendReorderNudge: false,
+  defaultReorderGapDays: 90,
+};
+
+export interface ReviewSettings {
+  autoApprovePositiveReviews: boolean; // default true
+  reviewRequestDelayDays: number; // default 3 days
+}
+
+export const DEFAULT_REVIEW_SETTINGS: ReviewSettings = {
+  autoApprovePositiveReviews: true,
+  reviewRequestDelayDays: 3,
+};
+
+export interface SmartRankingSettings {
+  conversionWeight: number; // default 0.4
+  marginWeight: number; // default 0.3
+  stockWeight: number; // default 0.2
+  reviewWeight: number; // default 0.1
+}
+
+export const DEFAULT_SMART_RANKING_SETTINGS: SmartRankingSettings = {
+  conversionWeight: 0.4,
+  marginWeight: 0.3,
+  stockWeight: 0.2,
+  reviewWeight: 0.1,
+};
+
 // Memory fallback store for AppSettings
 const SETTINGS_MEMORY_STORE = new Map<string, unknown>();
 SETTINGS_MEMORY_STORE.set("store_details", DEFAULT_STORE_DETAILS);
 SETTINGS_MEMORY_STORE.set("cod_settings", DEFAULT_COD_SETTINGS);
 SETTINGS_MEMORY_STORE.set("rto_risk_settings", DEFAULT_RTO_RISK_SETTINGS);
 SETTINGS_MEMORY_STORE.set("support_refund_settings", DEFAULT_SUPPORT_REFUND_SETTINGS);
+SETTINGS_MEMORY_STORE.set("margin_settings", DEFAULT_MARGIN_SETTINGS);
+SETTINGS_MEMORY_STORE.set("sample_to_bulk_settings", DEFAULT_SAMPLE_TO_BULK_SETTINGS);
+SETTINGS_MEMORY_STORE.set("reorder_nudge_settings", DEFAULT_REORDER_NUDGE_SETTINGS);
+SETTINGS_MEMORY_STORE.set("review_settings", DEFAULT_REVIEW_SETTINGS);
+SETTINGS_MEMORY_STORE.set("smart_ranking_settings", DEFAULT_SMART_RANKING_SETTINGS);
 
 export async function getCodSettings(): Promise<CodSettings> {
   try {
@@ -401,4 +462,159 @@ export function getIntegrationStatuses(): IntegrationStatus[] {
       requiredEnvKeys: item.keys,
     };
   });
+}
+
+// -------------------------------------------------------------
+// Part 5: Analytics, Margin, Cohorts & Smart Ranking Settings
+// -------------------------------------------------------------
+
+export async function getMarginSettings(): Promise<MarginSettings> {
+  try {
+    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
+      const s = await prisma.appSetting.findUnique({ where: { key: "margin_settings" } });
+      if (s?.value) {
+        const v = s.value as Partial<MarginSettings>;
+        return {
+          paymentGatewayFeePercent: Number(v.paymentGatewayFeePercent) || DEFAULT_MARGIN_SETTINGS.paymentGatewayFeePercent,
+          paymentGatewayFixedFeePaise: Number(v.paymentGatewayFixedFeePaise) || DEFAULT_MARGIN_SETTINGS.paymentGatewayFixedFeePaise,
+        };
+      }
+    }
+  } catch {}
+  return (SETTINGS_MEMORY_STORE.get("margin_settings") as MarginSettings) || DEFAULT_MARGIN_SETTINGS;
+}
+
+export async function updateMarginSettings(
+  updates: Partial<MarginSettings>,
+  actor: string,
+  actorRole: string
+): Promise<MarginSettings> {
+  const current = await getMarginSettings();
+  const next: MarginSettings = {
+    paymentGatewayFeePercent: updates.paymentGatewayFeePercent !== undefined ? updates.paymentGatewayFeePercent : current.paymentGatewayFeePercent,
+    paymentGatewayFixedFeePaise: updates.paymentGatewayFixedFeePaise !== undefined ? updates.paymentGatewayFixedFeePaise : current.paymentGatewayFixedFeePaise,
+  };
+  try {
+    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
+      await prisma.appSetting.upsert({
+        where: { key: "margin_settings" },
+        update: { value: next as unknown as Prisma.InputJsonValue, updatedBy: actor },
+        create: { key: "margin_settings", value: next as unknown as Prisma.InputJsonValue, updatedBy: actor },
+      });
+    }
+  } catch {}
+  SETTINGS_MEMORY_STORE.set("margin_settings", next);
+  await writeAudit({
+    actor,
+    actorRole,
+    action: "settings.update_margin_rules",
+    entityType: "APP_SETTING",
+    entityId: "margin_settings",
+    before: current as unknown as Record<string, unknown>,
+    after: next as unknown as Record<string, unknown>,
+  });
+  return next;
+}
+
+export async function getSampleToBulkSettings(): Promise<SampleToBulkSettings> {
+  try {
+    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
+      const s = await prisma.appSetting.findUnique({ where: { key: "sample_to_bulk_settings" } });
+      if (s?.value) {
+        const v = s.value as Partial<SampleToBulkSettings>;
+        return {
+          sampleMaxQty: Number(v.sampleMaxQty) || DEFAULT_SAMPLE_TO_BULK_SETTINGS.sampleMaxQty,
+          bulkMinQty: Number(v.bulkMinQty) || DEFAULT_SAMPLE_TO_BULK_SETTINGS.bulkMinQty,
+          conversionWindowDays: Number(v.conversionWindowDays) || DEFAULT_SAMPLE_TO_BULK_SETTINGS.conversionWindowDays,
+        };
+      }
+    }
+  } catch {}
+  return (SETTINGS_MEMORY_STORE.get("sample_to_bulk_settings") as SampleToBulkSettings) || DEFAULT_SAMPLE_TO_BULK_SETTINGS;
+}
+
+export async function updateSampleToBulkSettings(
+  updates: Partial<SampleToBulkSettings>,
+  actor: string,
+  actorRole: string
+): Promise<SampleToBulkSettings> {
+  const current = await getSampleToBulkSettings();
+  const next: SampleToBulkSettings = {
+    sampleMaxQty: updates.sampleMaxQty ?? current.sampleMaxQty,
+    bulkMinQty: updates.bulkMinQty ?? current.bulkMinQty,
+    conversionWindowDays: updates.conversionWindowDays ?? current.conversionWindowDays,
+  };
+  try {
+    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
+      await prisma.appSetting.upsert({
+        where: { key: "sample_to_bulk_settings" },
+        update: { value: next as unknown as Prisma.InputJsonValue, updatedBy: actor },
+        create: { key: "sample_to_bulk_settings", value: next as unknown as Prisma.InputJsonValue, updatedBy: actor },
+      });
+    }
+  } catch {}
+  SETTINGS_MEMORY_STORE.set("sample_to_bulk_settings", next);
+  await writeAudit({
+    actor,
+    actorRole,
+    action: "settings.update_sample_to_bulk",
+    entityType: "APP_SETTING",
+    entityId: "sample_to_bulk_settings",
+    before: current as unknown as Record<string, unknown>,
+    after: next as unknown as Record<string, unknown>,
+  });
+  return next;
+}
+
+export const setSampleToBulkSettings = (updates: Partial<SampleToBulkSettings>) =>
+  updateSampleToBulkSettings(updates, "Admin", "SUPER_ADMIN");
+
+export async function getReorderNudgeSettings(): Promise<ReorderNudgeSettings> {
+  try {
+    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
+      const s = await prisma.appSetting.findUnique({ where: { key: "reorder_nudge_settings" } });
+      if (s?.value) {
+        const v = s.value as Partial<ReorderNudgeSettings>;
+        return {
+          autoSendReorderNudge: Boolean(v.autoSendReorderNudge),
+          defaultReorderGapDays: Number(v.defaultReorderGapDays) || DEFAULT_REORDER_NUDGE_SETTINGS.defaultReorderGapDays,
+        };
+      }
+    }
+  } catch {}
+  return (SETTINGS_MEMORY_STORE.get("reorder_nudge_settings") as ReorderNudgeSettings) || DEFAULT_REORDER_NUDGE_SETTINGS;
+}
+
+export async function getReviewSettings(): Promise<ReviewSettings> {
+  try {
+    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
+      const s = await prisma.appSetting.findUnique({ where: { key: "review_settings" } });
+      if (s?.value) {
+        const v = s.value as Partial<ReviewSettings>;
+        return {
+          autoApprovePositiveReviews: v.autoApprovePositiveReviews !== undefined ? Boolean(v.autoApprovePositiveReviews) : DEFAULT_REVIEW_SETTINGS.autoApprovePositiveReviews,
+          reviewRequestDelayDays: Number(v.reviewRequestDelayDays) || DEFAULT_REVIEW_SETTINGS.reviewRequestDelayDays,
+        };
+      }
+    }
+  } catch {}
+  return (SETTINGS_MEMORY_STORE.get("review_settings") as ReviewSettings) || DEFAULT_REVIEW_SETTINGS;
+}
+
+export async function getSmartRankingSettings(): Promise<SmartRankingSettings> {
+  try {
+    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
+      const s = await prisma.appSetting.findUnique({ where: { key: "smart_ranking_settings" } });
+      if (s?.value) {
+        const v = s.value as Partial<SmartRankingSettings>;
+        return {
+          conversionWeight: Number(v.conversionWeight) || DEFAULT_SMART_RANKING_SETTINGS.conversionWeight,
+          marginWeight: Number(v.marginWeight) || DEFAULT_SMART_RANKING_SETTINGS.marginWeight,
+          stockWeight: Number(v.stockWeight) || DEFAULT_SMART_RANKING_SETTINGS.stockWeight,
+          reviewWeight: Number(v.reviewWeight) || DEFAULT_SMART_RANKING_SETTINGS.reviewWeight,
+        };
+      }
+    }
+  } catch {}
+  return (SETTINGS_MEMORY_STORE.get("smart_ranking_settings") as SmartRankingSettings) || DEFAULT_SMART_RANKING_SETTINGS;
 }

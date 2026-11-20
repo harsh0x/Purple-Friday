@@ -14,6 +14,12 @@ import {
   Users,
   ScrollText,
   Settings,
+  BarChart3,
+  Percent,
+  Contact,
+  CalendarClock,
+  Star,
+  LifeBuoy,
   LucideIcon,
 } from "lucide-react";
 import { Permission } from "./permissions";
@@ -36,12 +42,12 @@ export interface NavSection {
 /**
  * Single Source of Truth Navigation Registry.
  * Strict Rule: A sidebar link appears ONLY when its page is finished.
- * In Part 3: Products, Inventory, Kits, Quotes, Coupons are now active.
+ * In Part 5: Analytics, Margin, Customers, Forecasting, Reviews, and Support are now active.
  */
 export const ADMIN_NAVIGATION: NavSection[] = [
   {
     id: "overview",
-    label: "Overview",
+    label: "Overview & Intelligence",
     items: [
       {
         id: "overview-dashboard",
@@ -49,6 +55,27 @@ export const ADMIN_NAVIGATION: NavSection[] = [
         href: "/admin",
         icon: LayoutDashboard,
         permission: "admin:view_overview",
+      },
+      {
+        id: "overview-analytics",
+        label: "Analytics",
+        href: "/admin/analytics",
+        icon: BarChart3,
+        permission: "admin:view_overview",
+      },
+      {
+        id: "overview-margin",
+        label: "True Net Margin",
+        href: "/admin/margin",
+        icon: Percent,
+        permission: "admin:manage_pricing",
+      },
+      {
+        id: "overview-customers",
+        label: "Customers & RFM",
+        href: "/admin/customers",
+        icon: Contact,
+        permission: "admin:view_orders",
       },
     ],
   },
@@ -105,6 +132,13 @@ export const ADMIN_NAVIGATION: NavSection[] = [
         icon: CreditCard,
         permission: "admin:manage_pricing",
       },
+      {
+        id: "pipeline-support",
+        label: "Support Desk",
+        href: "/admin/support",
+        icon: LifeBuoy,
+        permission: "admin:view_orders",
+      },
     ],
   },
   {
@@ -126,6 +160,13 @@ export const ADMIN_NAVIGATION: NavSection[] = [
         permission: "admin:manage_products",
       },
       {
+        id: "catalogue-forecasting",
+        label: "Forecasting",
+        href: "/admin/forecasting",
+        icon: CalendarClock,
+        permission: "admin:manage_products",
+      },
+      {
         id: "catalogue-kits",
         label: "Kits",
         href: "/admin/kits",
@@ -138,6 +179,13 @@ export const ADMIN_NAVIGATION: NavSection[] = [
         href: "/admin/coupons",
         icon: Tag,
         permission: "admin:manage_products",
+      },
+      {
+        id: "catalogue-reviews",
+        label: "Reviews",
+        href: "/admin/reviews",
+        icon: Star,
+        permission: "admin:moderate_reviews",
       },
     ],
   },

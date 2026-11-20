@@ -28,3 +28,20 @@ export function calculateDiscountPercent(mrp: number, currentPrice: number): num
   return Math.round(((mrp - currentPrice) / mrp) * 100);
 }
 
+/**
+ * Format an integer paise value into Indian Rupees (INR)
+ * Example: 150000 -> ₹1,500
+ */
+export function formatCurrency(paise: number): string {
+  const rupees = paise / 100;
+  return formatINR(rupees, { showDecimals: paise % 100 !== 0 });
+}
+
+/**
+ * Format a Date or date string to short India date (e.g. "Nov 20")
+ */
+export function formatShortDate(d: Date | string): string {
+  const date = typeof d === "string" ? new Date(d) : d;
+  return date.toLocaleDateString("en-IN", { month: "short", day: "numeric" });
+}
+

@@ -198,25 +198,34 @@ model ProductImage {
 }
 
 model Review {
-  id         String       @id @default(uuid())
-  productId  String
-  userId     String?
-  rating     Int
-  title      String
-  body       String
-  verified   Boolean      @default(false)
-  photoUrls  String[]
-  status     ReviewStatus @default(PENDING)
-  authorName String
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  id                   String       @id @default(uuid())
+  productId            String
+  userId               String?
+  orderId              String?
+  orderNumber          String?
+  reviewToken          String?      @unique
+  reviewTokenExpiresAt DateTime?
+  rating               Int
+  title                String
+  body                 String
+  verified             Boolean      @default(false)
+  photoUrls            String[]
+  status               ReviewStatus @default(PENDING)
+  authorName           String
+  supportTicketId      String?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
 
   @@index([productId])
   @@index([userId])
+  @@index([orderId])
+  @@index([orderNumber])
   @@index([status])
+  @@index([reviewToken])
 }
 
 model Order {
@@ -262,11 +271,13 @@ model Order {
   createdAt              DateTime     @default(now())
   updatedAt              DateTime     @updatedAt
 
-  user      User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
-  items     OrderItem[]
-  events    OrderEvent[]
-  shipments Shipment[]
-  refunds   Refund[]
+  user           User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items          OrderItem[]
+  events         OrderEvent[]
+  shipments      Shipment[]
+  refunds        Refund[]
+  reviews        Review[]
+  supportTickets SupportTicket[]
 
   @@index([orderNumber])
   @@index([userId])
@@ -753,4 +764,122 @@ model Refund {
   @@index([orderId])
   @@index([refundNumber])
   @@index([idempotencyKey])
+}
+
+model SupportTicket {
+  id            String   @id @default(uuid())
+  ticketNumber  String   @unique
+  orderId       String?
+  orderNumber   String?
+  reviewId      String?
+  customerName  String
+  customerEmail String
+  customerPhone String?
+  subject       String
+  status        String   @default("OPEN") // OPEN, PENDING_CUSTOMER, RESOLVED, CLOSED
+  priority      String   @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  assignee      String?  @default("support@purplefriday.in")
+  messages      Json     // Array of { id, sender, senderRole, message, createdAt }
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  order Order? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([ticketNumber])
+  @@index([orderId])
+  @@index([orderNumber])
+  @@index([status])
+  @@index([customerEmail])
+}
+
+model AdSpend {
+  id          String   @id @default(uuid())
+  date        String   @unique // "YYYY-MM-DD" or month "YYYY-MM"
+  amountPaise Int      // In integer paise
+  channel     String   @default("META_GOOGLE")
+  notes       String?
+  recordedBy  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([date])
+}
+
+model CustomerProfile {
+  id                      String    @id @default(uuid())
+  customerId              String    @unique
+  customerEmail           String    @unique
+  customerPhone           String?
+  customerName            String
+  companyName             String?
+  firstOrderDate          DateTime?
+  lastOrderDate           DateTime?
+  totalOrders             Int       @default(0)
+  totalSpendPaise         BigInt    @default(0)
+  recencyScore            Int       @default(1) // 1 to 5
+  frequencyScore          Int       @default(1) // 1 to 5
+  monetaryScore           Int       @default(1) // 1 to 5
+  rfmScore                String    @default("111")
+  segment                 String    @default("New Customers") // VIP Corporate Buyers, One-Time Sample Buyers, At-Risk Repeat Clients, New Customers, Lapsed
+  averageOrderIntervalDays Float?
+  nextPredictedOrderDate  DateTime?
+  lastNudgeAt             DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  @@index([customerEmail])
+  @@index([segment])
+  @@index([rfmScore])
+}
+
+model ProductRecommendation {
+  id                   String   @id @default(uuid())
+  productId            String
+  recommendedProductId String
+  pairCount            Int      @default(0)
+  support              Float    @default(0.0)
+  confidence           Float    @default(0.0)
+  lift                 Float    @default(0.0)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@unique([productId, recommendedProductId])
+  @@index([productId])
+  @@index([recommendedProductId])
+}
+
+model ProductSmartScore {
+  id                   String   @id @default(uuid())
+  productId            String   @unique
+  conversionRate       Float    @default(0.0)
+  profitMargin         Float    @default(0.0)
+  stockHealth          Float    @default(0.0)
+  reviewRating         Float    @default(0.0)
+  compositeScore       Float    @default(0.0)
+  normalizedComponents Json?
+  boosted              Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([productId])
+  @@index([compositeScore])
+}
+
+model SummaryDailyMetrics {
+  date              String   @id // "YYYY-MM-DD"
+  ordersCount       Int      @default(0)
+  grossRevenuePaise BigInt   @default(0)
+  netRevenuePaise   BigInt   @default(0)
+  cogsPaise         BigInt   @default(0)
+  gatewayFeesPaise  BigInt   @default(0)
+  shippingCostPaise BigInt   @default(0)
+  rtoLossesPaise    BigInt   @default(0)
+  adSpendPaise      BigInt   @default(0)
+  netMarginPaise    BigInt   @default(0)
+  sampleOrdersCount Int      @default(0)
+  bulkOrdersCount   Int      @default(0)
+  repeatOrdersCount Int      @default(0)
+  updatedAt         DateTime @updatedAt
+
+  @@index([date])
 }

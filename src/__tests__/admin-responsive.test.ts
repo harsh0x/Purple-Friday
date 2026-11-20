@@ -33,11 +33,15 @@ describe("Admin Shell Architecture & Responsive Navigation", () => {
         expect(hrefs).toContain("/admin/shipments");
         expect(hrefs).toContain("/admin/payments");
 
+        // Part 5 routes (now active and finished)
+        expect(hrefs).toContain("/admin/analytics");
+        expect(hrefs).toContain("/admin/margin");
+        expect(hrefs).toContain("/admin/customers");
+        expect(hrefs).toContain("/admin/forecasting");
+        expect(hrefs).toContain("/admin/reviews");
+        expect(hrefs).toContain("/admin/support");
+
         // Strictly ensure no unbuilt / future part routes are exposed in the navigation registry
-        expect(hrefs).not.toContain("/admin/reviews");
-        expect(hrefs).not.toContain("/admin/customers");
-        expect(hrefs).not.toContain("/admin/analytics");
-        expect(hrefs).not.toContain("/admin/support");
         expect(hrefs).not.toContain("/admin/reports");
       });
 

@@ -128,6 +128,12 @@ model Product {
   printMethod  String
   sortOrder    Int       @default(0)
   active       Boolean   @default(true)
+  archived     Boolean   @default(false)
+  gstRate      Float     @default(0.18)
+  seoTitle     String?
+  seoDescription String?
+  costPrice    Int       @default(0) // COGS: blank item + printing cost per piece, in paise
+  version      Int       @default(1) // Optimistic locking
   categoryId   String
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -349,18 +355,150 @@ model Proof {
   @@index([status])
 }
 
+model ProductSlugRedirect {
+  id        String   @id @default(uuid())
+  fromSlug  String   @unique
+  toSlug    String
+  createdAt DateTime @default(now())
+
+  @@index([fromSlug])
+}
+
+model BlankSku {
+  id            String          @id @default(uuid())
+  sku           String          @unique // e.g. "BLANK-POLO-NAVY-M"
+  name          String          // e.g. "Executive Polo, Navy, M"
+  category      String          // e.g. "polo-shirts"
+  color         String?
+  size          String?
+  stockOnHand   Int             @default(0)
+  reservedQty   Int             @default(0)
+  reorderLevel  Int             @default(10)
+  supplierName  String          @default("Apex Merch Mills")
+  leadTimeDays  Int             @default(7)
+  unitCostPaise Int             @default(0) // COGS in paise
+  version       Int             @default(1)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  movements     StockMovement[]
+  kitComponents KitComponent[]
+
+  @@index([sku])
+  @@index([category])
+  @@index([stockOnHand])
+}
+
+model StockMovement {
+  id           String    @id @default(uuid())
+  blankSkuId   String
+  changeQty    Int       // Positive (purchase/return) or negative (usage/shrinkage)
+  reason       String    // PURCHASE, ORDER_RESERVATION, PRODUCTION_USE, ADJUSTMENT, RETURN, ORDER_RELEASE
+  balanceAfter Int
+  actor        String?
+  notes        String?
+  referenceId  String?   // e.g. orderId or PO number
+  createdAt    DateTime  @default(now())
+
+  blankSku BlankSku @relation(fields: [blankSkuId], references: [id], onDelete: Cascade)
+
+  @@index([blankSkuId])
+  @@index([reason])
+  @@index([createdAt])
+}
+
+model Kit {
+  id            String         @id @default(uuid())
+  name          String         // e.g. "New Joinee Onboarding Pack"
+  slug          String         @unique
+  description   String?
+  kitPricePaise Int            // Authoritative bundle price in paise
+  active        Boolean        @default(true)
+  version       Int            @default(1)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  components    KitComponent[]
+
+  @@index([slug])
+  @@index([active])
+}
+
+model KitComponent {
+  id                   String    @id @default(uuid())
+  kitId                String
+  blankSkuId           String?
+  productSku           String?   // Parent or catalog product reference
+  quantity             Int       @default(1)
+  substituteProductId  String?   // Optional substitute product UUID configured by admin
+  substituteProductSku String?   // Human-readable substitute SKU/slug
+
+  kit      Kit       @relation(fields: [kitId], references: [id], onDelete: Cascade)
+  blankSku BlankSku? @relation(fields: [blankSkuId], references: [id], onDelete: SetNull)
+
+  @@index([kitId])
+  @@index([blankSkuId])
+}
+
+model Quote {
+  id                    String    @id @default(uuid())
+  quoteNumber           String    @unique // e.g. "PF-Q-2026-0001"
+  customerName          String
+  company               String?
+  email                 String
+  phone                 String
+  items                 Json      // Items array with line descriptions, qty, negotiated prices, notes
+  subtotalPaise         Int
+  discountPaise         Int       @default(0)
+  shippingPaise         Int       @default(0)
+  gstPaise              Int
+  totalPaise            Int
+  advancePaise          Int       @default(0)
+  validUntil            DateTime
+  sellerGstin           String    @default("29AABCU9603R1ZM")
+  buyerGstin            String?
+  placeOfSupply         String    @default("Karnataka")
+  hsnCode               String    @default("6109")
+  status                String    @default("DRAFT") // DRAFT, SENT, ACCEPTED, EXPIRED, DECLINED
+  negotiatedReason      String?   // Mandatory reason when unit price is below slab
+  razorpayPaymentLinkId String?
+  razorpayPaymentLinkUrl String?
+  orderId               String?
+  version               Int       @default(1)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([quoteNumber])
+  @@index([status])
+  @@index([email])
+  @@index([createdAt])
+}
+
+model InvoiceSequence {
+  id            String   @id @default("invoice_sequence")
+  currentNumber Int      @default(1000)
+  prefix        String   @default("INV-2026-")
+  updatedAt     DateTime @updatedAt
+}
+
 model Coupon {
-  id            String     @id @default(uuid())
-  code          String     @unique
-  type          CouponType @default(PERCENTAGE)
-  value         Int
-  minSubtotal   Int        @default(0)
-  firstOrderOnly Boolean   @default(false)
-  perUserLimit  Int        @default(1)
-  expiresAt     DateTime?
-  active        Boolean    @default(true)
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  id                   String     @id @default(uuid())
+  code                 String     @unique
+  type                 CouponType @default(PERCENTAGE)
+  value                Int        // Percentage (e.g. 12) or flat paise
+  maxDiscountCap       Int?       // Maximum discount cap in paise
+  minSubtotal          Int        @default(0) // Minimum cart subtotal in paise
+  firstOrderOnly       Boolean    @default(false)
+  perUserLimit         Int        @default(1)
+  totalUsageLimit      Int?       // Optional global usage quota
+  usageCount           Int        @default(0)
+  applicableCategories String[]   // Applicable category slugs (empty = all)
+  startsAt             DateTime   @default(now())
+  expiresAt            DateTime?
+  active               Boolean    @default(true)
+  version              Int        @default(1)
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
 
   redemptions CouponRedemption[]
 

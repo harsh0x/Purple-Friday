@@ -190,3 +190,162 @@ Configured in `purple-friday/tailwind.config.ts`:
    - Status: **PASSED (63 routes compiled and statically optimized)**
    - Shared first load JS: **106 kB**
    - Storefront homepage (`/`): **28 kB (216 kB first load JS)**
+
+
+---
+
+## 8. Complete Admin Routes & API Reference (Parts 1 to 6)
+
+### 8.1 Admin User Interface Routes (`/admin/*`)
+
+All admin interface routes are rendered on a dark canvas (`#15101F` Ink, `#1C1628` Surface), isolated from the storefront bundle, guarded by Edge Middleware (`src/middleware.ts`), and enforce granular role-based permissions (`src/lib/admin/permissions.ts`).
+
+| Route Path | Page Title / Station | Required RBAC Permission | Primary Roles | Key Capabilities & Features |
+| :--- | :--- | :--- | :--- | :--- |
+| `/admin` | Executive Overview & Control Room | `admin:view_overview` | Super Admin, Store Manager, Finance, Production | Dynamic India greeting, attention counters, live operational funnel strip, 7/30/90-day Net Revenue & Net Margin charts, category distribution donut, animated count-up KPI tiles, recent activity feed. Financial tiles masked for non-financial roles. |
+| `/admin/login` | Staff Authentication Portal | Public / Unauthenticated | All Staff | Dedicated dark branded staff login with email, password visibility toggle, brute-force exponential backoff (15-min lockout after 5 failures), and forced first-time password reset. |
+| `/admin/analytics` | Deep Operational Analytics | `admin:view_overview` | Super Admin, Store Manager | Operational funnel throughput, AOV trends, repeat corporate buyer retention rate, sample-to-bulk conversion rate, on-time dispatch rate, and India seasonal spikes. |
+| `/admin/margin` | True Net Margin Intelligence | `admin:manage_pricing` | Super Admin, Finance Officer | Real-time profit-per-order engine deducting blanks COGS, print consumables, custom packaging, payment gateway fee (2.36%), shipping freight, and RTO provisions. |
+| `/admin/customers` | Corporate CRM & RFM Segments | `admin:view_orders` | Super Admin, Store Manager | RFM customer segmentation (`Champions`, `Loyal`, `At-Risk`, `Needs Attention`, `Lost`), B2B corporate purchase frequency, GSTIN & company details, lifetime value (LTV). |
+| `/admin/orders` | Orders Master Control | `admin:view_orders` | All Staff Roles | Full search, multi-status tab filters (`All`, `Pending Approval`, `In Production`, `Dispatched`, `Delivered`, `RTO`), high-risk flags, partial COD badges, CSV export. |
+| `/admin/orders/[orderNumber]` | Order Detail & Pipeline Hub | `admin:view_orders` | All Staff Roles | 12-state transition hub with version locking, customer contact card, artwork download & inspection, mockup review, jobsheet generation, split dispatch trigger, balance collection, refund dispatch, and audit trail timeline. |
+| `/admin/designs` | Designer Workstation | `admin:manage_proofs` | Graphic Designer, Super Admin | Pending mockups queue, vector artwork ingestion (300 DPI inspection, transparent background detection), proof composition, customer feedback inspection, and WhatsApp mockup dispatch. |
+| `/admin/production` | Factory Floor Station | `admin:manage_production` | Production Manager, Super Admin | Active printing queues grouped by printing method (DTF, Screen, Embroidery, UV Sublimation), printable A4/A5 PDF jobsheets, QC pass/fail station, rework logging on `IN_PRINTING`. |
+| `/admin/quotes` | B2B RFQ & Quote Studio | `admin:view_orders` | Store Manager, Super Admin | Multi-product corporate quote builder, custom slab pricing, printable GST-compliant PDF quotes/proforma invoices, Razorpay dynamic payment link generator with WhatsApp dispatch. |
+| `/admin/dispatch` | Packaging & Dispatch Hub | `admin:manage_dispatch` | Store Manager, Production, Super Admin | Pending packaging batches, courier allocation, single and multi-address split dispatch generator, CSV recipient upload, label printing queue. |
+| `/admin/shipments` | Logistics & Courier Tracking | `admin:manage_dispatch` | Store Manager, Super Admin | Live Shiprocket courier integration tracker, AWB milestone timeline, NDR (non-delivery report) exceptions, RTO risk monitoring. |
+| `/admin/payments` | Payments & Reconciliations | `admin:manage_pricing` | Finance Officer, Super Admin | Partial COD advance tracking, balance-on-delivery collection logging, Razorpay transaction capture verification, refund audit log. |
+| `/admin/products` | Product Catalogue Manager | `admin:manage_products` | Super Admin | Master product list with active/draft toggles, best-seller badges, inventory counts, category chips, and quantity slab summaries. |
+| `/admin/products/[slug]` | Product Atelier Studio | `admin:manage_products` | Super Admin | Deep product editor: SEO metadata, category & audience (`TEAM`, `GIFTING`), MOQ & quantity steps, GST rate, COGS per blank & print, colour swatches, and quantity pricing slabs. |
+| `/admin/inventory` | Raw Blanks Inventory | `admin:manage_products` | Super Admin, Production | SKU-level blank stock tracking across colour and size combinations, safety stock thresholds, low-stock warnings, and stock movement logs. |
+| `/admin/forecasting` | Demand & Stockout Forecast | `admin:manage_products` | Super Admin, Production | 14-day stock-out prediction based on recent sales velocity, reorder point calculations, lead-time buffers, and supplier replenishment alerts. |
+| `/admin/kits` | Corporate Bundles & Gift Kits | `admin:manage_products` | Super Admin | Multi-product corporate swag kit builder with dynamic bundle discount calculations, packaging selection, and stock availability checks. |
+| `/admin/coupons` | Discounts & Promotions | `admin:manage_products` | Super Admin | Coupon code creator (`PERCENTAGE` or `FLAT`), first-order restrictions, cart minimums, maximum discount caps, usage limits, and active date ranges. |
+| `/admin/reviews` | Verified Review Moderation | `admin:moderate_reviews` | Super Admin, Store Manager | Post-delivery verified review moderation queue with craftsmanship breakdown (print clarity, fabric feel, colour match), and approve/reject actions. |
+| `/admin/support` | Customer Support Helpdesk | `admin:view_orders` | Support Agent, Super Admin | Ticketing queue for customer inquiries, cancellation requests, order status lookups, and dispute resolution. |
+| `/admin/notifications` | Staff Alert Centre | `admin:view_overview` | All Staff Roles | Bell dropdown notification centre for urgent proof approvals, low-stock warnings, overdue production jobs (>48h), and cancellation requests. |
+| `/admin/team` | Staff Management & RBAC | `admin:manage_team` | Super Admin Only | Staff user invitations, role assignment, active session revocation, password resets, and account unlock controls. |
+| `/admin/audit` | Immutable Audit Trail | `admin:view_audit` | Super Admin, Finance Officer | Append-only database audit log viewer with actor, entity, date range filters, and CSV export secured against formula injection (`safeCsvCell`). |
+| `/admin/settings` | Global System Configuration | `admin:manage_settings` | Super Admin Only | Business profile, GSTIN, default shipping rates, partial COD advance % (20–30%), max COD value, RTO risk score thresholds, and courier credentials. |
+| `/admin/cms` | No-Code Storefront CMS | `admin:manage_settings` | Super Admin Only | Super Admin studio for homepage hero copy, scheduled announcement bars, section ordering & visibility, FAQs, footer links, SEO meta tags, live preview tokens, and 10-snapshot version rollback. |
+
+---
+
+### 8.2 Admin Server API Routes (`/api/admin/*`)
+
+All API routes under `/api/admin/*` require an active staff session token (`pf_admin_session` cookie), perform server-side role and permission verification, validate request bodies via Zod schemas, enforce origin checks, apply rate limiting, and write immutable entries to `AuditLog`.
+
+#### Authentication & Session Management
+* `POST /api/admin/auth/login`
+  - **Purpose**: Authenticates staff members using email and password.
+  - **Security**: Verifies credentials via `bcryptjs`, enforces 5-attempt / 15-minute lockout, issues signed HMAC-SHA256 session token (`pf_admin_session`) with 8-hour lifetime and 30-minute idle timestamp.
+* `POST /api/admin/auth/logout`
+  - **Purpose**: Terminates staff session, clears the HTTP-only session cookie, and records audit logout event.
+* `GET /api/admin/auth/session`
+  - **Purpose**: Returns currently authenticated staff profile, assigned role, and permissions.
+* `POST /api/admin/auth/change-password`
+  - **Purpose**: Forces password update for new staff accounts or password reset workflows, ensuring complexity requirements.
+
+#### Orders & Production Pipeline
+* `GET /api/admin/orders`
+  - **Purpose**: Paginated order querying with status filtering, date range, search query, and risk level filtering.
+* `GET /api/admin/orders/export`
+  - **Purpose**: Generates sanitised CSV export of orders matching active filters.
+* `GET /api/admin/orders/[orderNumber]`
+  - **Purpose**: Retrieves comprehensive order record including line items, proofs, artwork links, shipments, payment history, and audit log.
+* `POST /api/admin/orders/[orderNumber]/status`
+  - **Purpose**: Performs state machine transition with role permission checks and optimistic version check (`expectedVersion`).
+* `POST /api/admin/orders/[orderNumber]/transition`
+  - **Purpose**: Alias for state machine transition endpoint supporting granular audit notes.
+* `POST /api/admin/orders/[orderNumber]/notes`
+  - **Purpose**: Appends internal staff notes to the order without modifying operational status.
+* `POST /api/admin/orders/[orderNumber]/override-risk`
+  - **Purpose**: Super Admin override to enable COD on high-risk orders flagged by the RTO engine; fully audited.
+* `POST /api/admin/orders/[orderNumber]/collect-balance`
+  - **Purpose**: Marks COD balance as collected upon courier delivery confirmation.
+* `POST /api/admin/orders/[orderNumber]/refund`
+  - **Purpose**: Initiates full or partial refunds via Razorpay API and marks order `REFUNDED` or `PARTIALLY_REFUNDED`.
+* `POST /api/admin/orders/[orderNumber]/jobsheet`
+  - **Purpose**: Generates printable production PDF jobsheet with barcode, artwork specifications, and DTF print instructions.
+* `POST /api/admin/orders/[orderNumber]/rework`
+  - **Purpose**: Logs QC failure and re-queues order on `IN_PRINTING` station with defect notes.
+* `POST /api/admin/orders/[orderNumber]/send-mockup`
+  - **Purpose**: Notifies customer via email/WhatsApp that design mockup is ready for review with secure proof token.
+* `POST /api/admin/orders/[orderNumber]/proof`
+  - **Purpose**: Creates or updates customer proof token and mockup image associations.
+* `POST /api/admin/orders/[orderNumber]/items/[itemId]/mockup`
+  - **Purpose**: Attaches designer-rendered mockup image to a specific line item.
+
+#### Artwork & Media Ingestion
+* `POST /api/admin/artwork/ingest`
+  - **Purpose**: Validates and ingests customer vector logos and print files. Enforces 25MB ceiling, checks magic bytes via `file-type`, sanitises SVGs via DOMPurify, and computes print DPI.
+* `GET /api/admin/artwork/[artworkId]/download`
+  - **Purpose**: Streams original print-ready vector/raster asset to authorised designer/operator with signed access token.
+
+#### Shipping & Split Dispatch
+* `GET /api/admin/dispatch/template`
+  - **Purpose**: Downloads the standard CSV template for corporate split-address multi-destination shipping (`Recipient Name, Phone, Address, City, State, PIN, Quantity, Notes`).
+* `POST /api/admin/orders/[orderNumber]/split-preview`
+  - **Purpose**: Parses and validates an uploaded split dispatch CSV against order quantities and Indian PIN codes.
+* `POST /api/admin/orders/[orderNumber]/split-dispatch`
+  - **Purpose**: Executes split dispatch creation, allocating quantities into child shipments and booking courier AWBs.
+* `GET /api/admin/shipments`
+  - **Purpose**: Lists all active outbound and return shipments with live carrier tracking statuses.
+* `GET /api/admin/shipments/[shipmentNumber]/label`
+  - **Purpose**: Generates printable 4x6 courier thermal shipping label.
+
+#### Catalogue, Inventory & Quotes
+* `GET /api/admin/products` & `POST /api/admin/products`
+  - **Purpose**: Queries and creates catalogue products with pricing slabs, specifications, and blanks COGS.
+* `GET /api/admin/products/[slug]` & `PUT /api/admin/products/[slug]`
+  - **Purpose**: Retrieves and updates single product definitions, SEO fields, and quantity discount tiers.
+* `GET /api/admin/inventory` & `POST /api/admin/inventory`
+  - **Purpose**: Manages blanks stock levels, restock alerts, and supplier intake.
+* `GET /api/admin/inventory/[skuId]/movements`
+  - **Purpose**: Audit log of all stock movements (incoming restock, production consumption, damage/spoilage, returns).
+* `GET /api/admin/forecasting`
+  - **Purpose**: Returns predictive inventory stock-out dates and recommended reorder volumes.
+* `GET /api/admin/kits` & `POST /api/admin/kits`
+  - **Purpose**: Queries and manages corporate bundles, packaging fees, and kit compositions.
+* `GET /api/admin/coupons` & `POST /api/admin/coupons`
+  - **Purpose**: Queries and manages discount coupons with atomic redemption limits.
+* `GET /api/admin/coupons/[id]` & `PUT /api/admin/coupons/[id]`
+  - **Purpose**: Retrieves and updates specific coupon configurations.
+* `GET /api/admin/quotes` & `POST /api/admin/quotes`
+  - **Purpose**: Queries RFQs and creates official corporate proforma quotes.
+* `GET /api/admin/quotes/[id]/pdf`
+  - **Purpose**: Generates GST-compliant PDF quote with atelier branding.
+* `POST /api/admin/quotes/[id]/payment-link`
+  - **Purpose**: Creates Razorpay payment link for corporate quote acceptance.
+
+#### Intelligence, Reviews & Support
+* `GET /api/admin/overview`
+  - **Purpose**: Returns real-time metrics for `/admin` command centre (attention counts, operational funnel, revenue, category splits).
+* `GET /api/admin/analytics`
+  - **Purpose**: Aggregates operational funnel, AOV, corporate retention, and on-time dispatch rates.
+* `POST /api/admin/analytics/seed-demo`
+  - **Purpose**: Seeds ~400 realistic demo orders across 12 months for testing analytics dashboards (strictly blocked in production).
+* `GET /api/admin/margin`
+  - **Purpose**: Computes order-level and catalogue-level true net margins.
+* `GET /api/admin/customers`
+  - **Purpose**: Returns customer records with RFM segmentation and lifetime purchase data.
+* `GET /api/admin/customers/[id]`
+  - **Purpose**: Returns detailed profile, company GSTIN, and order history for an individual corporate client.
+* `GET /api/admin/reviews` & `PUT /api/admin/reviews`
+  - **Purpose**: Lists verified reviews and handles approval/rejection moderation.
+* `GET /api/admin/support` & `POST /api/admin/support`
+  - **Purpose**: Ingests and manages customer support tickets and status updates.
+* `GET /api/admin/support/[ticketNumber]`
+  - **Purpose**: Returns ticket conversation thread and linked order context.
+
+#### System, CMS, Audit & Settings
+* `GET /api/admin/cms` & `POST /api/admin/cms`
+  - **Purpose**: Manages no-code storefront CMS document. Supports `save_draft`, `publish` (with cache tag revalidation), and `restore` of last 10 versions.
+* `GET /api/admin/team` & `POST /api/admin/team`
+  - **Purpose**: Super Admin user management (list, invite, update roles, toggle active status).
+* `GET /api/admin/audit` & `GET /api/admin/audit/export`
+  - **Purpose**: Queries immutable audit logs and exports sanitized CSV.
+* `GET /api/admin/settings` & `PUT /api/admin/settings`
+  - **Purpose**: Retrieves and updates global app settings (COD rules, RTO weights, GST details).
+* `GET /api/admin/notifications`
+  - **Purpose**: Returns unread staff alerts and operational reminders.

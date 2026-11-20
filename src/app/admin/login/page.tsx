@@ -162,87 +162,87 @@ export default function AdminLoginPage() {
                 </div>
               </div>
 
-              {error && (
-                <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-200 text-xs leading-relaxed">
-                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                  <span>{error}</span>
-                </div>
-              )}
+        {error && (
+          <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-200 text-xs leading-relaxed">
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+            <span>{error}</span>
+          </div>
+        )}
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3.5 px-4 bg-[#6A2CFF] hover:bg-[#5820DC] text-white font-mono text-xs uppercase tracking-widest font-semibold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-[#6A2CFF]/20 active:translate-y-0.5 transition-all disabled:opacity-50"
-              >
-                <span>{loading ? "Authenticating..." : "Sign In to Admin"}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleChangePassword} className="space-y-5">
-              <div className="p-3.5 rounded-xl bg-[#6A2CFF]/10 border border-[#6A2CFF]/30 text-xs text-[#CDB8FF] leading-relaxed">
-                <span className="font-bold">Initial Login Detected:</span> For your security, you must create a new password (min. 10 characters) before accessing the dashboard.
-              </div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-3.5 px-4 bg-[#6A2CFF] hover:bg-[#5820DC] text-white font-mono text-xs uppercase tracking-widest font-semibold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-[#6A2CFF]/20 active:translate-y-0.5 transition-all disabled:opacity-50"
+        >
+          <span>{loading ? "Authenticating..." : "Sign In to Admin"}</span>
+          <ArrowRight className="w-4 h-4" />
+        </button>
+      </form>
+      ) : (
+      <form onSubmit={handleChangePassword} className="space-y-5">
+        <div className="p-3.5 rounded-xl bg-[#6A2CFF]/10 border border-[#6A2CFF]/30 text-xs text-[#CDB8FF] leading-relaxed">
+          <span className="font-bold">Initial Login Detected:</span> For your security, you must create a new password (min. 10 characters) before accessing the dashboard.
+        </div>
 
-              <div>
-                <span className="block text-xs font-mono uppercase tracking-wider text-[#DDD4E6] mb-2">
-                  New Password
-                </span>
-                <div className="relative">
-                  <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9F8CB8]" />
-                  <input
-                    type="password"
-                    required
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Min. 10 chars with numbers & symbols"
-                    className="w-full bg-[#15101F] border border-white/15 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#6A2CFF] focus:ring-2 focus:ring-[#6A2CFF]/30 transition-all font-sans"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <span className="block text-xs font-mono uppercase tracking-wider text-[#DDD4E6] mb-2">
-                  Confirm Password
-                </span>
-                <div className="relative">
-                  <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9F8CB8]" />
-                  <input
-                    type="password"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Repeat new password"
-                    className="w-full bg-[#15101F] border border-white/15 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#6A2CFF] focus:ring-2 focus:ring-[#6A2CFF]/30 transition-all font-sans"
-                  />
-                </div>
-              </div>
-
-              {changeError && (
-                <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-200 text-xs leading-relaxed">
-                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                  <span>{changeError}</span>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3.5 px-4 bg-[#D8FF3F] hover:bg-[#C4ED2B] text-[#15101F] font-mono text-xs uppercase tracking-widest font-black rounded-xl flex items-center justify-center gap-2 shadow-lg active:translate-y-0.5 transition-all disabled:opacity-50"
-              >
-                <span>{loading ? "Updating Password..." : "Set New Password & Continue"}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </form>
-          )}
-
-          <div className="mt-6 pt-6 border-t border-white/10 text-center">
-            <span className="text-[11px] font-mono text-[#DDD4E6]/60">
-              Session expires in 8 hours • 30-min idle timeout
-            </span>
+        <div>
+          <span className="block text-xs font-mono uppercase tracking-wider text-[#DDD4E6] mb-2">
+            New Password
+          </span>
+          <div className="relative">
+            <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9F8CB8]" />
+            <input
+              type="password"
+              required
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Min. 10 chars with numbers & symbols"
+              className="w-full bg-[#15101F] border border-white/15 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#6A2CFF] focus:ring-2 focus:ring-[#6A2CFF]/30 transition-all font-sans"
+            />
           </div>
         </div>
+
+        <div>
+          <span className="block text-xs font-mono uppercase tracking-wider text-[#DDD4E6] mb-2">
+            Confirm Password
+          </span>
+          <div className="relative">
+            <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9F8CB8]" />
+            <input
+              type="password"
+              required
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Repeat new password"
+              className="w-full bg-[#15101F] border border-white/15 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#6A2CFF] focus:ring-2 focus:ring-[#6A2CFF]/30 transition-all font-sans"
+            />
+          </div>
+        </div>
+
+        {changeError && (
+          <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-200 text-xs leading-relaxed">
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+            <span>{changeError}</span>
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-3.5 px-4 bg-[#D8FF3F] hover:bg-[#C4ED2B] text-[#15101F] font-mono text-xs uppercase tracking-widest font-black rounded-xl flex items-center justify-center gap-2 shadow-lg active:translate-y-0.5 transition-all disabled:opacity-50"
+        >
+          <span>{loading ? "Updating Password..." : "Set New Password & Continue"}</span>
+          <ArrowRight className="w-4 h-4" />
+        </button>
+      </form>
+          )}
+
+      <div className="mt-6 pt-6 border-t border-white/10 text-center">
+        <span className="text-[11px] font-mono text-[#DDD4E6]/60">
+          Session expires in 8 hours • 30-min idle timeout
+        </span>
       </div>
     </div>
+      </div >
+    </div >
   );
 }

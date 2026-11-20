@@ -95,9 +95,11 @@ export const PRODUCT_PRINT_AREAS: Record<string, PrintAreaBounds> = {
 
 export function getPrintAreaForTemplate(templateName: string): PrintAreaBounds {
   const norm = (templateName || "").toLowerCase();
-  for (const [key, area] of Object.entries(PRODUCT_PRINT_AREAS)) {
-    if (norm.includes(key)) {
-      return area;
+  const keys = Object.keys(PRODUCT_PRINT_AREAS).sort((a, b) => b.length - a.length);
+  for (const key of keys) {
+    const regex = new RegExp(`(^|[-_\\s])${key}([-_\\s]|$)`, "i");
+    if (regex.test(norm) || norm === key) {
+      return PRODUCT_PRINT_AREAS[key];
     }
   }
   return PRODUCT_PRINT_AREAS.tee;

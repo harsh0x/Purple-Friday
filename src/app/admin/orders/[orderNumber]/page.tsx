@@ -32,6 +32,7 @@ import { OrderSlaBadge } from "@/components/admin/OrderSlaBadge";
 import { MaskedOrderDetail } from "@/server/orders/orders-service";
 import { OrderStatus } from "@/server/orders/state-machine";
 import { ArtworkIngestionCard } from "@/components/admin/ArtworkIngestionCard";
+import { MockupPlacementEditor } from "@/components/admin/MockupPlacementEditor";
 
 export default function AdminOrderDetailPage({
   params,
@@ -489,6 +490,31 @@ export default function AdminOrderDetailPage({
                               }
                             : null
                         );
+                      }}
+                    />
+
+                    {/* Designer Mockup Placement & Print Zone Atelier */}
+                    <MockupPlacementEditor
+                      orderNumber={order.orderNumber}
+                      itemId={item.id}
+                      productId={item.productId}
+                      artworkUrl={item.artworkUrl}
+                      currentMockupUrl={item.mockupUrl}
+                      existingPlacement={item.placement as any}
+                      initialPrintMethod={item.printMethod}
+                      orderVersion={order.version}
+                      onMockupSaved={(newMockupUrl) => {
+                        setOrder((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                items: prev.items.map((it) =>
+                                  it.id === item.id ? { ...it, mockupUrl: newMockupUrl } : it
+                                ),
+                              }
+                            : null
+                        );
+                        fetchOrderDetail();
                       }}
                     />
                   </div>

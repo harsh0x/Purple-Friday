@@ -70,3 +70,56 @@ export function exportOrdersToCsv(orders: StoredOrder[]): string {
   return [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
 }
 
+/**
+ * Exports an array of audit records to safe, formula-injection sanitized CSV.
+ */
+export function exportAuditLogsToCsv(logs: Array<{
+  id: string;
+  time: string;
+  actor: string;
+  actorRole: string;
+  action: string;
+  entityType: string;
+  entityId?: string;
+  before?: Record<string, unknown> | null;
+  after?: Record<string, unknown> | null;
+  requestId?: string;
+  ipHash?: string;
+}>): string {
+  const headers = [
+    "Log ID",
+    "Timestamp (IST)",
+    "Actor",
+    "Actor Role",
+    "Action",
+    "Entity Type",
+    "Entity ID",
+    "Before Summary",
+    "After Summary",
+    "Request ID",
+    "IP Hash",
+  ];
+
+  const rows = logs.map((l) => [
+    sanitizeCsvCell(l.id),
+    sanitizeCsvCell(
+      new Intl.DateTimeFormat("en-IN", {
+        timeZone: "Asia/Kolkata",
+        dateStyle: "short",
+        timeStyle: "medium",
+      }).format(new Date(l.time))
+    ),
+    sanitizeCsvCell(l.actor),
+    sanitizeCsvCell(l.actorRole),
+    sanitizeCsvCell(l.action),
+    sanitizeCsvCell(l.entityType),
+    sanitizeCsvCell(l.entityId || ""),
+    sanitizeCsvCell(l.before ? JSON.stringify(l.before) : ""),
+    sanitizeCsvCell(l.after ? JSON.stringify(l.after) : ""),
+    sanitizeCsvCell(l.requestId || ""),
+    sanitizeCsvCell(l.ipHash || ""),
+  ]);
+
+  return [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
+}
+

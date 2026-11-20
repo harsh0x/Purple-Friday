@@ -37,6 +37,11 @@ export interface MaskedOrderSummary {
   productNames: string[];
   totalPaise?: number; // Hidden for designers / factory
   paymentStatus?: string; // Hidden for designers / factory
+  paymentMethod?: string;
+  advancePaidPaise?: number;
+  balanceDuePaise?: number;
+  rtoRiskScore?: number | null;
+  rtoRiskReasons?: string[];
   assignedDesignerId?: string | null;
   assignedDesignerName?: string | null;
   slaDueAt?: string | null;
@@ -787,6 +792,11 @@ export async function listAdminOrders(
       productNames,
       totalPaise: isFinancialMasked ? undefined : order.total,
       paymentStatus: isFinancialMasked ? undefined : order.paymentStatus || "PAID",
+      paymentMethod: order.paymentMethod,
+      advancePaidPaise: order.advancePaidPaise,
+      balanceDuePaise: order.balanceDuePaise,
+      rtoRiskScore: order.rtoRiskScore ?? 0,
+      rtoRiskReasons: order.rtoRiskReasons ?? [],
       assignedDesignerId: order.assignedDesignerId,
       assignedDesignerName: order.assignedDesignerId ? "Ananya Deshmukh" : null,
       slaDueAt: order.slaDueAt,

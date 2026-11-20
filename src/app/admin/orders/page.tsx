@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner";
 import { OrderStatusBadge } from "@/components/admin/OrderStatusBadge";
 import { OrderSlaBadge } from "@/components/admin/OrderSlaBadge";
+import { RtoRiskBadge } from "@/components/admin/RtoRiskBadge";
 import { MaskedOrderSummary } from "@/server/orders/orders-service";
 
 const STATUS_OPTIONS = [
@@ -386,6 +387,7 @@ export default function AdminOrdersListPage() {
                 <th className="py-3 px-4">Products / Qty</th>
                 <th className="py-3 px-4">Status</th>
                 <th className="py-3 px-4">Dispatch SLA</th>
+                <th className="py-3 px-4">Risk</th>
                 <th className="py-3 px-4">Amount</th>
                 <th className="py-3 px-4">Designer</th>
                 <th className="py-3 px-4 text-right">Action</th>
@@ -394,14 +396,14 @@ export default function AdminOrdersListPage() {
             <tbody className="divide-y divide-zinc-200/60 dark:divide-white/5 text-[#15101F] dark:text-[#F5F0E8]">
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="py-16 text-center text-zinc-400">
+                  <td colSpan={10} className="py-16 text-center text-zinc-400">
                     <RefreshCw className="w-6 h-6 animate-spin mx-auto text-[#6A2CFF] mb-2" />
                     <span>Loading pipeline orders...</span>
                   </td>
                 </tr>
               ) : orders.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-16 text-center text-zinc-400">
+                  <td colSpan={10} className="py-16 text-center text-zinc-400">
                     <SlidersHorizontal className="w-8 h-8 mx-auto text-zinc-300 dark:text-zinc-600 mb-2" />
                     <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">No orders found matching filters</p>
                     <p className="text-xs text-zinc-400 mt-1">Try widening your search terms or clearing status filters.</p>
@@ -456,6 +458,9 @@ export default function AdminOrdersListPage() {
                           hoursRemaining={o.hoursRemaining}
                           isPaused={o.isPaused}
                         />
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <RtoRiskBadge score={o.rtoRiskScore ?? undefined} reasons={o.rtoRiskReasons} />
                       </td>
                       <td className="py-3.5 px-4 font-mono">
                         {o.totalPaise !== undefined ? (

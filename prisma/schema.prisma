@@ -250,12 +250,23 @@ model Order {
   pausedAt               DateTime?
   slaDueAt               DateTime?
   nudgeCount             Int          @default(0)
+  advancePaidPaise       Int          @default(0)
+  balanceDuePaise        Int          @default(0)
+  balanceCollectedAt     DateTime?
+  balanceCollectedBy     String?
+  rtoRiskScore           Int?
+  rtoRiskReasons         String[]     @default([])
+  rtoRiskOverrideReason  String?
+  rtoRiskOverriddenBy    String?
+  isPrepaidOnly          Boolean      @default(false)
   createdAt              DateTime     @default(now())
   updatedAt              DateTime     @updatedAt
 
-  user   User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
-  items  OrderItem[]
-  events OrderEvent[]
+  user      User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items     OrderItem[]
+  events    OrderEvent[]
+  shipments Shipment[]
+  refunds   Refund[]
 
   @@index([orderNumber])
   @@index([userId])
@@ -679,4 +690,67 @@ model AppSetting {
   createdAt DateTime @default(now())
 
   @@index([key])
+}
+
+model PinStats {
+  pincode        String   @id
+  deliveredCount Int      @default(0)
+  rtoCount       Int      @default(0)
+  totalOrders    Int      @default(0)
+  rtoRate        Float    @default(0.0)
+  updatedAt      DateTime @updatedAt
+
+  @@index([pincode])
+  @@index([rtoRate])
+}
+
+model Shipment {
+  id                    String   @id @default(uuid())
+  orderId               String
+  shipmentNumber        String   @unique
+  recipientName         String
+  recipientPhone        String
+  addressLine           String
+  city                  String
+  state                 String
+  pincode               String
+  items                 Json
+  awb                   String?
+  courier               String?  @default("MANUAL")
+  labelUrl              String?
+  status                String   @default("CREATED") // CREATED, MANIFESTED, DISPATCHED, IN_TRANSIT, OUT_FOR_DELIVERY, DELIVERED, RTO, CANCELLED
+  trackingHistory       Json?
+  collectCodAmountPaise Int      @default(0)
+  weightGrams           Int      @default(500)
+  metadata              Json?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([shipmentNumber])
+  @@index([awb])
+  @@index([status])
+}
+
+model Refund {
+  id             String   @id @default(uuid())
+  orderId        String
+  refundNumber   String   @unique
+  amountPaise    Int
+  reason         String
+  type           String   // RAZORPAY, MANUAL
+  reference      String?  // rzp_refund_id or bank UTR
+  status         String   @default("PROCESSED")
+  processedBy    String
+  processedRole  String
+  idempotencyKey String   @unique
+  createdAt      DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([refundNumber])
+  @@index([idempotencyKey])
 }

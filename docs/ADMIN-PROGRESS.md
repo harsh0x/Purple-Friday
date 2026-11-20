@@ -221,3 +221,132 @@
 - `purple-friday/src/__tests__/coupons.test.ts` (7 tests)
 - `purple-friday/src/__tests__/storefront-price-invariance.test.ts` (43 tests)
 - `purple-friday/src/__tests__/admin-responsive.test.ts` (4 tests)
+
+---
+
+## Part 4 Progress (Payments, Risk & Shipping for India) - COMPLETED
+
+- [x] **Step 1: Partial Cash on Delivery (COD)**
+  - AppSettings configured in `src/lib/admin/app-settings.ts`: COD enabled, advance percentage (default 25%, constrained to 20-30%), maximum COD order value (Rs 15,000 / 1,500,000 paise).
+  - Pure payment service in `src/server/payments/cod-service.ts`:
+    - `validateCodEligibility()`: server-side evaluation of COD rules, maximum order value, and RTO risk.
+    - `processCodAdvancePayment()`: idempotent handling of Razorpay advance webhook event, transitioning payment status to `ADVANCE_PAID`.
+    - `markCodBalanceCollected()`: audited staff action to record courier cash settlement with date and actor tracking.
+  - State machine production gate in `src/server/orders/state-machine.ts`: prevents moving to `IN_PRINTING` if payment is COD and advance has not been paid (`ADVANCE_PAID` or `PAID`).
+  - Production jobsheet generator `src/server/production/jobsheet-generator.ts`: draws prominent `"PAYMENT COD: COLLECT Rs X on delivery"` banner on thermal jobsheet.
+  - Checkout & payment verification routes updated in `src/app/api/orders/route.ts` and `src/app/api/payments/verify/route.ts`.
+  - API endpoint `/api/admin/orders/[orderNumber]/collect-balance/route.ts`.
+  - Vitest test suite: `src/__tests__/partial-cod.test.ts` (10 tests passing 100%).
+
+- [x] **Step 2: RTO Risk Score (Pure Tested Module)**
+  - Pure scoring engine in `src/server/risk/rto.ts`:
+    - Six calibrated rules: historic PIN code RTO rate > threshold (+30), previous phone RTO (+35), multiple names used on same phone/address (+20), suspicious/incomplete address missing house/street/digits or keyboard mash (+25), state mismatch on COD (+15), high COD first-timer (+20).
+    - Threshold evaluation (50): scores >= 50 automatically disable COD and return "Prepaid only for this address" with a polite customer message.
+    - Staff manual override with mandatory written justification and full audit trail (`overrideOrderRtoRisk()`).
+  - Persistent & in-memory `PinStats` table tracking total orders, delivered count, RTO count, and live RTO percentage.
+  - UI badge component `src/components/admin/RtoRiskBadge.tsx`: color-coded risk points (Low green, Moderate amber, High rose) with hover explanation of triggered risk rules and override badges.
+  - Integrated into orders table (`/admin/orders`) and order details (`/admin/orders/[orderNumber]`).
+  - Vitest test suite: `src/__tests__/rto-risk.test.ts` (20 tests passing 100%).
+
+- [x] **Step 3: Shipping Adapters & Label Generation**
+  - Shipping provider architecture in `src/server/shipping/shipping-provider.ts` and `src/server/shipping/providers.ts`:
+    - `ShippingProvider` standard interface: `createShipment`, `cancelShipment`, `track`, `getLabel`.
+    - `ManualProvider`: staff specifies courier name and AWB; always available.
+    - `ShiprocketProvider`: verified against official v2 endpoints (`/auth/login`, `/orders/create/adhoc`, `/courier/assign/awb`, `/generate/label`, `/courier/track/awb`, `/orders/cancel`). Safely degrades to ManualProvider when credentials are not configured.
+  - 4x6" Thermal Shipping Label Generator `src/server/shipping/label-generator.ts` with `pdf-lib`:
+    - Standard 288x432 pt thermal label format.
+    - Includes barcode representation, sender & recipient details, destination PIN, and prominent COD collection box.
+  - Webhook route `/api/webhooks/shipping/route.ts`: verifies webhook secret, updates shipment tracking timeline, and triggers `syncParentOrderStatus()` (`DELIVERED` or `RTO`), automatically updating `PinStats`.
+  - Label download endpoint `/api/admin/shipments/[shipmentNumber]/label/route.ts`.
+
+- [x] **Step 4: Split & Multi-Address CSV Dispatch Engine**
+  - Bulk multi-address dispatch in `src/server/shipping/shipping-service.ts`:
+    - `validateSplitDispatchCsv()`: enforces 500 row maximum limit, validates Indian 10-digit mobile (`^[6-9][0-9]{9}$`) and 6-digit PIN (`^[1-9][0-9]{5}$`), validates address length and positive integer quantities.
+    - Quantity matching: verifies sum of row quantities matches exact order item count.
+    - `generateErrorCsv()`: generates downloadable error CSV appending specific validation error reasons per row.
+    - `executeSplitDispatch()`: manifests shipments row-by-row with progress reporting. Idempotent and retry-safe: deterministic shipment numbers (`${orderNumber}-SH${idx}`) ensure failed runs can be retried without duplicating already manifested shipments.
+  - Synchronizes parent order status to `DISPATCHED` once all destination shipments are manifested.
+  - API endpoints `/api/admin/dispatch/template`, `/api/admin/orders/[orderNumber]/split-preview`, `/api/admin/orders/[orderNumber]/split-dispatch`, and `/api/admin/orders/[orderNumber]/shipments`.
+
+- [x] **Step 5: Dispatch Queue, Shipments Tracking, Cancellation Gate & Refunds**
+  - Admin UI `/admin/dispatch`:
+    - Filtered queue of orders in `QC_PASSED` status awaiting fulfillment.
+    - Single shipment creation modal with courier selection and AWB input.
+    - Multi-address CSV split dispatch modal with live error preview, quantity sum validation, and error CSV download.
+  - Admin UI `/admin/shipments`:
+    - Live shipment tracking ledger with carrier badges, tracking history modal, and 4x6" PDF thermal label triggers.
+  - Admin UI `/admin/payments`:
+    - Financial ledger with KPI cards (Gross Captured, COD Advance Paid, Pending COD Balance, Total Refunded).
+    - Modal for staff to mark COD balance as collected upon courier settlement.
+    - Refund modal with reason and amount validation.
+  - Storefront customer self-serve cancellation endpoint `/api/orders/[orderNumber]/cancel/route.ts`:
+    - Enforces 2-hour cancellation window (AppSettings) and blocks cancellation once order reaches `IN_PRINTING`.
+  - Pure refund engine `src/server/refunds/refund-service.ts`:
+    - Role limit enforcement: Support Agents restricted to limit (default Rs 5,000 / 500,000 paise); Super Admin authorization required for larger amounts.
+    - Idempotency key tracking: prevents duplicate gateway charges or duplicate refund records.
+    - Partial refund support with remaining balance tracking.
+    - Automatic inventory blank release on cancelled order refund.
+  - API endpoints `/api/admin/orders/[orderNumber]/refund` and `/api/admin/orders/[orderNumber]/override-risk`.
+  - Vitest test suites: `src/__tests__/shipping-and-split.test.ts` (9 tests) and `src/__tests__/refunds.test.ts` (5 tests).
+  - Playwright E2E test suite: `e2e/admin-payments-shipping.spec.ts` (6 tests).
+
+- [x] **Step 6: Verification, Responsive Audit & Completion**
+  - Navigation Registry `src/lib/admin/navigation.ts`: revealed `Dispatch` (`/admin/dispatch`), `Shipments` (`/admin/shipments`), and `Payments` (`/admin/payments`) under Operations, while keeping future parts hidden.
+  - Updated responsive navigation test `src/__tests__/admin-responsive.test.ts` covering Parts 1, 2, 3, and 4 routes across 375px, 768px, and 1440px viewports.
+  - Verification results:
+    - Zero TypeScript errors (`tsc --noEmit`).
+    - Zero ESLint warnings or errors (`next lint`).
+    - 35 Vitest test suites, 306 tests passing 100%.
+    - Production build: 92 routes compiled cleanly with 0 errors.
+    - Storefront bundle invariance: `/` route remains exactly 28 kB (216 kB first load JS) and shared JS remains 106 kB.
+
+---
+
+## Part 4 Files Created & Modified
+
+### Shipping, Risk, Payments & Refunds Core:
+- `purple-friday/prisma/schema.prisma`
+- `purple-friday/src/lib/admin/app-settings.ts`
+- `purple-friday/src/server/payments/cod-service.ts`
+- `purple-friday/src/server/risk/rto.ts`
+- `purple-friday/src/server/shipping/shipping-provider.ts`
+- `purple-friday/src/server/shipping/providers.ts`
+- `purple-friday/src/server/shipping/shipping-service.ts`
+- `purple-friday/src/server/shipping/label-generator.ts`
+- `purple-friday/src/server/refunds/refund-service.ts`
+- `purple-friday/src/server/orders/state-machine.ts`
+- `purple-friday/src/server/orders/orders-service.ts`
+- `purple-friday/src/server/production/jobsheet-generator.ts`
+- `purple-friday/src/lib/orders.ts`
+- `purple-friday/src/lib/admin/navigation.ts`
+
+### UI Pages & Components:
+- `purple-friday/src/app/admin/dispatch/page.tsx`
+- `purple-friday/src/app/admin/shipments/page.tsx`
+- `purple-friday/src/app/admin/payments/page.tsx`
+- `purple-friday/src/app/admin/orders/page.tsx`
+- `purple-friday/src/app/admin/orders/[orderNumber]/page.tsx`
+- `purple-friday/src/components/admin/RtoRiskBadge.tsx`
+
+### Admin & Public API Endpoints:
+- `purple-friday/src/app/api/admin/dispatch/template/route.ts`
+- `purple-friday/src/app/api/admin/orders/[orderNumber]/collect-balance/route.ts`
+- `purple-friday/src/app/api/admin/orders/[orderNumber]/override-risk/route.ts`
+- `purple-friday/src/app/api/admin/orders/[orderNumber]/refund/route.ts`
+- `purple-friday/src/app/api/admin/orders/[orderNumber]/shipments/route.ts`
+- `purple-friday/src/app/api/admin/orders/[orderNumber]/split-preview/route.ts`
+- `purple-friday/src/app/api/admin/orders/[orderNumber]/split-dispatch/route.ts`
+- `purple-friday/src/app/api/admin/payments/route.ts`
+- `purple-friday/src/app/api/admin/shipments/route.ts`
+- `purple-friday/src/app/api/admin/shipments/[shipmentNumber]/label/route.ts`
+- `purple-friday/src/app/api/orders/[orderNumber]/cancel/route.ts`
+- `purple-friday/src/app/api/payments/verify/route.ts`
+- `purple-friday/src/app/api/webhooks/shipping/route.ts`
+
+### Verification & Test Suites:
+- `purple-friday/src/__tests__/partial-cod.test.ts` (10 tests)
+- `purple-friday/src/__tests__/rto-risk.test.ts` (20 tests)
+- `purple-friday/src/__tests__/shipping-and-split.test.ts` (9 tests)
+- `purple-friday/src/__tests__/refunds.test.ts` (5 tests)
+- `purple-friday/src/__tests__/admin-responsive.test.ts` (4 tests)
+- `purple-friday/e2e/admin-payments-shipping.spec.ts` (6 tests)

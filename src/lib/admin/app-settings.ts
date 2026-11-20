@@ -22,9 +22,223 @@ export const DEFAULT_STORE_DETAILS: StoreDetails = {
   currency: "INR (₹, paise)",
 };
 
+export interface CodSettings {
+  enabled: boolean;
+  advancePercent: number; // default 25, allowed 20 to 30
+  maxCodValuePaise: number; // default 1500000 (Rs 15,000)
+}
+
+export const DEFAULT_COD_SETTINGS: CodSettings = {
+  enabled: true,
+  advancePercent: 25,
+  maxCodValuePaise: 1500000, // Rs 15,000 in integer paise
+};
+
+export interface RtoRiskSettings {
+  threshold: number; // default 50
+  pinRtoWeight: number; // default 30
+  pinRtoRateThreshold: number; // default 0.20 (20%)
+  phoneRtoWeight: number; // default 35
+  multiNameWeight: number; // default 20
+  suspiciousAddressWeight: number; // default 25
+  stateMismatchWeight: number; // default 15
+  highCodWeight: number; // default 20
+  highCodThresholdPaise: number; // default 500000 (Rs 5,000)
+}
+
+export const DEFAULT_RTO_RISK_SETTINGS: RtoRiskSettings = {
+  threshold: 50,
+  pinRtoWeight: 30,
+  pinRtoRateThreshold: 0.20,
+  phoneRtoWeight: 35,
+  multiNameWeight: 20,
+  suspiciousAddressWeight: 25,
+  stateMismatchWeight: 15,
+  highCodWeight: 20,
+  highCodThresholdPaise: 500000,
+};
+
+export interface SupportRefundSettings {
+  supportAgentRefundLimitPaise: number; // default Rs 5,000 (500000 paise)
+}
+
+export const DEFAULT_SUPPORT_REFUND_SETTINGS: SupportRefundSettings = {
+  supportAgentRefundLimitPaise: 500000,
+};
+
 // Memory fallback store for AppSettings
 const SETTINGS_MEMORY_STORE = new Map<string, unknown>();
 SETTINGS_MEMORY_STORE.set("store_details", DEFAULT_STORE_DETAILS);
+SETTINGS_MEMORY_STORE.set("cod_settings", DEFAULT_COD_SETTINGS);
+SETTINGS_MEMORY_STORE.set("rto_risk_settings", DEFAULT_RTO_RISK_SETTINGS);
+SETTINGS_MEMORY_STORE.set("support_refund_settings", DEFAULT_SUPPORT_REFUND_SETTINGS);
+
+export async function getCodSettings(): Promise<CodSettings> {
+  try {
+    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
+      const setting = await prisma.appSetting.findUnique({
+        where: { key: "cod_settings" },
+      });
+      if (setting && setting.value) {
+        const val = setting.value as Partial<CodSettings>;
+        return {
+          enabled: val.enabled ?? DEFAULT_COD_SETTINGS.enabled,
+          advancePercent: Math.min(30, Math.max(20, Number(val.advancePercent) || DEFAULT_COD_SETTINGS.advancePercent)),
+          maxCodValuePaise: Number(val.maxCodValuePaise) || DEFAULT_COD_SETTINGS.maxCodValuePaise,
+        };
+      }
+    }
+  } catch {
+    // Memory fallback
+  }
+  return (SETTINGS_MEMORY_STORE.get("cod_settings") as CodSettings) || DEFAULT_COD_SETTINGS;
+}
+
+export async function updateCodSettings(
+  updates: Partial<CodSettings>,
+  actor: string,
+  actorRole: string
+): Promise<CodSettings> {
+  const current = await getCodSettings();
+  const next: CodSettings = {
+    enabled: updates.enabled ?? current.enabled,
+    advancePercent: Math.min(30, Math.max(20, Number(updates.advancePercent ?? current.advancePercent))),
+    maxCodValuePaise: Math.max(0, Number(updates.maxCodValuePaise ?? current.maxCodValuePaise)),
+  };
+
+  try {
+    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
+      await prisma.appSetting.upsert({
+        where: { key: "cod_settings" },
+        update: { value: next as unknown as Prisma.InputJsonValue, updatedBy: actor },
+        create: { key: "cod_settings", value: next as unknown as Prisma.InputJsonValue, updatedBy: actor },
+      });
+    }
+  } catch {
+    // Memory fallback
+  }
+
+  SETTINGS_MEMORY_STORE.set("cod_settings", next);
+
+  await writeAudit({
+    actor,
+    actorRole,
+    action: "settings.update_cod_settings",
+    entityType: "APP_SETTING",
+    entityId: "cod_settings",
+    before: current as unknown as Record<string, unknown>,
+    after: next as unknown as Record<string, unknown>,
+  });
+
+  return next;
+}
+
+export async function getRtoRiskSettings(): Promise<RtoRiskSettings> {
+  try {
+    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
+      const setting = await prisma.appSetting.findUnique({
+        where: { key: "rto_risk_settings" },
+      });
+      if (setting && setting.value) {
+        return { ...DEFAULT_RTO_RISK_SETTINGS, ...(setting.value as Partial<RtoRiskSettings>) };
+      }
+    }
+  } catch {
+    // Memory fallback
+  }
+  return (SETTINGS_MEMORY_STORE.get("rto_risk_settings") as RtoRiskSettings) || DEFAULT_RTO_RISK_SETTINGS;
+}
+
+export async function updateRtoRiskSettings(
+  updates: Partial<RtoRiskSettings>,
+  actor: string,
+  actorRole: string
+): Promise<RtoRiskSettings> {
+  const current = await getRtoRiskSettings();
+  const next: RtoRiskSettings = {
+    ...current,
+    ...updates,
+  };
+
+  try {
+    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
+      await prisma.appSetting.upsert({
+        where: { key: "rto_risk_settings" },
+        update: { value: next as unknown as Prisma.InputJsonValue, updatedBy: actor },
+        create: { key: "rto_risk_settings", value: next as unknown as Prisma.InputJsonValue, updatedBy: actor },
+      });
+    }
+  } catch {
+    // Memory fallback
+  }
+
+  SETTINGS_MEMORY_STORE.set("rto_risk_settings", next);
+
+  await writeAudit({
+    actor,
+    actorRole,
+    action: "settings.update_rto_risk_settings",
+    entityType: "APP_SETTING",
+    entityId: "rto_risk_settings",
+    before: current as unknown as Record<string, unknown>,
+    after: next as unknown as Record<string, unknown>,
+  });
+
+  return next;
+}
+
+export async function getSupportRefundSettings(): Promise<SupportRefundSettings> {
+  try {
+    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
+      const setting = await prisma.appSetting.findUnique({
+        where: { key: "support_refund_settings" },
+      });
+      if (setting && setting.value) {
+        return { ...DEFAULT_SUPPORT_REFUND_SETTINGS, ...(setting.value as Partial<SupportRefundSettings>) };
+      }
+    }
+  } catch {
+    // Memory fallback
+  }
+  return (SETTINGS_MEMORY_STORE.get("support_refund_settings") as SupportRefundSettings) || DEFAULT_SUPPORT_REFUND_SETTINGS;
+}
+
+export async function updateSupportRefundSettings(
+  limitPaise: number,
+  actor: string,
+  actorRole: string
+): Promise<SupportRefundSettings> {
+  const current = await getSupportRefundSettings();
+  const next: SupportRefundSettings = {
+    supportAgentRefundLimitPaise: Math.max(0, limitPaise),
+  };
+
+  try {
+    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
+      await prisma.appSetting.upsert({
+        where: { key: "support_refund_settings" },
+        update: { value: next as unknown as Prisma.InputJsonValue, updatedBy: actor },
+        create: { key: "support_refund_settings", value: next as unknown as Prisma.InputJsonValue, updatedBy: actor },
+      });
+    }
+  } catch {
+    // Memory fallback
+  }
+
+  SETTINGS_MEMORY_STORE.set("support_refund_settings", next);
+
+  await writeAudit({
+    actor,
+    actorRole,
+    action: "settings.update_support_refund_limit",
+    entityType: "APP_SETTING",
+    entityId: "support_refund_settings",
+    before: current as unknown as Record<string, unknown>,
+    after: next as unknown as Record<string, unknown>,
+  });
+
+  return next;
+}
 
 export async function getStoreSettings(): Promise<StoreDetails> {
   try {

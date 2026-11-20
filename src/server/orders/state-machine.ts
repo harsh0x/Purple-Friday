@@ -8,6 +8,7 @@ import {
   consumeBlanksForOrder,
   releaseBlanksForOrder,
 } from "@/server/inventory/inventory-service";
+import { recordDeliveredOrder, recordRtoOrder } from "@/server/risk/rto";
 
 export type OrderStatus =
   | "ORDER_PLACED"
@@ -38,6 +39,8 @@ export interface TransitionContext {
   reason?: string;
   now?: Date | string | number;
   cancellationWindowHours?: number; // From AppSetting (default 2)
+  paymentMethod?: string;
+  paymentStatus?: string;
 }
 
 export interface TransitionResult {
@@ -196,6 +199,16 @@ export function canTransition(
     return { allowed: true };
   }
 
+  // 3b. COD Advance Production Gate
+  if (to === "IN_PRINTING" && context.paymentMethod === "COD") {
+    if (context.paymentStatus !== "ADVANCE_PAID" && context.paymentStatus !== "PAID") {
+      return {
+        allowed: false,
+        reason: "Order cannot move to production until the partial COD advance payment is verified online.",
+      };
+    }
+  }
+
   // 4. Role-Specific Pipeline Capabilities
   switch (role) {
     case "SUPER_ADMIN":
@@ -288,6 +301,15 @@ export interface StoredOrderRecord {
   pausedAt?: string | null;
   slaDueAt?: string | null;
   nudgeCount: number;
+  advancePaidPaise?: number;
+  balanceDuePaise?: number;
+  balanceCollectedAt?: string | null;
+  balanceCollectedBy?: string | null;
+  rtoRiskScore?: number | null;
+  rtoRiskReasons?: string[];
+  rtoRiskOverrideReason?: string | null;
+  rtoRiskOverriddenBy?: string | null;
+  isPrepaidOnly?: boolean;
   createdAt: string;
   updatedAt: string;
   items: Array<{
@@ -395,7 +417,7 @@ export async function getOrderByIdOrNumber(identifier: string): Promise<StoredOr
 
   return (
     ORDER_STORE.get(identifier) ||
-    Array.from(ORDER_STORE.values()).find((o) => o.orderNumber === identifier) ||
+    Array.from(ORDER_STORE.values()).find((o) => o.orderNumber === identifier || o.id === identifier) ||
     null
   );
 }
@@ -440,7 +462,9 @@ export async function changeOrderStatus(
   // 3. Evaluate State Machine Transition
   const check = canTransition(from, to, actor.role, {
     orderCreatedAt: order.createdAt,
-    moneyPaid: order.paymentStatus === "PAID" || order.total > 0,
+    moneyPaid: order.paymentStatus === "PAID" || order.paymentStatus === "ADVANCE_PAID" || order.total > 0,
+    paymentMethod: order.paymentMethod,
+    paymentStatus: order.paymentStatus,
     reason,
     cancellationWindowHours,
   });
@@ -571,6 +595,25 @@ export async function changeOrderStatus(
     }
   } catch {
     // Non-blocking inventory synchronization
+  }
+
+  // 8c. PinStats & RTO History Tracking
+  try {
+    if (to === "DELIVERED" || to === "RTO") {
+      const addr = (order.address as Record<string, unknown>) || {};
+      const pin = (addr.pin as string) || (addr.postalCode as string);
+      const phone = (addr.phone as string) || (addr.customerPhone as string) || "";
+      const name = (addr.customerName as string) || (addr.name as string) || "";
+      if (pin) {
+        if (to === "DELIVERED") {
+          await recordDeliveredOrder(String(pin), String(phone), String(name));
+        } else {
+          await recordRtoOrder(String(pin), String(phone), String(name));
+        }
+      }
+    }
+  } catch {
+    // Non-blocking statistics update
   }
 
   // 9. Persist to Database if active

@@ -3,6 +3,9 @@ import { Prisma } from "@prisma/client";
 import prisma from "./prisma";
 import { calculateCartPricing, CartItemInput } from "./pricing";
 import { reserveBlanksForOrder } from "@/server/inventory/inventory-service";
+import { validateCodEligibility } from "@/server/payments/cod-service";
+import { toPaise, toRupees } from "@/server/pricing/engine";
+import { ORDER_STORE, StoredOrderRecord } from "@/server/orders/state-machine";
 
 export interface StoredOrder {
   id: string;
@@ -50,6 +53,11 @@ export interface StoredOrder {
   razorpayOrderId?: string;
   razorpayPaymentId?: string;
   paymentMethod?: string;
+  paymentStatus?: string;
+  advancePaidPaise?: number;
+  balanceDuePaise?: number;
+  rtoRiskScore?: number;
+  isPrepaidOnly?: boolean;
   couponCode?: string;
   createdAt: string;
   updatedAt: string;
@@ -82,6 +90,10 @@ export interface CreateOrderParams {
     state: string;
     pin: string;
   };
+  billingAddress?: {
+    state?: string;
+  };
+  paymentMethod?: string;
   items: CartItemInput[];
   couponCode?: string;
 }
@@ -89,6 +101,30 @@ export interface CreateOrderParams {
 export async function createOrder(params: CreateOrderParams): Promise<StoredOrder> {
   // 1. Recalculate everything on the server - never trust any client number
   const calculation = await calculateCartPricing(params.items, params.couponCode);
+
+  const totalPaise = toPaise(calculation.total);
+  const isCod = params.paymentMethod === "COD";
+  let advancePaidPaise = 0;
+  let balanceDuePaise = 0;
+
+  if (isCod) {
+    const codCheck = await validateCodEligibility({
+      customerName: params.customerName,
+      customerPhone: params.customerPhone,
+      customerEmail: params.customerEmail,
+      shippingAddress: params.shippingAddress,
+      billingAddress: params.billingAddress,
+      paymentMethod: "COD",
+      totalPaise,
+    });
+
+    if (!codCheck.eligible) {
+      throw new Error(codCheck.reason || "Cash on Delivery is unavailable for this order.");
+    }
+
+    advancePaidPaise = codCheck.advancePaise;
+    balanceDuePaise = codCheck.balanceDuePaise;
+  }
 
   const orderId = `ord_${crypto.randomUUID()}`;
   const orderNumber = generateOrderNumber();
@@ -122,6 +158,10 @@ export async function createOrder(params: CreateOrderParams): Promise<StoredOrde
     gst: calculation.gst,
     total: calculation.total,
     status: "PENDING_PAYMENT",
+    paymentMethod: isCod ? "COD" : "RAZORPAY",
+    paymentStatus: "PENDING",
+    advancePaidPaise,
+    balanceDuePaise,
     razorpayOrderId,
     couponCode: params.couponCode,
     createdAt: new Date().toISOString(),
@@ -130,6 +170,58 @@ export async function createOrder(params: CreateOrderParams): Promise<StoredOrde
 
   ORDER_REGISTRY.set(orderId, orderRecord);
   ORDER_REGISTRY.set(orderNumber, orderRecord);
+
+  // Sync to ORDER_STORE
+  const stateRecord: StoredOrderRecord = {
+    id: orderId,
+    orderNumber,
+    userId: params.userId,
+    status: "ORDER_PLACED",
+    subtotal: toPaise(calculation.subtotal),
+    discount: toPaise(calculation.discount),
+    gst: toPaise(calculation.gst),
+    shipping: toPaise(calculation.shipping),
+    total: totalPaise,
+    paymentMethod: isCod ? "COD" : "RAZORPAY",
+    paymentStatus: "PENDING",
+    advancePaidPaise,
+    balanceDuePaise,
+    address: {
+      ...params.shippingAddress,
+      customerName: params.customerName,
+      customerEmail: params.customerEmail,
+      customerPhone: params.customerPhone,
+    },
+    gstin: params.gstin,
+    version: 1,
+    totalPausedDurationMs: 0,
+    nudgeCount: 0,
+    createdAt: orderRecord.createdAt,
+    updatedAt: orderRecord.updatedAt,
+    items: calculation.items.map((it, idx) => ({
+      id: `item_${orderId}_${idx}`,
+      productId: it.productId,
+      qty: it.qty,
+      unitPrice: toPaise(it.unitPrice),
+      options: it.options || {},
+    })),
+    events: [
+      {
+        id: `evt_${Date.now()}`,
+        type: "ORDER_CREATED",
+        status: "ORDER_PLACED",
+        actor: params.customerEmail,
+        actorRole: "CUSTOMER",
+        message: isCod
+          ? `Order placed via Partial COD. Advance due online: Rs ${toRupees(advancePaidPaise)}, Balance due on delivery: Rs ${toRupees(balanceDuePaise)}.`
+          : `Order placed via Prepaid online. Total payable: Rs ${calculation.total}.`,
+        createdAt: orderRecord.createdAt,
+      },
+    ],
+  };
+
+  ORDER_STORE.set(orderId, stateRecord);
+  ORDER_STORE.set(orderNumber, stateRecord);
 
   // Sync to Prisma DB if active
   try {

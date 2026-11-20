@@ -28,6 +28,11 @@ describe("Admin Shell Architecture & Responsive Navigation", () => {
         expect(hrefs).toContain("/admin/kits");
         expect(hrefs).toContain("/admin/coupons");
 
+        // Part 4 routes
+        expect(hrefs).toContain("/admin/dispatch");
+        expect(hrefs).toContain("/admin/shipments");
+        expect(hrefs).toContain("/admin/payments");
+
         // Strictly ensure no unbuilt / future part routes are exposed in the navigation registry
         expect(hrefs).not.toContain("/admin/reviews");
         expect(hrefs).not.toContain("/admin/customers");

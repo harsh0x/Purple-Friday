@@ -180,8 +180,41 @@ export async function generateProductionJobSheetPdf(orderNumber: string): Promis
   page.drawText(`Total Batch Run:     ${totalQty} units`, { x: 50, y, size: 9, font: fontBold });
   y -= 14;
   page.drawText(`Current Pipeline:    ${order.status}`, { x: 50, y, size: 9, font: fontRegular });
+  y -= 16;
 
-  y -= 25;
+  // COD & Delivery Collection Notice
+  const balanceDue = order.balanceDuePaise || 0;
+  if ((order.paymentMethod === "COD" || balanceDue > 0) && order.paymentStatus !== "PAID") {
+    const dueRupees = Math.round(balanceDue > 0 ? balanceDue / 100 : order.total * 0.75);
+    page.drawRectangle({
+      x: 50,
+      y: y - 14,
+      width: 400,
+      height: 18,
+      color: rgb(1, 0.94, 0.88),
+      borderColor: rgb(0.9, 0.4, 0.1),
+      borderWidth: 1,
+    });
+    page.drawText(`PAYMENT COD: COLLECT Rs ${dueRupees} on delivery`, {
+      x: 56,
+      y: y - 10,
+      size: 9.5,
+      font: fontBold,
+      color: rgb(0.85, 0.25, 0),
+    });
+    y -= 22;
+  } else {
+    page.drawText("Payment Status:      PREPAID (Full payment verified online)", {
+      x: 50,
+      y,
+      size: 9,
+      font: fontRegular,
+      color: rgb(0.1, 0.55, 0.2),
+    });
+    y -= 14;
+  }
+
+  y -= 11;
 
   // Section 2: Production & Print Technique Details
   page.drawText("2. PRINTING TECHNIQUE & ZONE SPECIFICATIONS", {

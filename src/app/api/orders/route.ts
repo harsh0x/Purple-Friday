@@ -30,6 +30,12 @@ const orderInputSchema = z.object({
       .string()
       .regex(/^[1-9][0-9]{5}$/, "Please enter a valid 6-digit Indian PIN code."),
   }),
+  billingAddress: z
+    .object({
+      state: z.string().optional(),
+    })
+    .optional(),
+  paymentMethod: z.enum(["RAZORPAY", "COD", "PREPAID"]).default("RAZORPAY").optional(),
   items: z.array(
     z.object({
       productId: z.string().min(1),
@@ -92,13 +98,21 @@ export async function POST(req: NextRequest) {
       !process.env.RAZORPAY_KEY_ID.includes("dummy")
     );
 
+    const chargeAmountPaise =
+      order.paymentMethod === "COD"
+        ? (order.advancePaidPaise || Math.round(order.total * 25))
+        : order.total * 100;
+
     return NextResponse.json({
       success: true,
       orderId: order.id,
       orderNumber: order.orderNumber,
       razorpayOrderId: order.razorpayOrderId,
-      amount: order.total * 100, // In paise
+      amount: chargeAmountPaise, // Online charge amount in paise (advance for COD, full for prepaid)
       currency: "INR",
+      paymentMethod: order.paymentMethod,
+      advancePaidPaise: order.advancePaidPaise,
+      balanceDuePaise: order.balanceDuePaise,
       keyId: isRazorpayConfigured ? process.env.RAZORPAY_KEY_ID : "rzp_test_mock_purple_friday",
       isMock: !isRazorpayConfigured,
     });

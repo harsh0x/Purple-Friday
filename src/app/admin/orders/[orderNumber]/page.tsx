@@ -24,6 +24,7 @@ import {
 import { toast } from "sonner";
 import { OrderStatusBadge } from "@/components/admin/OrderStatusBadge";
 import { OrderSlaBadge } from "@/components/admin/OrderSlaBadge";
+import { RtoRiskBadge } from "@/components/admin/RtoRiskBadge";
 import { MaskedOrderDetail } from "@/server/orders/orders-service";
 import { OrderStatus } from "@/server/orders/state-machine";
 import { ArtworkIngestionCard } from "@/components/admin/ArtworkIngestionCard";
@@ -252,6 +253,11 @@ export default function AdminOrderDetailPage({
                     : null
                 }
                 isPaused={order.status === "MOCKUP_SENT" || order.status === "REVISION_REQUESTED"}
+              />
+              <RtoRiskBadge
+                score={order.rtoRiskScore ?? undefined}
+                reasons={order.rtoRiskReasons}
+                overridden={Boolean(order.rtoRiskOverrideReason)}
               />
             </div>
             <p className="text-xs text-[#8A829E] mt-1 font-mono">
@@ -673,6 +679,33 @@ export default function AdminOrderDetailPage({
             </div>
           </div>
 
+          {/* RTO Risk Assessment Card */}
+          <div className="p-5 rounded-2xl bg-white/80 dark:bg-white/5 border border-zinc-200/80 dark:border-white/10 backdrop-blur-md shadow-sm space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-zinc-100 dark:border-white/5">
+              <span className="text-sm font-bold text-[#15101F] dark:text-[#F5F0E8]">RTO Risk Profile</span>
+              <RtoRiskBadge
+                score={order.rtoRiskScore ?? undefined}
+                reasons={order.rtoRiskReasons}
+                overridden={Boolean(order.rtoRiskOverrideReason)}
+              />
+            </div>
+            {order.rtoRiskReasons && order.rtoRiskReasons.length > 0 ? (
+              <ul className="text-xs space-y-1 text-zinc-600 dark:text-zinc-400 list-disc pl-4">
+                {order.rtoRiskReasons.map((r: string, idx: number) => (
+                  <li key={idx}>{r}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-zinc-400">Zero risk factors detected. Address and customer profile are clean.</p>
+            )}
+
+            {order.rtoRiskOverrideReason && (
+              <div className="p-2.5 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-700 dark:text-violet-300 text-xs">
+                <strong>Staff Override:</strong> {order.rtoRiskOverrideReason}
+              </div>
+            )}
+          </div>
+
           {/* Payment & Financial Summary (STRICTLY HIDDEN for GRAPHIC_DESIGNER & FACTORY_MANAGER) */}
           {!isFinancialMasked ? (
             <div className="p-5 rounded-2xl bg-white/80 dark:bg-white/5 border border-zinc-200/80 dark:border-white/10 backdrop-blur-md shadow-sm space-y-3 font-mono text-xs">
@@ -709,6 +742,53 @@ export default function AdminOrderDetailPage({
                 <div>Method: {order.paymentMethod}</div>
                 <div>Status: <span className="text-emerald-600 font-semibold uppercase">{order.paymentStatus}</span></div>
               </div>
+
+              {/* Partial COD Balance Due Box */}
+              {(order.paymentMethod === "COD" || (order.balanceDuePaise || 0) > 0) && (
+                <div className="pt-2 border-t border-zinc-200 dark:border-white/10 space-y-2">
+                  <div className="flex justify-between text-xs">
+                    <span>Advance Online Paid</span>
+                    <span className="text-emerald-600 font-semibold">
+                      {formatINR(order.advancePaidPaise || 0)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs font-bold text-amber-700 dark:text-amber-400">
+                    <span>Balance Due on Delivery</span>
+                    <span>{formatINR(order.balanceDuePaise || 0)}</span>
+                  </div>
+
+                  {(order.balanceDuePaise || 0) > 0 && order.paymentStatus !== "PAID" && (
+                    <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-200 space-y-1.5">
+                      <div className="font-bold text-[11px]">COLLECT Rs {Math.round((order.balanceDuePaise || 0) / 100)} ON DELIVERY</div>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const res = await fetch(`/api/admin/orders/${order.orderNumber}/collect-balance`, {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ notes: "Marked collected from order details" }),
+                            });
+                            if (res.ok) {
+                              toast.success("Balance marked as collected!");
+                              fetchOrderDetail();
+                            } else {
+                              const err = await res.json();
+                              toast.error(err.error || "Failed to mark collected");
+                            }
+                          } catch (err: unknown) {
+                            const msg = err instanceof Error ? err.message : "Failed to collect balance";
+                            toast.error(msg);
+                          }
+                        }}
+                        className="w-full py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors shadow-sm"
+                      >
+                        Mark Balance Collected
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             <div className="p-5 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-center space-y-1">

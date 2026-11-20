@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { verifyRazorpaySignature } from "@/lib/security/payments";
-import { markOrderPaid } from "@/lib/orders";
+import { markOrderPaid, getOrderById } from "@/lib/orders";
+import { processCodAdvancePayment } from "@/server/payments/cod-service";
+import { toPaise } from "@/server/pricing/engine";
 
 const verifyPaymentSchema = z.object({
   orderId: z.string().min(1),
@@ -47,23 +49,33 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Update order status to PAID
-    const order = await markOrderPaid(orderId, paymentId);
-    if (!order) {
+    const existingOrder = getOrderById(orderId);
+    if (!existingOrder) {
       return NextResponse.json(
         { success: false, error: "Order not found." },
         { status: 404 }
       );
     }
 
-    // Confirmation email (Resend / console fallback)
-    console.log(
-      `[ORDER CONFIRMATION EMAIL] Sent to ${order.customerEmail} for ${order.orderNumber} (₹${order.total})`
-    );
+    if (existingOrder.paymentMethod === "COD") {
+      const advancePaise = existingOrder.advancePaidPaise || Math.round(toPaise(existingOrder.total) * 0.25);
+      await processCodAdvancePayment({
+        orderNumber: existingOrder.orderNumber,
+        paymentId,
+        amountPaise: advancePaise,
+      });
+      existingOrder.status = "PAID";
+      existingOrder.paymentStatus = "ADVANCE_PAID";
+      existingOrder.razorpayPaymentId = paymentId;
+    } else {
+      await markOrderPaid(orderId, paymentId);
+    }
 
     return NextResponse.json({
       success: true,
-      orderNumber: order.orderNumber,
+      orderNumber: existingOrder.orderNumber,
+      paymentMethod: existingOrder.paymentMethod,
+      paymentStatus: existingOrder.paymentStatus,
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Payment verification failed";

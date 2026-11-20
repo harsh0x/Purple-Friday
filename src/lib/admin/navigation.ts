@@ -1,5 +1,8 @@
 import {
   LayoutDashboard,
+  ShoppingBag,
+  Palette,
+  Factory,
   Users,
   ScrollText,
   Settings,
@@ -38,6 +41,33 @@ export const ADMIN_NAVIGATION: NavSection[] = [
         href: "/admin",
         icon: LayoutDashboard,
         permission: "admin:view_overview",
+      },
+    ],
+  },
+  {
+    id: "pipeline",
+    label: "Operations",
+    items: [
+      {
+        id: "pipeline-orders",
+        label: "Orders",
+        href: "/admin/orders",
+        icon: ShoppingBag,
+        permission: "admin:view_orders",
+      },
+      {
+        id: "pipeline-designs",
+        label: "Design Approvals",
+        href: "/admin/designs",
+        icon: Palette,
+        permission: "admin:manage_proofs",
+      },
+      {
+        id: "pipeline-production",
+        label: "Production",
+        href: "/admin/production",
+        icon: Factory,
+        permission: "admin:manage_production",
       },
     ],
   },

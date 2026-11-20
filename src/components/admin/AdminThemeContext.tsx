@@ -67,41 +67,40 @@ export function AdminThemeProvider({ children }: { children: React.ReactNode }) 
   };
 
   return (
-    <AdminThemeContext.Provider
-      value={{
-        theme,
-        toggleTheme,
-        setTheme,
-        transparentSidebar,
-        setTransparentSidebar,
-        toggleTransparentSidebar,
-      }}
-    >
-      <div
-        data-admin-root="true"
-        data-theme={theme}
-        data-transparent-sidebar={transparentSidebar ? "true" : "false"}
-        className={`admin-portal min-h-screen ${
-          theme === "dark" ? "admin-dark" : "admin-light"
-        } transition-colors duration-200`}
+      <AdminThemeContext.Provider
+        value={{
+          theme,
+          toggleTheme,
+          setTheme,
+          transparentSidebar,
+          setTransparentSidebar,
+          toggleTransparentSidebar,
+        }}
       >
-        {children}
-      </div>
-    </AdminThemeContext.Provider>
-  );
+        <div
+          data-admin-root="true"
+          data-theme={theme}
+          data-transparent-sidebar={transparentSidebar ? "true" : "false"}
+          className={`admin-portal min-h-screen ${theme === "dark" ? "admin-dark" : "admin-light"
+            } transition-colors duration-200`}
+        >
+          {children}
+        </div>
+      </AdminThemeContext.Provider>
+      );
 }
 
 export function useAdminTheme(): AdminThemeContextType {
   const context = useContext(AdminThemeContext);
-  if (!context) {
-    return {
-      theme: "dark",
-      toggleTheme: () => {},
-      setTheme: () => {},
+      if (!context) {
+      return {
+        theme: "dark",
+      toggleTheme: () => { },
+      setTheme: () => { },
       transparentSidebar: true,
-      setTransparentSidebar: () => {},
-      toggleTransparentSidebar: () => {},
+      setTransparentSidebar: () => { },
+      toggleTransparentSidebar: () => { },
     };
   }
-  return context;
+      return context;
 }

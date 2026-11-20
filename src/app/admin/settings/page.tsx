@@ -165,12 +165,12 @@ export default function AdminSettingsPage() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                          {/* Transparent Sidebar Mode Toggle */}
+                          {/* Liquid Glass Sidebar Mode Toggle */}
                           <div className="p-5 rounded-2xl bg-[#FAF7F2] border border-[#15101F]/10 flex flex-col justify-between space-y-4">
                             <div className="flex items-start justify-between gap-3">
                               <div>
                                 <div className="flex items-center gap-2">
-                                  <span className="text-xs font-bold text-[#15101F]">Transparent Sidebar Mode</span>
+                                  <span className="text-xs font-bold text-[#15101F]">Liquid Glass Sidebar Mode</span>
                                   <span
                                     className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
                                       transparentSidebar
@@ -178,11 +178,11 @@ export default function AdminSettingsPage() {
                                         : "bg-zinc-200 text-zinc-700 border border-zinc-300"
                                     }`}
                                   >
-                                    {transparentSidebar ? "ON" : "OFF"}
+                                    {transparentSidebar ? "LIQUID GLASS (ON)" : "SOLID OPAQUE (OFF)"}
                                   </span>
                                 </div>
                                 <p className="text-[11px] text-[#15101F]/70 mt-1 font-sans leading-relaxed">
-                                  Subtle translucent dark/frosted surface with backdrop blur and delicate borders matching the atelier aesthetic.
+                                  Refractive dark violet-tinted glass layers with 22px blur, 165% saturation boost, and specular rim highlights over ambient canvas depth.
                                 </p>
                               </div>
 
@@ -195,7 +195,7 @@ export default function AdminSettingsPage() {
                                 className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#6A2CFF] focus:ring-offset-2 ${
                                   transparentSidebar ? "bg-[#7C3AED]" : "bg-zinc-300"
                                 }`}
-                                aria-label="Toggle Transparent Sidebar"
+                                aria-label="Toggle Liquid Glass Sidebar"
                               >
                                 <span
                                   className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
@@ -208,7 +208,7 @@ export default function AdminSettingsPage() {
                             <div className="text-[10px] font-mono text-[#15101F]/50 pt-2 border-t border-[#15101F]/5 flex items-center justify-between">
                               <span>Storage: localStorage (pf_admin_transparent_sidebar)</span>
                               <span className="font-semibold text-[#7C3AED]">
-                                {transparentSidebar ? "Frosted Glass Active" : "Solid Opaque Active"}
+                                {transparentSidebar ? "Refractive Liquid Glass Active" : "Solid Opaque Active"}
                               </span>
                             </div>
                           </div>

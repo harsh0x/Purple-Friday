@@ -119,7 +119,7 @@ export default function RootLayout({
             <StorefrontShell>{children}</StorefrontShell>
           </LenisProvider>
         </AuthProvider>
-    </body>
+      </body>
     </html >
   );
 }

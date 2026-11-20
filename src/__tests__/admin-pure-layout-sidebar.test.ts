@@ -67,21 +67,15 @@ describe("Admin Pure Layout & Themed Sidebar Features", () => {
     expect(shouldDisableSmoothScroll("/product/test-slug")).toBe(false);
   });
 
-  it("4. Transparent sidebar mode class resolution produces expected frosted glass utility tokens", () => {
+  it("4. Liquid glass vs solid sidebar mode class resolution produces expected dedicated class tokens", () => {
     const getSidebarClasses = (isTransparent: boolean) => {
-      return isTransparent
-        ? "bg-[#110E1B]/60 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.36)]"
-        : "bg-[#110E1B] border border-[#2A253B] shadow-2xl";
+      return isTransparent ? "admin-sidebar-liquid-glass" : "admin-sidebar-solid";
     };
 
-    const transparentClasses = getSidebarClasses(true);
-    expect(transparentClasses).toContain("backdrop-blur-xl");
-    expect(transparentClasses).toContain("border-white/10");
-    expect(transparentClasses).toContain("bg-[#110E1B]/60");
+    const liquidGlassClass = getSidebarClasses(true);
+    expect(liquidGlassClass).toBe("admin-sidebar-liquid-glass");
 
-    const solidClasses = getSidebarClasses(false);
-    expect(solidClasses).toContain("bg-[#110E1B]");
-    expect(solidClasses).toContain("border-[#2A253B]");
-    expect(solidClasses).not.toContain("backdrop-blur-xl");
+    const solidClass = getSidebarClasses(false);
+    expect(solidClass).toBe("admin-sidebar-solid");
   });
 });

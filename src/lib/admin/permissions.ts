@@ -43,9 +43,11 @@ export const ROLE_PERMISSIONS: Record<AllRole, readonly Permission[]> = {
   SUPER_ADMIN: ALL_PERMISSIONS,
   ADMIN: ALL_PERMISSIONS, // Legacy compatibility alias for Super Admin
   GRAPHIC_DESIGNER: [
+    "admin:view_orders",
     "admin:manage_proofs",
   ],
   FACTORY_MANAGER: [
+    "admin:view_orders",
     "admin:manage_production",
     "admin:manage_dispatch",
   ],

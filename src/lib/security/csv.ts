@@ -27,6 +27,8 @@ export function sanitizeCsvCell(value: unknown): string {
   return safeStr;
 }
 
+export const safeCsvCell = sanitizeCsvCell;
+
 /**
  * Exports an array of orders to a safe, sanitized CSV format.
  */

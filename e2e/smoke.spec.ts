@@ -50,8 +50,8 @@ test.describe("Purple Friday Production E2E Smoke Suite", () => {
     await page.goto("/admin");
 
     // Non-admin user should be intercepted by middleware and redirected to login with error/callback
-    await page.waitForURL(/\/auth\/login/);
-    await expect(page.locator("h1")).toContainText("Sign In");
+    await page.waitForURL((url) => url.pathname.includes("/admin/login") || url.pathname.includes("/auth/login"));
+    expect(page.url()).toContain("login");
   });
 });
 

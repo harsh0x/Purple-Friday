@@ -4,6 +4,16 @@ import { HeroSection } from "@/components/home/HeroSection";
 import { SectionSkeleton } from "@/components/ui/skeleton";
 import { getCachedProducts } from "@/lib/catalogue";
 import { ProductCardData } from "@/components/product/ProductCard";
+import { getPublishedCms } from "@/server/cms/cms-service";
+
+export async function generateMetadata() {
+  const cms = await getPublishedCms();
+  const homeSeo = cms.seo.find((s) => s.path === "/");
+  return {
+    title: homeSeo?.title || "Purple Friday | Custom Merchandise & Corporate Gifting",
+    description: homeSeo?.description || "Industrial print shop for Indian startups and enterprises.",
+  };
+}
 
   // 2. Trust Strip (Lazy loaded)
   const TrustStrip = dynamic(
@@ -65,66 +75,83 @@ import { ProductCardData } from "@/components/product/ProductCard";
               {loading: () => <SectionSkeleton height="h-80" title="Loading Dispatch Call..." /> }
               );
 
-      export default async function HomePage() {
-  const rawProducts = await getCachedProducts();
+export default async function HomePage(props: {
+  searchParams?: Promise<{ previewToken?: string }>;
+}) {
+  const searchParams = props.searchParams ? await props.searchParams : {};
+  const [rawProducts, cms] = await Promise.all([
+    getCachedProducts(),
+    getPublishedCms(searchParams.previewToken),
+  ]);
 
   const products: ProductCardData[] = rawProducts.map((p) => ({
-        id: p.id,
-      slug: p.slug,
-      name: p.name,
-      shortName: p.shortName,
-      description: p.description,
-      basePrice: p.basePrice,
-      mrp: p.mrp,
-      minQty: p.minQty,
-      qtyStep: p.qtyStep,
-      rating: 4.9,
-      reviewCount: 42,
-      badges: p.badges || ["Best Seller"],
-      template: p.slug,
-      color: "#FFFFFF",
+    id: p.id,
+    slug: p.slug,
+    name: p.name,
+    shortName: p.shortName,
+    description: p.description,
+    basePrice: p.basePrice,
+    mrp: p.mrp,
+    minQty: p.minQty,
+    qtyStep: p.qtyStep,
+    rating: 4.9,
+    reviewCount: 42,
+    badges: p.badges || ["Best Seller"],
+    template: p.slug,
+    color: "#FFFFFF",
   }));
 
-        return (
-        <div className="flex flex-col w-full bg-paper">
-          {/* 1. Hero Section (Above the fold, instant render) */}
-          <HeroSection />
+  const isVisible = (id: string) => {
+    const s = cms.sections.find((sec) => sec.id === id);
+    return s ? s.visible : true;
+  };
 
-              {/* 2. Trust Strip */ }
-              <TrustStrip />
+  return (
+    <div className="flex flex-col w-full bg-paper">
+      {/* 1. Hero Section (Above the fold, instant render) */}
+      {isVisible("hero") && <HeroSection cmsHero={cms.hero} />}
+
+      {/* 2. Trust Strip */}
+      {isVisible("trust") && <TrustStrip />}
 
       {/* 3. Best Sellers Carousel */}
-      <div className="py-16 md:py-20 border-b-2 border-ink bg-paper">
-        <BestSellersCarousel products={products} />
-      </div>
+      {isVisible("best_sellers") && (
+        <div className="py-16 md:py-20 border-b-2 border-ink bg-paper">
+          <BestSellersCarousel products={products} />
+        </div>
+      )}
 
-        {/* 4. Category Bento Grid */}
+      {/* 4. Category Bento Grid */}
+      {isVisible("categories") && (
         <div className="py-16 md:py-20 border-b-2 border-ink bg-white">
           <CategoryBentoGrid />
         </div>
+      )}
 
-            {/* 5. How It Works (Desktop Pinned Scroll / Mobile Stacked) */ }
-            <HowItWorksSequence />
+      {/* 5. How It Works (Desktop Pinned Scroll / Mobile Stacked) */}
+      {isVisible("how_it_works") && <HowItWorksSequence />}
 
-                {/* 6. Customer Review Wall Marquee */}
-                <div className="py-16 md:py-20 border-b-2 border-ink bg-white">
-                  <CustomerReviewMarquee />
-                </div>
+      {/* 6. Customer Review Wall Marquee */}
+      {isVisible("reviews") && (
+        <div className="py-16 md:py-20 border-b-2 border-ink bg-white">
+          <CustomerReviewMarquee />
+        </div>
+      )}
 
-                  {/* 7. Order Process Timeline (SVG Drawing Line) */}
-                  <OrderProcessTimeline />
+      {/* 7. Order Process Timeline (SVG Drawing Line) */}
+      {isVisible("process") && <OrderProcessTimeline />}
 
-                  {/* 8. Stories / Press Log Carousel */}
-                  <StoriesCarousel />
+      {/* 8. Stories / Press Log Carousel */}
+      {isVisible("stories") && <StoriesCarousel />}
 
-                {/* 9. Factory Floor & Team Section */}
-                <FactoryTeamSection />
+      {/* 9. Factory Floor & Team Section */}
+      {isVisible("factory") && <FactoryTeamSection />}
 
       {/* 10. Frequently Asked Questions */}
-      <FaqSection />
+      {isVisible("faq") && <FaqSection cmsFaqs={cms.faqs} />}
 
-  {/* 11. Closing CTA Band */ }
-  <ClosingCtaBand />
-    </div >
+      {/* 11. Closing CTA Band */}
+      {isVisible("cta") && <ClosingCtaBand />}
+    </div>
   );
 }

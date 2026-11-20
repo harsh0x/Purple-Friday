@@ -65,7 +65,21 @@ const FAQS_COL2: FaqItem[] = [
   },
 ];
 
-export function FaqSection() {
+export function FaqSection({
+  cmsFaqs,
+}: {
+  cmsFaqs?: Array<{ id: string; question: string; answer: string; active?: boolean }>;
+} = {}) {
+  let col1 = FAQS_COL1;
+  let col2 = FAQS_COL2;
+
+  if (cmsFaqs && cmsFaqs.length > 0) {
+    const active = cmsFaqs.filter((f) => f.active !== false);
+    const mid = Math.ceil(active.length / 2);
+    col1 = active.slice(0, mid);
+    col2 = active.slice(mid);
+  }
+
   return (
     <section className="relative border-b-2 border-ink bg-white py-20 px-4 md:px-8">
       {/* Decorative Registration Marks */}
@@ -92,7 +106,7 @@ export function FaqSection() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mb-12">
           {/* Column 1 */}
           <Accordion.Root type="multiple" className="space-y-4">
-            {FAQS_COL1.map((item) => (
+            {col1.map((item) => (
               <Accordion.Item
                 key={item.id}
                 value={item.id}
@@ -113,7 +127,7 @@ export function FaqSection() {
 
           {/* Column 2 */}
           <Accordion.Root type="multiple" className="space-y-4">
-            {FAQS_COL2.map((item) => (
+            {col2.map((item) => (
               <Accordion.Item
                 key={item.id}
                 value={item.id}

@@ -421,8 +421,7 @@ export default function AdminQuotesPage() {
 
                                               <p className="text-[11px] text-ink/60">
                                                 Real Razorpay payment link requires active external keys:{" "}
-                                                <code className="text-violet font-bold">RAZORPAY_KEY_ID</code> and{" "}
-                                                <code className="text-violet font-bold">RAZORPAY_KEY_SECRET</code>. The UI safely degrades and disables payment links until configured.
+                                                <code className="text-violet font-bold">Razorpay API credentials</code>. The UI safely degrades and disables payment links until configured.
                                               </p>
 
                                               <button

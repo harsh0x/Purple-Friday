@@ -20,6 +20,7 @@ import {
   CalendarClock,
   Star,
   LifeBuoy,
+  Globe,
   LucideIcon,
 } from "lucide-react";
 import { Permission } from "./permissions";
@@ -212,6 +213,13 @@ export const ADMIN_NAVIGATION: NavSection[] = [
         label: "Settings",
         href: "/admin/settings",
         icon: Settings,
+        permission: "admin:manage_settings",
+      },
+      {
+        id: "system-cms",
+        label: "Storefront CMS",
+        href: "/admin/cms",
+        icon: Globe,
         permission: "admin:manage_settings",
       },
     ],

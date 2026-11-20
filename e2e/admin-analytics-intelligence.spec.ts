@@ -36,7 +36,7 @@ test.describe("Admin Analytics, Intelligence & Intelligence Loop (Part 5 E2E)", 
     // Header check
     await expect(page.locator("h1")).toContainText("How was your custom merchandise?");
     // Star rating buttons should be interactive
-    await expect(page.locator('button:has-text("Exceptional")')).toBeVisible();
+    await expect(page.locator("text=Exceptional")).toBeVisible();
     // Custom print sliders
     await expect(page.locator("text=Custom Print Craftsmanship Ratings")).toBeVisible();
   });

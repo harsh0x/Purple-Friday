@@ -38,12 +38,12 @@ export interface StockMovementData {
   sku: string;
   changeQty: number; // positive or negative
   reason:
-    | "PURCHASE"
-    | "ORDER_RESERVATION"
-    | "PRODUCTION_USE"
-    | "ADJUSTMENT"
-    | "RETURN"
-    | "ORDER_RELEASE";
+  | "PURCHASE"
+  | "ORDER_RESERVATION"
+  | "PRODUCTION_USE"
+  | "ADJUSTMENT"
+  | "RETURN"
+  | "ORDER_RELEASE";
   balanceAfter: number;
   actor?: string;
   notes?: string;

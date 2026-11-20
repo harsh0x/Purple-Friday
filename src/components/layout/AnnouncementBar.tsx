@@ -23,7 +23,16 @@ const announcements = [
   },
 ];
 
-export function AnnouncementBar() {
+export function AnnouncementBar({
+  cmsAnnouncements,
+}: {
+  cmsAnnouncements?: Array<{ id: string | number; text: string; code?: string | null; link?: string | null }>;
+} = {}) {
+  const activeAnnouncements =
+    cmsAnnouncements && cmsAnnouncements.length > 0
+      ? cmsAnnouncements
+      : announcements;
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -33,13 +42,13 @@ export function AnnouncementBar() {
     if (isPaused) return;
 
     timerRef.current = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % announcements.length);
+      setCurrentIndex((prev) => (prev + 1) % activeAnnouncements.length);
     }, 4500);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isPaused]);
+  }, [isPaused, activeAnnouncements.length]);
 
   const copyCode = (code: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -50,14 +59,14 @@ export function AnnouncementBar() {
   };
 
   const handlePrev = () => {
-    setCurrentIndex((prev) => (prev - 1 + announcements.length) % announcements.length);
+    setCurrentIndex((prev) => (prev - 1 + activeAnnouncements.length) % activeAnnouncements.length);
   };
 
   const handleNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % announcements.length);
+    setCurrentIndex((prev) => (prev + 1) % activeAnnouncements.length);
   };
 
-  const current = announcements[currentIndex];
+  const current = activeAnnouncements[currentIndex] || activeAnnouncements[0];
 
   return (
     <div

@@ -2,7 +2,7 @@
 
 > Project: Purple Friday Admin Dashboard  
 > Parts: 6 Parts Planned  
-> Current Active Part: **PART 5** (Status: **COMPLETE**)  
+> Current Active Part: **PART 6** (Status: **COMPLETE**)  
 
 ---
 
@@ -491,3 +491,109 @@
 - `purple-friday/src/__tests__/reviews-support.test.ts` (3 tests)
 - `purple-friday/src/__tests__/admin-responsive.test.ts` (4 tests)
 - `purple-friday/e2e/admin-analytics-intelligence.spec.ts` (8 tests)
+
+
+---
+
+## Part 6 Tracker: Storefront CMS, Hardening and Launch (COMPLETE)
+
+### Steps Overview
+- [x] **Step 1: No-Code Storefront CMS (Super Admin Only)**
+  - Schema & Data Model `src/server/cms/schema.ts`:
+    - Strict length limits and validation on Hero (headline, subtext, badge, CTAs), Announcements (text, code, dates, active), Section order and visibility, FAQs, Footer links, Coupon Banners, and SEO tags.
+    - Plain-text sanitization `sanitizePlainText()` preventing raw HTML/XSS injection.
+    - Sensible defaults `DEFAULT_CMS_DOCUMENT` guaranteeing storefront resilience even if CMS storage is empty.
+  - Server Service `src/server/cms/cms-service.ts`:
+    - `getPublishedCms()`: cached storefront retrieval with Next.js cache tag revalidation (`revalidateTag("cms-content")`).
+    - `getDraftCms()` & `saveDraftCms()`: draft workspace allowing changes to be staged without touching live customers.
+    - `createCmsPreviewToken()` & `verifyCmsPreviewToken()`: HMAC-SHA256 signed preview token for viewing live draft state via `/?previewToken=...`.
+    - `publishCms()`: publishes draft to live storefront, creates an immutable version snapshot, trims history to keep the last 10 versions, writes audit log, and invalidates cache.
+    - `restoreCmsVersion()`: 1-click rollback restoring any of the last 10 snapshots to live storefront.
+  - Admin Studio UI `/admin/cms`:
+    - Full tabbed management interface for Hero, Announcements, Page Sections Order, FAQs, Footer, Coupons, SEO, and Version History.
+    - Protected exclusively for Super Admin role (`SUPER_ADMIN`).
+  - Public & Admin API endpoints:
+    - `/api/admin/cms`: GET (draft, published, history, preview token) & POST (save draft, publish, restore).
+    - `/api/cms/published`: public cached endpoint with 60s ISR header.
+    - `/api/cms/preview`: preview redirect endpoint with HMAC token verification.
+  - Storefront Integration:
+    - `src/components/home/HeroSection.tsx`: accepts dynamic CMS hero props with graceful fallbacks.
+    - `src/components/layout/AnnouncementBar.tsx`: accepts dynamic announcements with active scheduling.
+    - `src/components/home/FaqSection.tsx`: renders dynamic FAQs across 2 responsive columns.
+    - `src/app/page.tsx`: server component reads published CMS with preview token support, dynamically filters section visibility and ordering, and generates dynamic metadata.
+  - Vitest Unit Test Suite:
+    - `src/__tests__/storefront-cms.test.ts` (7 tests passing 100%).
+
+- [x] **Step 2: Final Security Pass & `docs/ADMIN-SECURITY.md`**
+  - Compiled comprehensive security evidence document `docs/ADMIN-SECURITY.md` addressing all 12 points:
+    1. Permission matrix test (`src/__tests__/permission-matrix.test.ts` - 6 tests passing).
+    2. Mutating route audit (Rate limiting, Origin checks, Zod validation across all routes).
+    3. Audit log PostgreSQL trigger `reject_audit_log_mutation()` blocking UPDATE and DELETE.
+    4. File upload security (magic byte detection, SVG script stripping, 25MB limits, private downloads).
+    5. Token cryptography (24-byte random, SHA-256 hashed, expiring, rate-limited tokens).
+    6. Webhook security (timing-safe `crypto.timingSafeEqual`, raw body hashing, idempotent replay protection).
+    7. Secrets zero-leakage (startup validation in `src/lib/env.ts`, `.env*` gitignored, client bundle scanned).
+    8. Production HTTP security headers (CSP, HSTS, nosniff, Referrer-Policy, Permissions-Policy, frame-ancestors none, no X-Powered-By, no-store admin caching). Script `scripts/check-headers.sh`.
+    9. Sessions security (8h max age, 15m idle timeout, logout invalidation, 5-attempt account lockout).
+    10. Dependency audit & Dependabot config (`.github/dependabot.yml`).
+    11. CSV formula-injection mitigation (`safeCsvCell()` prepending `'` on `=, +, -, @`).
+    12. Database backup PITR runbook and disaster recovery checklist for Neon PostgreSQL.
+
+- [x] **Step 3: Performance and Accessibility**
+  - Admin bundles strictly code-split per route; zero storefront bundle impact.
+  - Charts (SVG based) and Mockup canvas tool load strictly on demand.
+  - Server-driven table pagination and skeleton states eliminate cumulative layout shift (CLS = 0).
+  - Accessibility & Contrast: WCAG AA contrast compliance verified in `src/__tests__/a11y.test.ts` across Ink (`#15101F`), Paper (`#F5F0E8`), Violet (`#6A2CFF`), and Spot-Lime (`#D8FF3F`).
+
+- [x] **Step 4: End-to-End Tests (Desktop & Tablet)**
+  - Comprehensive Playwright test suite `e2e/admin-launch-lifecycle.spec.ts` covering Desktop (1440x900) and Tablet (768x1024):
+    - Full lifecycle pipeline: order -> proof -> production -> split dispatch -> delivery -> review.
+    - High-risk COD address protection: automatic prepaid gate enforcement.
+    - CMS publish reflection on live customer storefront.
+    - Role restrictions and unauthenticated redirect verification.
+
+- [x] **Step 5: Documentation & Client Launch Checklist**
+  - Updated `README.md` with full Admin Architecture guide, RBAC roles matrix, first login procedure, environment variables reference table, cron tick scheduler setup, and webhook guides.
+  - Updated `.env.example` with documented keys, comments, and instructions.
+  - Created `docs/ADMIN-LAUNCH-CHECKLIST.md` for client: 7 pre-launch technical steps and 4 one-page plain-language staff handbooks (Super Admin, Graphic Designer, Factory Manager, Support Agent).
+
+- [x] **Step 6: Final Verification Gate**
+  - Zero TypeScript errors (`tsc --noEmit`).
+  - Zero ESLint warnings or errors (`next lint`).
+  - 100% Vitest tests passing (43 test suites, 339 tests passed).
+  - Production build passing cleanly (109 static and dynamic routes compiled).
+  - Storefront bundle size invariance: `/` route remains exactly 28.1 kB / 216 kB first load JS.
+
+---
+
+## Part 6 Files Created & Modified
+
+### Storefront CMS Core:
+- `purple-friday/src/server/cms/schema.ts`
+- `purple-friday/src/server/cms/cms-service.ts`
+- `purple-friday/src/app/admin/cms/page.tsx`
+- `purple-friday/src/app/api/admin/cms/route.ts`
+- `purple-friday/src/app/api/cms/published/route.ts`
+- `purple-friday/src/app/api/cms/preview/route.ts`
+- `purple-friday/src/components/home/HeroSection.tsx`
+- `purple-friday/src/components/layout/AnnouncementBar.tsx`
+- `purple-friday/src/components/home/FaqSection.tsx`
+- `purple-friday/src/app/page.tsx`
+
+### Security, Environment & Config:
+- `purple-friday/next.config.ts`
+- `purple-friday/scripts/check-headers.sh`
+- `purple-friday/src/lib/env.ts`
+- `purple-friday/.env.example`
+- `purple-friday/.github/dependabot.yml`
+- `purple-friday/docs/ADMIN-SECURITY.md`
+- `purple-friday/docs/ADMIN-LAUNCH-CHECKLIST.md`
+- `purple-friday/README.md`
+- `purple-friday/src/lib/admin/navigation.ts`
+- `purple-friday/src/app/admin/quotes/page.tsx`
+
+### Verification & Test Suites:
+- `purple-friday/src/__tests__/storefront-cms.test.ts` (7 tests)
+- `purple-friday/src/__tests__/permission-matrix.test.ts` (6 tests)
+- `purple-friday/src/__tests__/a11y.test.ts` (updated)
+- `purple-friday/e2e/admin-launch-lifecycle.spec.ts` (8 scenarios across desktop & tablet)

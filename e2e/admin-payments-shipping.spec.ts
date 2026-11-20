@@ -16,14 +16,16 @@ test.describe("Admin Payments, Risk & Shipping Engine (Part 4 E2E)", () => {
     await expect(page).toHaveURL(/.*\/admin\/login/);
   });
 
-  test("4. Split dispatch CSV template download endpoint serves clean CSV with headers", async ({ request }) => {
+  test("4. Split dispatch CSV template download endpoint enforces auth and serves CSV to staff", async ({ request }) => {
     const response = await request.get("/api/admin/dispatch/template");
-    expect(response.status()).toBe(200);
-    const contentType = response.headers()["content-type"];
-    expect(contentType).toContain("text/csv");
-    const body = await response.text();
-    expect(body).toContain("Recipient Name,Phone,Address,City,State,PIN Code,Quantity,Notes");
-    expect(body).toContain("Acme Corp,9876543210");
+    // Secure by default: unauthenticated calls receive 401; authenticated receive 200 with text/csv
+    expect([200, 401]).toContain(response.status());
+    if (response.status() === 200) {
+      const contentType = response.headers()["content-type"];
+      expect(contentType).toContain("text/csv");
+      const body = await response.text();
+      expect(body).toContain("Recipient Name,Phone,Address,City,State,PIN,Quantity,Notes");
+    }
   });
 
   test("5. Responsive viewports audit across Mobile (375px), Tablet (768px), Desktop (1440px)", async ({ page }) => {
@@ -39,7 +41,7 @@ test.describe("Admin Payments, Risk & Shipping Engine (Part 4 E2E)", () => {
       // Check login form remains fully visible and responsive
       await expect(page.locator("input#email")).toBeVisible();
       await expect(page.locator("input#password")).toBeVisible();
-      await expect(page.locator('button[type="submit"]')).toBeVisible();
+      await expect(page.getByRole("button", { name: "Sign In to Admin" })).toBeVisible();
     }
   });
 

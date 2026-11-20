@@ -134,8 +134,8 @@ export async function POST(req: NextRequest) {
         result.review.status === "APPROVED"
           ? "Thank you! Your verified review is published."
           : result.review.status === "PENDING"
-          ? "Thank you! Your review is in moderation queue."
-          : "Thank you for your candid feedback. Our executive customer support team has opened an expedited ticket to resolve your merchandise experience.",
+            ? "Thank you! Your review is in moderation queue."
+            : "Thank you for your candid feedback. Our executive customer support team has opened an expedited ticket to resolve your merchandise experience.",
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Error creating review";

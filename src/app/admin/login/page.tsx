@@ -119,12 +119,13 @@ export default function AdminLoginPage() {
           {!mustChangePassword ? (
             <form onSubmit={handleLogin} className="space-y-5">
               <div>
-                <span className="block text-xs font-mono uppercase tracking-wider text-[#DDD4E6] mb-2">
+                <label htmlFor="email" className="block text-xs font-mono uppercase tracking-wider text-[#DDD4E6] mb-2">
                   Staff Email
-                </span>
+                </label>
                 <div className="relative">
                   <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9F8CB8]" />
                   <input
+                    id="email"
                     type="email"
                     required
                     value={email}
@@ -136,12 +137,13 @@ export default function AdminLoginPage() {
               </div>
 
               <div>
-                <span className="block text-xs font-mono uppercase tracking-wider text-[#DDD4E6] mb-2">
+                <label htmlFor="password" className="block text-xs font-mono uppercase tracking-wider text-[#DDD4E6] mb-2">
                   Password
-                </span>
+                </label>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9F8CB8]" />
                   <input
+                    id="password"
                     type={showPassword ? "text" : "password"}
                     required
                     value={password}

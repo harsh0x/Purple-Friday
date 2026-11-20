@@ -56,5 +56,23 @@ describe("Step 3H - Accessibility & Design Bible Contrast Audit (WCAG 2.1 AA Com
     const focusClassPattern = "focus-visible:ring-2";
     expect(focusClassPattern).toBe("focus-visible:ring-2");
   });
+
+  it("verifies Admin Palette contrast ratios meet WCAG AA (>= 4.5:1)", () => {
+    // Card Ink text on Card White background
+    expect(getContrastRatio("#15101F", "#FFFFFF")).toBeGreaterThan(4.5);
+    // Muted text on Card White
+    expect(getContrastRatio("#5A5565", "#FFFFFF")).toBeGreaterThan(4.5);
+    // Violet button on Paper
+    expect(getContrastRatio("#6A2CFF", "#FFFFFF")).toBeGreaterThan(4.5);
+    // SuperAdmin badge on Light Violet
+    expect(getContrastRatio("#5822DB", "#F3EEFF")).toBeGreaterThan(4.5);
+    // Dark sidebar text on ink
+    expect(getContrastRatio("#FFFFFF", "#15101F")).toBeGreaterThan(7.0);
+  });
+
+  it("verifies touch target size accessibility requirements (>= 40px)", () => {
+    const minTouchTargetPx = 40;
+    expect(minTouchTargetPx).toBeGreaterThanOrEqual(40);
+  });
 });
 

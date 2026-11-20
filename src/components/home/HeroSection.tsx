@@ -28,7 +28,19 @@ const PREVIEW_TEMPLATES = [
   { id: "notebook", name: "A5 Journal", slug: "hardbound-leather-journal-a5", template: "notebook", color: "#FFFFFF" },
 ];
 
-export function HeroSection() {
+export function HeroSection({
+  cmsHero,
+}: {
+  cmsHero?: {
+    badgeText?: string;
+    headline?: string;
+    subtext?: string;
+    primaryButtonText?: string;
+    primaryButtonUrl?: string;
+    secondaryButtonText?: string;
+    secondaryButtonUrl?: string;
+  };
+} = {}) {
   const { logoUrl, setLogoUrl } = useCustomerLogo();
   const [showLogo, setShowLogo] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
@@ -99,12 +111,20 @@ export function HeroSection() {
 
             {/* Headline */}
             <h1 className="heading-hero font-extrabold text-ink tracking-tight">
-              Print Your Brand on Products That People <span className="text-violet">Actually Keep</span>.
+              {cmsHero?.headline || (
+                <>
+                  Print Your Brand on Products That People <span className="text-violet">Actually Keep</span>.
+                </>
+              )}
             </h1>
 
             <p className="text-base sm:text-lg text-ink/70 font-sans max-w-xl leading-relaxed">
-              Industrial print shop for Indian startups, college fests, and enterprises.
-              Drop your logo to see it live across 6 merchandise categories in 10 seconds.
+              {cmsHero?.subtext || (
+                <>
+                  Industrial print shop for Indian startups, college fests, and enterprises.
+                  Drop your logo to see it live across 6 merchandise categories in 10 seconds.
+                </>
+              )}
             </p>
 
             {/* Two CTAs */}
@@ -115,12 +135,12 @@ export function HeroSection() {
                 className="min-h-[50px] px-6 py-3 rounded-sm bg-violet text-white font-mono text-sm font-bold uppercase shadow-stamp hover:shadow-stamp-hover active:translate-x-[2px] active:translate-y-[2px] active:shadow-stamp-active transition-all flex items-center gap-2"
               >
                 <Sparkles className="h-4 w-4" />
-                <span>See My Logo on Products</span>
+                <span>{cmsHero?.primaryButtonText || "See My Logo on Products"}</span>
               </button>
 
-              <Link href="/about">
+              <Link href={cmsHero?.secondaryButtonUrl || "/about"}>
                 <Button variant="secondary" rightIcon={<ArrowRight className="h-4 w-4" />}>
-                  Watch the Factory Tour
+                  {cmsHero?.secondaryButtonText || "Watch the Factory Tour"}
                 </Button>
               </Link>
             </div>

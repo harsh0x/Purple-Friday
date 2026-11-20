@@ -97,3 +97,4 @@ which persists the logo to browser `sessionStorage` under key `pf-customer-logo`
   - Real Swatches: `/products/[slug]/colors/[colorSlug].webp`
 - **Fixed Placeholder Artwork**:
   - As requested, all non-hero catalogue product photos will have a clean, authentic, crisp "YOUR LOGO HERE" typographic lockup embedded naturally into the garment or product weave/surface using Sharp compositing, so they look like sample catalogue products in an editorial print store.
+

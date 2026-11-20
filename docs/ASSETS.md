@@ -99,3 +99,4 @@
    - `card.webp` (800px, < 80 KB)
    - `thumb.webp` (320px, < 25 KB)
 3. **Alpha Product Mask**: An 8-bit alpha mask (`mask.png`) isolating the product body from background so color tinting only impacts the physical garment/object.
+

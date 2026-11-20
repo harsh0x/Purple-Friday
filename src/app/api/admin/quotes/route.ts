@@ -1,55 +1,54 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { isUserAdmin } from "@/lib/admin/tier-validator";
-import {
-  getAdminQuotes,
-  updateAdminQuoteStatus,
-  AdminQuote,
-} from "@/lib/admin/admin-store";
-import { logAdminAction } from "@/lib/admin/audit";
+import { hasPermission } from "@/lib/admin/permissions";
+import { getAllQuotes, buildQuote, QuoteStatus } from "@/server/quotes/quotes-service";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!isUserAdmin(session?.user as { role?: string } | undefined)) {
+  const user = session?.user as { role?: string } | undefined;
+
+  if (
+    !user ||
+    (!hasPermission(user.role as never, "admin:view_orders") &&
+      !hasPermission(user.role as never, "admin:manage_products"))
+  ) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const quotes = getAdminQuotes();
+  const { searchParams } = new URL(req.url);
+  const status = (searchParams.get("status") as QuoteStatus) || undefined;
+
+  const quotes = await getAllQuotes(status);
   return NextResponse.json({ success: true, quotes });
 }
 
-export async function PATCH(req: NextRequest) {
+export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!isUserAdmin(session?.user as { role?: string } | undefined)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = session?.user as { role?: string; name?: string; email?: string } | undefined;
+
+  if (
+    !user ||
+    (!hasPermission(user.role as never, "admin:view_orders") &&
+      !hasPermission(user.role as never, "admin:manage_products"))
+  ) {
+    return NextResponse.json({ error: "Forbidden: Super Admin & Support only" }, { status: 403 });
   }
 
   try {
     const body = await req.json();
-    const { id, status } = body;
-
-    const allowedStatuses: AdminQuote["status"][] = ["IN_TOUCH", "QUOTED", "WON", "LOST"];
-    if (!id || !allowedStatuses.includes(status)) {
-      return NextResponse.json({ error: "Valid ID and status required" }, { status: 400 });
-    }
-
-    const updated = updateAdminQuoteStatus(id, status);
-    if (!updated) {
-      return NextResponse.json({ error: "Quote not found" }, { status: 404 });
-    }
-
-    await logAdminAction({
-      adminId: (session?.user as { id?: string })?.id || "admin",
-      adminEmail: session?.user?.email || "admin@purplefriday.com",
-      action: "UPDATE_QUOTE_STATUS",
-      targetId: id,
-      details: { status },
+    const result = await buildQuote(body, {
+      name: user.name || user.email || "Staff Operator",
+      role: user.role || "SUPER_ADMIN",
     });
 
-    return NextResponse.json({ success: true, quote: updated });
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Error updating quote";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    if (!result.success) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+
+    return NextResponse.json({ success: true, quote: result.quote });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to build quote";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

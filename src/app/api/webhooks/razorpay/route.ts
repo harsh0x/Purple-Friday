@@ -1,66 +1,44 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  verifyWebhookSignature,
-  isWebhookProcessed,
-  markWebhookProcessed,
-} from "@/lib/security/payments";
-import { markOrderPaid } from "@/lib/orders";
-
-export const dynamic = "force-dynamic";
+  verifyRazorpayWebhookSignature,
+  processRazorpayPaymentWebhook,
+} from "@/server/quotes/quotes-service";
 
 export async function POST(req: NextRequest) {
   try {
     const rawBody = await req.text();
     const signature = req.headers.get("x-razorpay-signature");
-    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET || "default_webhook_secret";
 
-    const isLiveWebhook = Boolean(
-      webhookSecret &&
-        !webhookSecret.includes("dummy") &&
-        !webhookSecret.includes("sample")
-    );
-
-    // Verify raw body signature in production mode
-    if (isLiveWebhook && webhookSecret) {
-      if (!signature) {
-        return NextResponse.json({ error: "Missing signature header" }, { status: 400 });
-      }
-
-      const isValid = verifyWebhookSignature(rawBody, signature, webhookSecret);
-      if (!isValid) {
-        return NextResponse.json({ error: "Invalid webhook signature" }, { status: 401 });
-      }
+    // 1. Timing-Safe HMAC Signature Verification
+    if (!signature || !verifyRazorpayWebhookSignature(rawBody, signature, secret)) {
+      return NextResponse.json({ error: "Invalid webhook signature" }, { status: 400 });
     }
 
-    const event = JSON.parse(rawBody);
-    const eventId = event?.event_id || event?.id || `evt_${Date.now()}`;
+    const payload = JSON.parse(rawBody);
+    const eventId = payload.event_id || payload.id || `evt_${Date.now()}`;
+    const payment = payload.payload?.payment?.entity;
+    const paymentLink = payload.payload?.payment_link?.entity;
 
-    // Enforce Idempotency
-    if (isWebhookProcessed(eventId)) {
-      return NextResponse.json({
-        success: true,
-        message: "Webhook event already processed (idempotent duplicate).",
-      });
-    }
+    const quoteNumber =
+      payment?.notes?.quoteNumber || paymentLink?.notes?.quoteNumber;
+    const paymentId = payment?.id || paymentLink?.id || "pay_mock";
+    const amount = payment?.amount || paymentLink?.amount || 0;
 
-    markWebhookProcessed(eventId);
+    // 2. Idempotent Processing
+    const result = await processRazorpayPaymentWebhook(eventId, {
+      paymentId,
+      quoteNumber,
+      amount,
+    });
 
-    // Event Dispatch
-    const eventType = event.event;
-    if (eventType === "order.paid" || eventType === "payment.captured") {
-      const paymentEntity = event.payload?.payment?.entity;
-      const orderId = paymentEntity?.order_id;
-      const paymentId = paymentEntity?.id;
-
-      if (orderId && paymentId) {
-        await markOrderPaid(orderId, paymentId);
-      }
-    }
-
-    return NextResponse.json({ success: true, processedEvent: eventType });
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Webhook handler failed";
-    return NextResponse.json({ success: false, error: msg }, { status: 500 });
+    return NextResponse.json({
+      success: true,
+      duplicate: result.duplicate,
+      orderNumber: result.orderNumber,
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Webhook handler failed";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
-

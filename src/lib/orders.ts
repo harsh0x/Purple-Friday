@@ -49,6 +49,7 @@ export interface StoredOrder {
   | "CANCELLED";
   razorpayOrderId?: string;
   razorpayPaymentId?: string;
+  paymentMethod?: string;
   couponCode?: string;
   createdAt: string;
   updatedAt: string;

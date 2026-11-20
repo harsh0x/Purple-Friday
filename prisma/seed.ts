@@ -17,23 +17,30 @@ async function main() {
     return;
   }
 
-  // 1. Seed Admin User
-  const adminEmail = process.env.ADMIN_EMAIL || "admin@purplefriday.in";
+  // 1. Seed Super Admin User (Idempotent)
+  const adminEmail = (process.env.ADMIN_EMAIL || "admin@purplefriday.in").toLowerCase();
   const rawPassword = process.env.ADMIN_INITIAL_PASSWORD || "ChangeThisPasswordInProduction123!";
   const passwordHash = await bcrypt.hash(rawPassword, 12);
 
   const admin = await prisma.user.upsert({
     where: { email: adminEmail },
-    update: { passwordHash, role: UserRole.ADMIN },
+    update: {
+      passwordHash,
+      role: UserRole.SUPER_ADMIN,
+      active: true,
+      mustChangePassword: true,
+    },
     create: {
       email: adminEmail,
       name: "Purple Friday Superadmin",
       passwordHash,
-      role: UserRole.ADMIN,
+      role: UserRole.SUPER_ADMIN,
       phone: "+919876543210",
+      active: true,
+      mustChangePassword: true,
     },
   });
-  console.log(`[seed] Admin user verified: ${admin.email}`);
+  console.log(`[seed] Superadmin user verified: ${admin.email}`);
 
   // 2. Seed Coupon: FIRSTORDER (12% off, first order only)
   await prisma.coupon.upsert({

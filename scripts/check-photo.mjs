@@ -30,3 +30,4 @@ for (const file of files) {
 
 console.log("Photo check completed.");
 process.exit(0);
+

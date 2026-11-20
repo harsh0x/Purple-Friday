@@ -12,6 +12,10 @@ datasource db {
 enum UserRole {
   CUSTOMER
   ADMIN
+  SUPER_ADMIN
+  GRAPHIC_DESIGNER
+  FACTORY_MANAGER
+  SUPPORT_AGENT
 }
 
 enum Audience {
@@ -60,8 +64,12 @@ model User {
   name           String?
   phone          String?
   role           UserRole  @default(CUSTOMER)
+  active         Boolean   @default(true)
+  lastLogin      DateTime?
   failedAttempts Int       @default(0)
   lockedUntil    DateTime?
+  mustChangePassword Boolean @default(false)
+  version        Int       @default(1)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -414,18 +422,56 @@ model WebhookEvent {
 }
 
 model AuditLog {
-  id        String   @id @default(uuid())
-  userId    String?
-  action    String
-  entity    String
-  entityId  String?
-  metadata  Json?
-  ipAddress String?
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid())
+  time       DateTime @default(now())
+  actor      String?
+  actorRole  String?
+  action     String
+  entityType String   @default("SYSTEM")
+  entityId   String?
+  before     Json?
+  after      Json?
+  requestId  String?
+  ipHash     String?
+
+  // Legacy mappings for backward compatibility
+  userId     String?
+  entity     String   @default("SYSTEM")
+  metadata   Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([actor])
   @@index([action])
+  @@index([entityType])
+  @@index([time])
   @@index([createdAt])
+}
+
+model Notification {
+  id         String    @id @default(uuid())
+  userOrRole String    // "role:SUPER_ADMIN", "role:GRAPHIC_DESIGNER", or specific user UUID
+  title      String
+  body       String
+  link       String?
+  readTime   DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([userOrRole])
+  @@index([readTime])
+  @@index([createdAt])
+}
+
+model AppSetting {
+  key       String   @id
+  value     Json
+  updatedBy String?
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@index([key])
 }

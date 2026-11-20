@@ -560,9 +560,15 @@
 - [x] **Step 6: Final Verification Gate**
   - Zero TypeScript errors (`tsc --noEmit`).
   - Zero ESLint warnings or errors (`next lint`).
-  - 100% Vitest tests passing (43 test suites, 339 tests passed).
-  - Production build passing cleanly (109 static and dynamic routes compiled).
-  - Storefront bundle size invariance: `/` route remains exactly 28.1 kB / 216 kB first load JS.
+  - 100% Vitest tests passing (44 test suites, 345 tests passed).
+  - Production build passing cleanly (110 static and dynamic routes compiled).
+  - Storefront bundle size invariance: `/` route remains exactly 28.3 kB / 216 kB first load JS.
+
+- [x] **Post-Launch Polish: Pure Admin Layout & Themed Sidebar**
+  - Pure Admin Layout isolation (`StorefrontShell.tsx`): Completely stripped storefront AnnouncementBar, Header navbar, Footer, floating "REVIEWS 4.9★" edge tab, "Print Assistant" widget, and Drawers on all `/admin/*` routes.
+  - Themed ultra-thin sidebar scrollbar (`.admin-sidebar-scroll`): Custom purple thumb (`rgba(124, 58, 237, 0.45)`) on transparent track, eliminating bright white browser scrollbars on Windows.
+  - Transparent Frosted Sidebar Mode: Translucent glass surface (`bg-[#110E1B]/60 backdrop-blur-xl border border-white/10`) with `SYSTEM -> Settings` on/off toggle persisted in `localStorage (pf_admin_transparent_sidebar)`.
+  - Responsive sticky aside and flex-1 scrollable navigation keeping all operational stations accessible.
 
 ---
 

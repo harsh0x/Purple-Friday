@@ -281,3 +281,36 @@
   color: #C4B5FD !important;
   border-color: rgba(124, 58, 237, 0.4) !important;
 }
+
+/* 3. Custom Ultra-Thin Dark Purple Scrollbar for Admin Sidebar */
+.admin-sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124, 58, 237, 0.45) transparent;
+}
+
+.admin-sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.admin-sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.35);
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+
+.admin-sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.75);
+}
+
+/* 4. Pure Admin Layout: Body Canvas Invariant (Zero Flash of Paper Canvas) */
+body:has([data-admin-root]) {
+  background-color: #0F0D15;
+}
+
+body:has([data-admin-root][data-theme="light"]) {
+  background-color: #110D1A;
+}

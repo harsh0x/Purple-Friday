@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ADMIN_NAVIGATION } from "@/lib/admin/navigation";
 import { hasPermission } from "@/lib/admin/permissions";
+import { useAdminTheme } from "./AdminThemeContext";
 import { X, ArrowUpRight, Activity } from "lucide-react";
 
 interface AdminSidebarProps {
@@ -19,12 +20,13 @@ export function AdminSidebar({
   onCloseMobile,
 }: AdminSidebarProps) {
   const pathname = usePathname();
+  const { transparentSidebar } = useAdminTheme();
 
   const sidebarContent = (
     <div className="flex flex-col h-full justify-between">
       {/* Brand & Hub Info */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="flex flex-col flex-1 min-h-0 space-y-4">
+        <div className="flex items-center justify-between shrink-0">
           <Link
             href="/admin"
             className="flex items-center gap-2.5 font-sans font-black text-xl text-[#F4F3F8] tracking-tight group"
@@ -45,13 +47,13 @@ export function AdminSidebar({
           )}
         </div>
 
-        <div className="text-xs font-sans font-medium text-[#9E98B3] pb-3 border-b border-white/10 flex items-center justify-between">
+        <div className="text-xs font-sans font-medium text-[#9E98B3] pb-3 border-b border-white/10 flex items-center justify-between shrink-0">
           <span>Control Room</span>
           <span className="text-[#D9F99D] font-semibold">India Hub</span>
         </div>
 
-        {/* Grouped Navigation */}
-        <nav className="space-y-6 overflow-y-auto max-h-[calc(100vh-320px)] pr-1">
+        {/* Grouped Navigation with Custom Themed Scrollbar */}
+        <nav className="flex-1 min-h-0 space-y-5 overflow-y-auto pr-1.5 admin-sidebar-scroll">
           {ADMIN_NAVIGATION.map((section) => {
             // Filter section items by role permission
             const visibleItems = section.items.filter(
@@ -112,7 +114,7 @@ export function AdminSidebar({
       </div>
 
       {/* Bottom Meter & Storefront Link */}
-      <div className="pt-5 border-t border-white/10 space-y-3.5">
+      <div className="pt-4 border-t border-white/10 space-y-3 shrink-0">
         {/* Dispatch SLA Today Meter */}
         <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-2">
           <div className="flex items-center justify-between text-xs font-sans text-[#F4F3F8]">
@@ -149,7 +151,13 @@ export function AdminSidebar({
   return (
     <>
       {/* Desktop Floating Rounded Sidebar */}
-      <aside className="hidden md:flex flex-col w-64 lg:w-72 shrink-0 m-4 p-5 bg-[#110E1B] backdrop-blur-md rounded-3xl border border-[#2A253B] shadow-2xl text-white">
+      <aside
+        className={`hidden md:flex flex-col w-64 lg:w-72 shrink-0 m-4 p-5 rounded-3xl transition-all duration-300 sticky top-4 h-[calc(100vh-2rem)] z-30 ${
+          transparentSidebar
+            ? "bg-[#110E1B]/60 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.36)]"
+            : "bg-[#110E1B] border border-[#2A253B] shadow-2xl"
+        } text-white`}
+      >
         {sidebarContent}
       </aside>
 
@@ -160,7 +168,11 @@ export function AdminSidebar({
           onClick={onCloseMobile}
         >
           <div
-            className="fixed inset-y-0 left-0 w-72 max-w-[85vw] p-6 bg-[#110E1B] border-r border-[#2A253B] shadow-2xl overflow-y-auto animate-in slide-in-from-left duration-200"
+            className={`fixed inset-y-0 left-0 w-72 max-w-[85vw] p-6 shadow-2xl overflow-y-auto animate-in slide-in-from-left duration-200 admin-sidebar-scroll ${
+              transparentSidebar
+                ? "bg-[#110E1B]/90 backdrop-blur-xl border-r border-white/10"
+                : "bg-[#110E1B] border-r border-[#2A253B]"
+            }`}
             onClick={(e) => e.stopPropagation()}
           >
             {sidebarContent}

@@ -25,28 +25,28 @@ export default async function AdminLayout({
   let userName = adminSession?.name;
   let userRole = adminSession?.role;
 
-    // Fallback to NextAuth session if active
-    if (!userName || !userRole) {
-      const nextAuthSession = await getServerSession(authOptions);
-      const role = (nextAuthSession?.user as { role?: string })?.role;
-      if (role && isStaffRole(role)) {
-        userName = nextAuthSession?.user?.name || "Staff Member";
-        userRole = role as typeof userRole;
-      }
+  // Fallback to NextAuth session if active
+  if (!userName || !userRole) {
+    const nextAuthSession = await getServerSession(authOptions);
+    const role = (nextAuthSession?.user as { role?: string })?.role;
+    if (role && isStaffRole(role)) {
+      userName = nextAuthSession?.user?.name || "Staff Member";
+      userRole = role as typeof userRole;
     }
+  }
 
-    // If unauthenticated (e.g. on /admin/login), render without shell wrapper
-    if (!userRole || !isStaffRole(userRole)) {
-      return (
-        <div data-admin-root="true" className="min-h-screen bg-[#15101F] text-white admin-portal admin-dark font-sans">
-          {children}
-        </div>
-      );
-    }
-
+  // If unauthenticated (e.g. on /admin/login), render without shell wrapper
+  if (!userRole || !isStaffRole(userRole)) {
     return (
+      <div data-admin-root="true" className="min-h-screen bg-[#15101F] text-white admin-portal admin-dark font-sans">
+        {children}
+      </div>
+    );
+  }
+
+  return (
     <AdminShellClient userName={userName} userRole={userRole}>
       {children}
     </AdminShellClient>
-    );
-  }
+  );
+}

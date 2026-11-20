@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import { ChevronLeft, ChevronRight, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { RegistrationMark } from "../ui/decorative";
@@ -28,6 +29,8 @@ const announcements = [
   }: {
     cmsAnnouncements?: Array<{ id: string | number; text: string; code?: string | null; link?: string | null }>;
   } = {}) {
+    const pathname = usePathname();
+
     const activeAnnouncements =
       cmsAnnouncements && cmsAnnouncements.length > 0
         ? cmsAnnouncements
@@ -67,6 +70,11 @@ const announcements = [
   };
 
   const current = activeAnnouncements[currentIndex] || activeAnnouncements[0];
+
+  // Pure Admin Layout: Never render announcement bar on admin routes
+  if (pathname?.startsWith("/admin")) {
+    return null;
+  }
 
   return (
     <div

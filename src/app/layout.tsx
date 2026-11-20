@@ -1,16 +1,9 @@
 import type { Metadata } from "next";
 import { bricolage, instrumentSans, dmMono } from "@/lib/fonts";
-import { AnnouncementBar } from "@/components/layout/AnnouncementBar";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
-import { SearchDrawer } from "@/components/drawers/SearchDrawer";
-import { CartDrawer } from "@/components/drawers/CartDrawer";
-import { WishlistDrawer } from "@/components/drawers/WishlistDrawer";
 import { Toaster } from "@/components/ui/sonner";
 import { LenisProvider } from "@/components/motion/LenisProvider";
-import { PageTransition } from "@/components/motion/PageTransition";
 import { AuthProvider } from "@/components/providers/AuthProvider";
-import { PurpleAssistant } from "@/components/chat/PurpleAssistant";
+import { StorefrontShell } from "@/components/layout/StorefrontShell";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -70,11 +63,6 @@ export default function RootLayout({
         {/* Global Notifications */}
         <Toaster />
 
-        {/* Global Drawers */}
-        <SearchDrawer />
-        <CartDrawer />
-        <WishlistDrawer />
-
         {/* Global Organization & WebSite JSON-LD */}
         <script
           id="organization-schema-jsonld"
@@ -126,24 +114,11 @@ export default function RootLayout({
           }}
         />
 
-          <AuthProvider>
-            <LenisProvider>
-              {/* App Shell Header */}
-              <AnnouncementBar />
-              <Header />
-
-              {/* Main Content Landmark with Page Transitions */}
-              <main id="main-content" className="flex-1 flex flex-col">
-                <PageTransition>{children}</PageTransition>
-              </main>
-
-            {/* App Shell Footer */}
-            <Footer />
-
-            {/* Floating Purple Assistant */}
-            <PurpleAssistant />
-        </LenisProvider>
-      </AuthProvider>
+        <AuthProvider>
+          <LenisProvider>
+            <StorefrontShell>{children}</StorefrontShell>
+          </LenisProvider>
+        </AuthProvider>
     </body>
     </html >
   );

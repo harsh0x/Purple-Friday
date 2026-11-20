@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import { X, Send, Sparkles, Printer } from "lucide-react";
 
 interface ChatMessage {
@@ -27,6 +28,7 @@ const SUGGESTED_PROMPTS = [
 ];
 
 export function PurpleAssistant() {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(1);
   const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_MESSAGE]);
@@ -120,6 +122,11 @@ export function PurpleAssistant() {
     e.preventDefault();
     sendMessage(input);
   };
+
+  // Pure Admin Layout: Never render floating "Print Assistant" widget on admin routes
+  if (pathname?.startsWith("/admin")) {
+    return null;
+  }
 
   return (
     <div className="fixed bottom-5 right-5 z-40 font-mono text-xs">

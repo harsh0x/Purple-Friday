@@ -11,8 +11,10 @@ import {
   RotateCcw,
   Save,
   Check,
+  Palette,
 } from "lucide-react";
 import { PageTransition } from "@/components/admin/PageTransition";
+import { useAdminTheme } from "@/components/admin/AdminThemeContext";
 
 interface StoreDetails {
   businessName: string;
@@ -35,6 +37,7 @@ interface IntegrationStatus {
 }
 
 export default function AdminSettingsPage() {
+  const { theme, toggleTheme, transparentSidebar, toggleTransparentSidebar } = useAdminTheme();
   const [store, setStore] = useState<StoreDetails>({
     businessName: "",
     gstin: "",
@@ -146,6 +149,119 @@ export default function AdminSettingsPage() {
                           <span>{error}</span>
                         </div>
                       )}
+
+                      {/* Appearance & Interface Styling */}
+                      <div className="bg-white rounded-3xl p-6 sm:p-7 border border-[#15101F]/10 shadow-sm">
+                        <div className="flex items-center gap-2.5 pb-4 border-b border-[#15101F]/10 mb-6">
+                          <Palette className="w-5 h-5 text-[#6A2CFF]" />
+                          <div>
+                            <h2 className="font-display font-bold text-lg text-[#15101F] tracking-tight">
+                              Admin Interface & Sidebar Styling
+                            </h2>
+                            <p className="text-xs font-mono text-[#15101F]/50">
+                              Control room visual presentation, theme preferences, and sidebar opacity
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                          {/* Transparent Sidebar Mode Toggle */}
+                          <div className="p-5 rounded-2xl bg-[#FAF7F2] border border-[#15101F]/10 flex flex-col justify-between space-y-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-bold text-[#15101F]">Transparent Sidebar Mode</span>
+                                  <span
+                                    className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                                      transparentSidebar
+                                        ? "bg-purple-100 text-[#6A2CFF] border border-purple-200"
+                                        : "bg-zinc-200 text-zinc-700 border border-zinc-300"
+                                    }`}
+                                  >
+                                    {transparentSidebar ? "ON" : "OFF"}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-[#15101F]/70 mt-1 font-sans leading-relaxed">
+                                  Subtle translucent dark/frosted surface with backdrop blur and delicate borders matching the atelier aesthetic.
+                                </p>
+                              </div>
+
+                              {/* Toggle Switch */}
+                              <button
+                                type="button"
+                                role="switch"
+                                aria-checked={transparentSidebar}
+                                onClick={toggleTransparentSidebar}
+                                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#6A2CFF] focus:ring-offset-2 ${
+                                  transparentSidebar ? "bg-[#7C3AED]" : "bg-zinc-300"
+                                }`}
+                                aria-label="Toggle Transparent Sidebar"
+                              >
+                                <span
+                                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                    transparentSidebar ? "translate-x-5" : "translate-x-0"
+                                  }`}
+                                />
+                              </button>
+                            </div>
+
+                            <div className="text-[10px] font-mono text-[#15101F]/50 pt-2 border-t border-[#15101F]/5 flex items-center justify-between">
+                              <span>Storage: localStorage (pf_admin_transparent_sidebar)</span>
+                              <span className="font-semibold text-[#7C3AED]">
+                                {transparentSidebar ? "Frosted Glass Active" : "Solid Opaque Active"}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Color Palette Theme Toggle */}
+                          <div className="p-5 rounded-2xl bg-[#FAF7F2] border border-[#15101F]/10 flex flex-col justify-between space-y-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-bold text-[#15101F]">Admin Color Theme</span>
+                                  <span
+                                    className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                                      theme === "dark"
+                                        ? "bg-[#15101F] text-[#D8FF3F] border border-white/20"
+                                        : "bg-amber-100 text-amber-900 border border-amber-200"
+                                    }`}
+                                  >
+                                    {theme === "dark" ? "DARK OBSIDIAN" : "LIGHT PAPER"}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-[#15101F]/70 mt-1 font-sans leading-relaxed">
+                                  High-contrast dark obsidian canvas with electric violet accents, or warm atelier paper surface.
+                                </p>
+                              </div>
+
+                              {/* Toggle Switch */}
+                              <button
+                                type="button"
+                                role="switch"
+                                aria-checked={theme === "dark"}
+                                onClick={toggleTheme}
+                                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#6A2CFF] focus:ring-offset-2 ${
+                                  theme === "dark" ? "bg-[#7C3AED]" : "bg-zinc-300"
+                                }`}
+                                aria-label="Toggle Dark Mode"
+                              >
+                                <span
+                                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                    theme === "dark" ? "translate-x-5" : "translate-x-0"
+                                  }`}
+                                />
+                              </button>
+                            </div>
+
+                            <div className="text-[10px] font-mono text-[#15101F]/50 pt-2 border-t border-[#15101F]/5 flex items-center justify-between">
+                              <span>Storage: localStorage (pf_admin_theme)</span>
+                              <span className="font-semibold text-[#7C3AED]">
+                                {theme === "dark" ? "Dark Mode Active" : "Light Mode Active"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
 
                       {/* Store Entity Details Form */}
                       <div className="bg-white rounded-3xl p-6 sm:p-7 border border-[#15101F]/10 shadow-sm">

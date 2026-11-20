@@ -13,8 +13,8 @@ export function LenisProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // 1. Check prefers-reduced-motion
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    // 2. Disable smooth scroll on native input/checkout routes
-    const isNativeScrollRoute = pathname.startsWith("/checkout");
+    // 2. Disable smooth scroll on native input/checkout and admin control room routes
+    const isNativeScrollRoute = pathname.startsWith("/checkout") || pathname.startsWith("/admin");
 
     if (prefersReducedMotion || isNativeScrollRoute) {
       if (lenisRef.current) {

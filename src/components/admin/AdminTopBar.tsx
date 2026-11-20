@@ -169,11 +169,10 @@ export function AdminTopBar({
                     notifications.map((n) => (
                       <div
                         key={n.id}
-                        className={`p-3 rounded-2xl border transition-colors ${
-                          !n.readTime
+                        className={`p-3 rounded-2xl border transition-colors ${!n.readTime
                             ? "bg-white/5 border-[#6A2CFF]/40 text-white"
                             : "bg-transparent border-white/5 text-white/60"
-                        }`}
+                          }`}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="text-xs font-semibold">{n.title}</div>

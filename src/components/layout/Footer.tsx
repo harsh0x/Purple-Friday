@@ -2,14 +2,21 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { MessageSquare, ArrowRight, ShieldCheck, Star } from "lucide-react";
 import { Logo } from "./Logo";
 import { RegistrationMark, CropCorners } from "../ui/decorative";
 import { toast } from "sonner";
 
 export function Footer() {
+  const pathname = usePathname();
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Pure Admin Layout: Never render storefront footer or floating "REVIEWS 4.9" tab on admin routes
+  if (pathname?.startsWith("/admin")) {
+    return null;
+  }
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();

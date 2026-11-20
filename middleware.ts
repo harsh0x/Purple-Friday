@@ -1,28 +1,96 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
+import { verifyAdminSessionToken, touchAdminSession, applyAdminSessionCookie, ADMIN_COOKIE_NAME } from "@/lib/admin/admin-session";
+import { hasPermission, getRoleHomeScreen, isStaffRole, Permission } from "@/lib/admin/permissions";
 
-  export async function middleware(request: NextRequest) {
-    const { pathname } = request.nextUrl;
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
 
-    // 1. Role-based Route Protection
-    if (pathname.startsWith("/account") || pathname.startsWith("/admin")) {
-      const token = await getToken({
+  // 1. Dedicated Admin Route Protection
+  if (pathname.startsWith("/admin")) {
+    const adminCookie = request.cookies.get(ADMIN_COOKIE_NAME)?.value;
+    const sessionResult = verifyAdminSessionToken(adminCookie);
+
+    // Allow access to login page
+    if (pathname === "/admin/login") {
+      if (sessionResult.valid && sessionResult.session) {
+        // Already authenticated staff -> redirect to role home
+        const homeUrl = new URL(getRoleHomeScreen(sessionResult.session.role), request.url);
+        return NextResponse.redirect(homeUrl);
+      }
+      return NextResponse.next();
+    }
+
+    // Attempt NextAuth fallback for development backwards compatibility
+    let effectiveRole: string | null = null;
+    let effectiveSession = sessionResult.session;
+
+    if (sessionResult.valid && sessionResult.session) {
+      effectiveRole = sessionResult.session.role;
+    } else {
+      const nextAuthToken = await getToken({
         req: request,
         secret: process.env.NEXTAUTH_SECRET || "pf_super_secret_jwt_key_2026_dev_fallback",
       });
-
-      if (!token) {
-        const loginUrl = new URL("/auth/login", request.url);
-        loginUrl.searchParams.set("callbackUrl", pathname);
-        return NextResponse.redirect(loginUrl);
-      }
-
-      if (pathname.startsWith("/admin") && token.role !== "ADMIN") {
-        const forbiddenUrl = new URL("/auth/login", request.url);
-        forbiddenUrl.searchParams.set("error", "Forbidden");
-        return NextResponse.redirect(forbiddenUrl);
+      if (nextAuthToken && isStaffRole(nextAuthToken.role as string)) {
+        effectiveRole = nextAuthToken.role as string;
       }
     }
+
+    // If no valid staff session exists
+    if (!effectiveRole || !isStaffRole(effectiveRole)) {
+      const loginUrl = new URL("/admin/login", request.url);
+      loginUrl.searchParams.set("callbackUrl", pathname);
+      if (sessionResult.reason && sessionResult.reason.includes("expired")) {
+        loginUrl.searchParams.set("reason", "expired");
+      }
+      return NextResponse.redirect(loginUrl);
+    }
+
+    // Role-specific permission enforcement
+    const requiredPermissionMap: Record<string, Permission> = {
+      "/admin/team": "admin:manage_team",
+      "/admin/audit": "admin:view_audit",
+      "/admin/settings": "admin:manage_settings",
+    };
+
+    const matchedPrefix = Object.keys(requiredPermissionMap).find((prefix) => pathname.startsWith(prefix));
+    if (matchedPrefix) {
+      const perm = requiredPermissionMap[matchedPrefix];
+      if (!hasPermission(effectiveRole, perm)) {
+        const homeUrl = new URL(getRoleHomeScreen(effectiveRole), request.url);
+        homeUrl.searchParams.set("error", "Unauthorized");
+        return NextResponse.redirect(homeUrl);
+      }
+    }
+
+    const response = NextResponse.next();
+
+    // Touch idle session timestamp if valid session cookie present
+    if (effectiveSession) {
+      const touchedToken = touchAdminSession(effectiveSession);
+      applyAdminSessionCookie(response, touchedToken);
+    }
+
+    // Admin security & no-cache headers
+    response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
+    response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    return response;
+  }
+
+  // 2. Customer Storefront Route Protection
+  if (pathname.startsWith("/account")) {
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET || "pf_super_secret_jwt_key_2026_dev_fallback",
+    });
+
+    if (!token) {
+      const loginUrl = new URL("/auth/login", request.url);
+      loginUrl.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
 
     // Generate random base64 nonce for CSP script validation
     const nonce = Buffer.from(crypto.randomUUID()).toString("base64");

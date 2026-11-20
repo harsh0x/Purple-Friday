@@ -31,6 +31,19 @@ enum ReviewStatus {
 }
 
 enum OrderStatus {
+  ORDER_PLACED
+  ARTWORK_UPLOADED
+  MOCKUP_SENT
+  REVISION_REQUESTED
+  CUSTOMER_APPROVED
+  IN_PRINTING
+  QC_PASSED
+  DISPATCHED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+  RTO
+
   PENDING_PAYMENT
   PAID
   PROOF_PENDING
@@ -39,10 +52,6 @@ enum OrderStatus {
   APPROVED
   IN_PRODUCTION
   PACKED
-  DISPATCHED
-  DELIVERED
-  CANCELLED
-  REFUNDED
 }
 
 enum ProofStatus {
@@ -205,42 +214,64 @@ model Review {
 }
 
 model Order {
-  id              String      @id @default(uuid())
-  orderNumber     String      @unique
-  userId          String?
-  status          OrderStatus @default(PENDING_PAYMENT)
-  subtotal        Int
-  discount        Int         @default(0)
-  gst             Int
-  shipping        Int         @default(0)
-  total           Int
-  paymentMethod   String      @default("RAZORPAY")
-  razorpayOrderId String?
-  address         Json
-  gstin           String?
-  trackingNumber  String?
-  notes           String?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id                     String       @id @default(uuid())
+  orderNumber            String       @unique
+  userId                 String?
+  status                 OrderStatus  @default(ORDER_PLACED)
+  subtotal               Int
+  discount               Int          @default(0)
+  gst                    Int
+  shipping               Int          @default(0)
+  total                  Int
+  paymentMethod          String       @default("RAZORPAY")
+  paymentStatus          String       @default("PAID")
+  razorpayOrderId        String?
+  razorpayPaymentId      String?
+  address                Json
+  gstin                  String?
+  trackingNumber         String?
+  notes                  String?
+  version                Int          @default(1)
+  assignedDesignerId     String?
+  cancellationReason     String?
+  cancelledBy            String?
+  cancelledAt            DateTime?
+  approvalTokenHash      String?
+  approvalTokenExpiresAt DateTime?
+  mockupSentAt           DateTime?
+  customerApprovedAt     DateTime?
+  totalPausedDurationMs  Int          @default(0)
+  pausedAt               DateTime?
+  slaDueAt               DateTime?
+  nudgeCount             Int          @default(0)
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
 
-  user  User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  items OrderItem[]
+  user   User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items  OrderItem[]
+  events OrderEvent[]
 
   @@index([orderNumber])
   @@index([userId])
   @@index([status])
+  @@index([assignedDesignerId])
+  @@index([approvalTokenHash])
   @@index([createdAt])
 }
 
 model OrderItem {
-  id        String   @id @default(uuid())
-  orderId   String
-  productId String
-  options   Json
-  qty       Int
-  unitPrice Int
-  designId  String?
-  createdAt DateTime @default(now())
+  id          String   @id @default(uuid())
+  orderId     String
+  productId   String
+  options     Json
+  qty         Int
+  unitPrice   Int
+  designId    String?
+  artworkUrl  String?
+  mockupUrl   String?
+  printMethod String?
+  placement   Json?
+  createdAt   DateTime @default(now())
 
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
@@ -248,6 +279,42 @@ model OrderItem {
 
   @@index([orderId])
   @@index([productId])
+}
+
+model OrderEvent {
+  id        String   @id @default(uuid())
+  orderId   String
+  type      String
+  status    String
+  actor     String
+  actorRole String
+  message   String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model Job {
+  id          String    @id @default(uuid())
+  type        String
+  payload     Json
+  runAt       DateTime
+  processedAt DateTime?
+  attempts    Int       @default(0)
+  status      String    @default("PENDING")
+  error       String?
+  dedupKey    String?   @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([type])
+  @@index([status])
+  @@index([runAt])
 }
 
 model Design {

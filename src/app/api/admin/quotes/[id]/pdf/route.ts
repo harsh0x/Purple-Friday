@@ -10,31 +10,31 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
-  const user = session?.user as { role?: string } | undefined;
+    const user = session?.user as { role?: string } | undefined;
 
-  if (
-    !user ||
-    (!hasPermission(user.role as never, "admin:view_orders") &&
-      !hasPermission(user.role as never, "admin:manage_products"))
-  ) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (
+      !user ||
+      (!hasPermission(user.role as never, "admin:view_orders") &&
+        !hasPermission(user.role as never, "admin:manage_products"))
+    ) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await params;
+    const quote = await getQuoteByIdOrNumber(id);
+
+    if (!quote) {
+      return NextResponse.json({ error: "Quote not found" }, { status: 404 });
+    }
+
+      const pdfBytes = await generateQuotePdf(quote);
+
+    return new NextResponse(Buffer.from(pdfBytes), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="Quote-${quote.quoteNumber}.pdf"`,
+        "Cache-Control": "no-store",
+      },
+    });
   }
-
-  const { id } = await params;
-  const quote = await getQuoteByIdOrNumber(id);
-
-  if (!quote) {
-    return NextResponse.json({ error: "Quote not found" }, { status: 404 });
-  }
-
-  const pdfBytes = await generateQuotePdf(quote);
-
-  return new NextResponse(Buffer.from(pdfBytes), {
-    status: 200,
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="Quote-${quote.quoteNumber}.pdf"`,
-      "Cache-Control": "no-store",
-    },
-  });
-}

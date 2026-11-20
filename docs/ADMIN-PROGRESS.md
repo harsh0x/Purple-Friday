@@ -1,8 +1,8 @@
 # Admin Dashboard Implementation Progress
 
-> Project: Purple Friday Admin Dashboard
-> Parts: 6 Parts Planned
-> Current Active Part: **PART 2** (Status: **COMPLETE**)
+> Project: Purple Friday Admin Dashboard  
+> Parts: 6 Parts Planned  
+> Current Active Part: **PART 3** (Status: **COMPLETE**)  
 
 ---
 
@@ -87,52 +87,137 @@
 
 ---
 
-## Part 2 Files Created & Modified
+## Part 3 Tracker: Catalogue, Pricing & Inventory Management (COMPLETE)
 
-### State Machine & Order Core:
+### Steps Overview
+- [x] **Step 1: One Unified Pure Pricing Engine**
+  - Pure module `src/server/pricing/engine.ts`, zero database side-effects.
+  - Strict integer paise storage and calculation (1 Rupee = 100 Paise).
+  - Single rounding rule: round half up `Math.floor(x + 0.5)` applied once per line.
+  - GST-inclusive display with configurable GST rate per product (default 18%).
+  - Computes: unit price from volume slabs, MOQ and quantity-step constraints, bundle totals, coupon caps, shipping fees, and GST breakdown (CGST/SGST vs IGST).
+  - Refactored `src/lib/pricing.ts` to delegate directly to `engine.ts`, eliminating duplicate pricing math.
+  - Vitest test suites: `src/__tests__/pricing-engine.test.ts` (18 tests) & `src/__tests__/pricing.test.ts` (9 tests) passing 100%.
+- [x] **Step 2: Product Management & Volume Pricing Matrix**
+  - Prisma schema updates: `gstRate`, `seoTitle`, `seoDescription`, `costPrice`, `version`, `archived` on `Product`, and model `ProductSlugRedirect`.
+  - Service `src/server/products/product-service.ts`:
+    - Optimistic concurrency locking via integer `version` field.
+    - Slug renaming with automatic 301 `ProductSlugRedirect` generation.
+    - Soft archival: prevents deletion if orders reference product.
+    - Audited updates via `writeAudit()`.
+  - Interactive component `<VolumePricingMatrixEditor />`:
+    - Live client-side validation blocking overlapping slabs, gaps, and ascending prices.
+    - Real-time COGS profit margin calculation per slab (`(unitPrice - costPrice) / unitPrice`).
+  - Admin UI at `/admin/products` (table, search, category/audience filters) and `/admin/products/[slug]` (full edit/create suite).
+  - API endpoints `/api/admin/products` and `/api/admin/products/[slug]`.
+  - Vitest test suite: `src/__tests__/product-management.test.ts` (8 tests passing 100%).
+- [x] **Step 3: Inventory of Blanks & Movements Ledger**
+  - Prisma models `BlankSku` and `StockMovement`.
+  - Service `src/server/inventory/inventory-service.ts`:
+    - Tracks stock on hand, reserved stock, reorder levels, supplier details, unit cost, and lead times.
+    - Immutable stock movement ledger (`PURCHASE`, `ORDER_RESERVATION`, `PRODUCTION_USE`, `ADJUSTMENT`, `RETURN`, `ORDER_RELEASE`).
+  - Automated transactional reservations on order payment in `src/lib/orders.ts`.
+  - Automated transactional consumption on `IN_PRINTING` in `src/server/orders/state-machine.ts`.
+  - Automated transactional release on order cancellation.
+  - Admin UI `/admin/inventory`: low-stock warning highlights, quick adjustment modal, and movement ledger drawer.
+  - API endpoints `/api/admin/inventory` and `/api/admin/inventory/[skuId]/movements`.
+  - Vitest test suite: `src/__tests__/inventory-blanks.test.ts` (5 tests passing 100%).
+- [x] **Step 4: Bundles & Joining Kits (Parent & Child SKUs)**
+  - Prisma models `Kit` and `KitComponent`.
+  - Service `src/server/kits/kits-service.ts`:
+    - Parent-child SKU relationships with component quantities.
+    - Real-time kit fulfillable stock calculation: bottleneck determination across all components.
+    - Automated shortage detection with configured substitute product resolution.
+    - Transactional bundle reservation and consumption across all component SKUs.
+  - Admin UI `/admin/kits`: kit composition cards, fulfillable stock meters, and shortage warning badges.
+  - API endpoint `/api/admin/kits`.
+  - Vitest test suite: `src/__tests__/bundles-kits.test.ts` (5 tests passing 100%).
+- [x] **Step 5: Quotes (RFQ) & Invoices**
+  - Prisma models `Quote` and `InvoiceSequence`.
+  - Service `src/server/quotes/quotes-service.ts`:
+    - Converts public RFQs into formal quotes with custom line items and validity dates.
+    - Enforces mandatory written justification audit log for rates quoted below catalog slab prices.
+    - Razorpay payment link adapter with safe missing-key degradation and timing-safe HMAC webhook signature verification (`crypto.timingSafeEqual`).
+    - Idempotent webhook order creation on payment link capture.
+  - PDF generation `src/server/invoices/invoice-generator.ts` with `pdf-lib`:
+    - Gapless sequential tax invoice numbering (`INV-2026-XXXX`).
+    - GST-compliant Tax Invoices and Quote PDFs with seller/buyer GSTIN, HSN codes, and state-aware CGST/SGST vs IGST breakdown.
+  - Admin UI `/admin/quotes`: Quote builder modal, payment link generator, and PDF download triggers.
+  - API endpoints `/api/admin/quotes`, `/api/admin/quotes/[id]/payment-link`, `/api/admin/quotes/[id]/pdf`, `/api/admin/orders/[orderNumber]/invoice`, and `/api/webhooks/razorpay`.
+  - Vitest test suite: `src/__tests__/quotes-and-invoices.test.ts` (9 tests passing 100%).
+- [x] **Step 6: Coupons Manager & Race-Safe Redemption**
+  - Prisma schema updates to `Coupon`: `maxDiscountCap`, `totalUsageLimit`, `usageCount`, `applicableCategories`, `startsAt`, `version`.
+  - Service `src/server/coupons/coupon-service.ts`:
+    - `FIRSTORDER` rule: 12% welcome discount, maximum cap, minimum subtotal, single redemption per customer.
+    - Flat and percentage discounts, global usage quotas, category targeting, and expiration gating.
+    - Mutex-locked atomic redemption preventing race conditions under high concurrent checkout traffic.
+  - Admin UI `/admin/coupons`: coupon list with usage meters, active/inactive toggles, and campaign creation modal.
+  - API endpoints `/api/admin/coupons` and `/api/admin/coupons/[id]`.
+  - Vitest test suite: `src/__tests__/coupons.test.ts` (7 tests passing 100%).
+- [x] **Step 7: Storefront Price Invariance Verification, Responsive Audit & Completion**
+  - Navigation Registry `src/lib/admin/navigation.ts`: safely revealed `Products`, `Inventory`, `Kits`, `Quotes`, and `Coupons` while strictly keeping unbuilt future parts (Reviews, Customers, Analytics) hidden.
+  - Storefront Price Invariance suite `src/__tests__/storefront-price-invariance.test.ts`:
+    - Verified 20 real catalog products across badges, tees, polos, hoodies, caps, and drinkware.
+    - 100% identical match between catalog tiers, pure pricing engine in integer paise, and storefront cart calculations across single and multi-item carts.
+    - Confirmed strict adherence to step and MOQ rules.
+  - Responsive audit suite `src/__tests__/admin-responsive.test.ts`:
+    - Verified navigation registry exposed routes and permissions for Parts 1, 2, and 3.
+    - Validated key breakpoints: 375px (mobile), 768px (tablet), 1440px (desktop), plus 320px, 1024px, and 1920px.
+  - Verification results:
+    - Zero TypeScript errors (`tsc --noEmit`).
+    - Zero ESLint errors or warnings (`next lint`).
+    - 31 Vitest test suites, 262 tests passing 100%.
+    - Production build: 85 routes compiled cleanly with 0 errors.
+    - Storefront bundle invariance: `/` route remains exactly 28 kB (216 kB first load JS) and shared JS remains 106 kB.
+
+---
+
+## Part 3 Files Created & Modified
+
+### Pricing & Business Logic Core:
 - `purple-friday/prisma/schema.prisma`
+- `purple-friday/src/server/pricing/engine.ts`
+- `purple-friday/src/server/products/product-service.ts`
+- `purple-friday/src/server/inventory/inventory-service.ts`
+- `purple-friday/src/server/kits/kits-service.ts`
+- `purple-friday/src/server/quotes/quotes-service.ts`
+- `purple-friday/src/server/invoices/invoice-generator.ts`
+- `purple-friday/src/server/coupons/coupon-service.ts`
+- `purple-friday/src/lib/pricing.ts`
+- `purple-friday/src/lib/orders.ts`
 - `purple-friday/src/server/orders/state-machine.ts`
-- `purple-friday/src/server/orders/orders-service.ts`
-- `purple-friday/src/server/orders/proof-service.ts`
-- `purple-friday/src/server/artwork/artwork-ingestion.ts`
-- `purple-friday/src/server/production/jobsheet-generator.ts`
 - `purple-friday/src/lib/admin/navigation.ts`
-- `purple-friday/src/lib/customizer/print-areas.ts`
-- `purple-friday/src/lib/security/csv.ts`
-
-### Admin & Public API Endpoints:
-- `purple-friday/src/app/api/admin/orders/route.ts`
-- `purple-friday/src/app/api/admin/orders/[orderNumber]/route.ts`
-- `purple-friday/src/app/api/admin/orders/[orderNumber]/transition/route.ts`
-- `purple-friday/src/app/api/admin/orders/[orderNumber]/rework/route.ts`
-- `purple-friday/src/app/api/admin/orders/[orderNumber]/notes/route.ts`
-- `purple-friday/src/app/api/admin/orders/[orderNumber]/send-mockup/route.ts`
-- `purple-friday/src/app/api/admin/orders/[orderNumber]/jobsheet/route.ts`
-- `purple-friday/src/app/api/admin/orders/[orderNumber]/items/[itemId]/mockup/route.ts`
-- `purple-friday/src/app/api/admin/artwork/ingest/route.ts`
-- `purple-friday/src/app/api/admin/artwork/[artworkId]/download/route.ts`
-- `purple-friday/src/app/api/proof/[token]/route.ts`
-- `purple-friday/src/app/api/proof/[token]/approve/route.ts`
-- `purple-friday/src/app/api/proof/[token]/reject/route.ts`
-- `purple-friday/src/app/api/cron/tick/route.ts`
 
 ### UI Pages & Components:
-- `purple-friday/src/app/admin/orders/page.tsx`
-- `purple-friday/src/app/admin/orders/[orderNumber]/page.tsx`
-- `purple-friday/src/app/admin/designs/page.tsx`
-- `purple-friday/src/app/admin/production/page.tsx`
-- `purple-friday/src/app/proof/[token]/page.tsx`
-- `purple-friday/src/components/admin/OrderStatusBadge.tsx`
-- `purple-friday/src/components/admin/OrderSlaBadge.tsx`
-- `purple-friday/src/components/admin/ArtworkIngestionCard.tsx`
-- `purple-friday/src/components/admin/MockupPlacementEditor.tsx`
+- `purple-friday/src/app/admin/products/page.tsx`
+- `purple-friday/src/app/admin/products/[slug]/page.tsx`
+- `purple-friday/src/app/admin/inventory/page.tsx`
+- `purple-friday/src/app/admin/kits/page.tsx`
+- `purple-friday/src/app/admin/quotes/page.tsx`
+- `purple-friday/src/app/admin/coupons/page.tsx`
+- `purple-friday/src/components/admin/VolumePricingMatrixEditor.tsx`
+
+### Admin & Public API Endpoints:
+- `purple-friday/src/app/api/admin/products/route.ts`
+- `purple-friday/src/app/api/admin/products/[slug]/route.ts`
+- `purple-friday/src/app/api/admin/inventory/route.ts`
+- `purple-friday/src/app/api/admin/inventory/[skuId]/movements/route.ts`
+- `purple-friday/src/app/api/admin/kits/route.ts`
+- `purple-friday/src/app/api/admin/quotes/route.ts`
+- `purple-friday/src/app/api/admin/quotes/[id]/payment-link/route.ts`
+- `purple-friday/src/app/api/admin/quotes/[id]/pdf/route.ts`
+- `purple-friday/src/app/api/admin/coupons/route.ts`
+- `purple-friday/src/app/api/admin/coupons/[id]/route.ts`
+- `purple-friday/src/app/api/admin/orders/[orderNumber]/invoice/route.ts`
+- `purple-friday/src/app/api/webhooks/razorpay/route.ts`
 
 ### Verification & Test Suites:
-- `purple-friday/src/__tests__/order-state-machine.test.ts` (18 tests)
-- `purple-friday/src/__tests__/order-service.test.ts` (10 tests)
-- `purple-friday/src/__tests__/artwork-ingestion.test.ts` (8 tests)
-- `purple-friday/src/__tests__/mockup-placement.test.ts` (2 tests)
-- `purple-friday/src/__tests__/proof-workflow.test.ts` (5 tests)
-- `purple-friday/src/__tests__/jobsheet-and-queues.test.ts` (2 tests)
-- `purple-friday/src/__tests__/order-pipeline-lifecycle.test.ts` (1 comprehensive lifecycle test)
-- `purple-friday/e2e/admin-order-pipeline.spec.ts`
+- `purple-friday/src/__tests__/pricing-engine.test.ts` (18 tests)
+- `purple-friday/src/__tests__/pricing.test.ts` (9 tests)
+- `purple-friday/src/__tests__/product-management.test.ts` (8 tests)
+- `purple-friday/src/__tests__/inventory-blanks.test.ts` (5 tests)
+- `purple-friday/src/__tests__/bundles-kits.test.ts` (5 tests)
+- `purple-friday/src/__tests__/quotes-and-invoices.test.ts` (9 tests)
+- `purple-friday/src/__tests__/coupons.test.ts` (7 tests)
+- `purple-friday/src/__tests__/storefront-price-invariance.test.ts` (43 tests)
+- `purple-friday/src/__tests__/admin-responsive.test.ts` (4 tests)

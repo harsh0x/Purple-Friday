@@ -3,6 +3,11 @@ import {
   ShoppingBag,
   Palette,
   Factory,
+  Package,
+  Boxes,
+  Layers,
+  FileText,
+  Tag,
   Users,
   ScrollText,
   Settings,
@@ -28,7 +33,7 @@ export interface NavSection {
 /**
  * Single Source of Truth Navigation Registry.
  * Strict Rule: A sidebar link appears ONLY when its page is finished.
- * In Part 1: Only Overview and System items that exist now are shown.
+ * In Part 3: Products, Inventory, Kits, Quotes, Coupons are now active.
  */
 export const ADMIN_NAVIGATION: NavSection[] = [
   {
@@ -68,6 +73,47 @@ export const ADMIN_NAVIGATION: NavSection[] = [
         href: "/admin/production",
         icon: Factory,
         permission: "admin:manage_production",
+      },
+      {
+        id: "pipeline-quotes",
+        label: "Quotes",
+        href: "/admin/quotes",
+        icon: FileText,
+        permission: "admin:view_orders",
+      },
+    ],
+  },
+  {
+    id: "catalogue",
+    label: "Catalogue & Inventory",
+    items: [
+      {
+        id: "catalogue-products",
+        label: "Products",
+        href: "/admin/products",
+        icon: Package,
+        permission: "admin:manage_products",
+      },
+      {
+        id: "catalogue-inventory",
+        label: "Inventory",
+        href: "/admin/inventory",
+        icon: Boxes,
+        permission: "admin:manage_products",
+      },
+      {
+        id: "catalogue-kits",
+        label: "Kits",
+        href: "/admin/kits",
+        icon: Layers,
+        permission: "admin:manage_products",
+      },
+      {
+        id: "catalogue-coupons",
+        label: "Coupons",
+        href: "/admin/coupons",
+        icon: Tag,
+        permission: "admin:manage_products",
       },
     ],
   },

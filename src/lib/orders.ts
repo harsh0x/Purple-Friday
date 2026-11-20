@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { Prisma } from "@prisma/client";
 import prisma from "./prisma";
 import { calculateCartPricing, CartItemInput } from "./pricing";
+import { reserveBlanksForOrder } from "@/server/inventory/inventory-service";
 
 export interface StoredOrder {
   id: string;
@@ -183,6 +184,17 @@ export async function markOrderPaid(
   order.status = "PAID";
   order.razorpayPaymentId = paymentId;
   order.updatedAt = new Date().toISOString();
+
+  // Transactional reservation of blank inventory
+  try {
+    await reserveBlanksForOrder(
+      order.id,
+      order.items.map((i) => ({ productSlug: i.productId, qty: i.qty })),
+      order.customerName
+    );
+  } catch {
+    // Non-blocking reservation
+  }
 
   try {
     if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {

@@ -4,6 +4,10 @@ import prisma from "@/lib/prisma";
 import { writeAudit } from "@/lib/admin/audit";
 import { createNotification } from "@/lib/admin/notifications";
 import { getStoreSettings } from "@/lib/admin/app-settings";
+import {
+  consumeBlanksForOrder,
+  releaseBlanksForOrder,
+} from "@/server/inventory/inventory-service";
 
 export type OrderStatus =
   | "ORDER_PLACED"
@@ -548,6 +552,25 @@ export async function changeOrderStatus(
       body: `Order was cancelled by ${actor.role} (${actor.email}). Reason: ${reason || "N/A"}.`,
       link: `/admin/orders`,
     });
+  }
+
+  // 8b. Inventory Automated Lifecycle: Consumption & Release
+  try {
+    if (to === "IN_PRINTING") {
+      await consumeBlanksForOrder(
+        order.id,
+        order.items.map((i) => ({ productSlug: i.productId, qty: i.qty })),
+        actor.email
+      );
+    } else if (to === "CANCELLED") {
+      await releaseBlanksForOrder(
+        order.id,
+        order.items.map((i) => ({ productSlug: i.productId, qty: i.qty })),
+        actor.email
+      );
+    }
+  } catch {
+    // Non-blocking inventory synchronization
   }
 
   // 9. Persist to Database if active

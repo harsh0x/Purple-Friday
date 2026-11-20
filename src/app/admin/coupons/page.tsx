@@ -1,227 +1,314 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  Tag,
+  Plus,
+  Search,
+  CheckCircle2,
+  XCircle,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
-import { AdminCoupon } from "@/lib/admin/admin-store";
+import { CouponData } from "@/server/coupons/coupon-service";
 
 export default function AdminCouponsPage() {
-  const [coupons, setCoupons] = useState<AdminCoupon[]>([]);
+  const [coupons, setCoupons] = useState<CouponData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [search, setSearch] = useState("");
+  const [showModal, setShowModal] = useState(false);
 
   // Form State
   const [code, setCode] = useState("");
   const [type, setType] = useState<"PERCENTAGE" | "FLAT">("PERCENTAGE");
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState("12");
+  const [maxDiscountCap, setMaxDiscountCap] = useState("500");
   const [minSubtotal, setMinSubtotal] = useState("1000");
-  const [firstOrderOnly, setFirstOrderOnly] = useState(false);
+  const [firstOrderOnly, setFirstOrderOnly] = useState(true);
+  const [perUserLimit, setPerUserLimit] = useState(1);
+  const [totalUsageLimit, setTotalUsageLimit] = useState("500");
   const [expiresAt, setExpiresAt] = useState("2026-12-31");
-  const [submitting, setSubmitting] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
 
-  const loadCoupons = async () => {
+  const loadCoupons = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/admin/coupons");
+      const params = new URLSearchParams();
+      if (search) params.set("search", search);
+
+      const res = await fetch(`/api/admin/coupons?${params.toString()}`);
       const data = await res.json();
       if (data.coupons) {
         setCoupons(data.coupons);
       }
     } catch {
-      toast.error("Failed to load coupons");
+      toast.error("Failed to load promo coupons");
     } finally {
       setLoading(false);
     }
-  };
+  }, [search]);
 
   useEffect(() => {
     loadCoupons();
-  }, []);
+  }, [loadCoupons]);
+
+  const handleToggle = async (coupon: CouponData) => {
+    try {
+      const res = await fetch(`/api/admin/coupons/${coupon.id}`, {
+        method: "PATCH",
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(
+          `Coupon ${coupon.code} is now ${data.coupon.active ? "Active" : "Disabled"}`
+        );
+        setCoupons((prev) =>
+          prev.map((c) => (c.id === coupon.id ? { ...c, active: data.coupon.active } : c))
+        );
+      } else {
+        toast.error(data.error || "Failed to toggle coupon");
+      }
+    } catch {
+      toast.error("Network error toggling coupon");
+    }
+  };
 
   const handleCreateCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!code || !value) {
-      toast.error("Please fill in coupon code and discount value");
+      toast.error("Coupon code and value are required");
       return;
     }
 
-    setSubmitting(true);
+    setSaving(true);
     try {
+      const payload = {
+        code: code.trim().toUpperCase(),
+        type,
+        value: Number(value),
+        maxDiscountCap: maxDiscountCap ? Number(maxDiscountCap) : undefined,
+        minSubtotal: Number(minSubtotal) || 0,
+        firstOrderOnly,
+        perUserLimit: Number(perUserLimit) || 1,
+        totalUsageLimit: totalUsageLimit ? Number(totalUsageLimit) : undefined,
+        applicableCategories: selectedCategories,
+        expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
+        active: true,
+      };
+
       const res = await fetch("/api/admin/coupons", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          code,
-          type,
-          value: Number(value),
-          minSubtotal: Number(minSubtotal),
-          firstOrderOnly,
-          expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
-          active: true,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
       if (data.success) {
         toast.success(`Coupon ${data.coupon.code} created!`);
-        setCoupons((prev) => [data.coupon, ...prev]);
-        setShowCreateModal(false);
+        setShowModal(false);
         setCode("");
-        setValue("");
+        loadCoupons();
       } else {
         toast.error(data.error || "Failed to create coupon");
       }
     } catch {
       toast.error("Network error creating coupon");
     } finally {
-      setSubmitting(false);
+      setSaving(false);
     }
   };
 
-  const handleToggleCoupon = async (coupon: AdminCoupon) => {
-    try {
-      const res = await fetch("/api/admin/coupons", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...coupon,
-          active: !coupon.active,
-        }),
-      });
+  const allCategories = [
+    { slug: "polo-shirts", name: "Polo Shirts" },
+    { slug: "t-shirts", name: "T-Shirts" },
+    { slug: "hoodies", name: "Hoodies" },
+    { slug: "magnetic-badges", name: "Magnetic Badges" },
+    { slug: "caps", name: "Caps" },
+    { slug: "corporate-gifts", name: "Corporate Gifts" },
+  ];
 
-      const data = await res.json();
-      if (data.success) {
-        toast.success(`Coupon ${coupon.code} ${!coupon.active ? "activated" : "deactivated"}`);
-        setCoupons((prev) =>
-          prev.map((c) => (c.id === coupon.id ? { ...c, active: !c.active } : c))
-        );
-      }
-    } catch {
-      toast.error("Error toggling coupon");
-    }
-  };
-
-  const handleDeleteCoupon = async (id: string, code: string) => {
-    if (!confirm(`Are you sure you want to permanently delete coupon ${code}?`)) return;
-
-    try {
-      const res = await fetch(`/api/admin/coupons?id=${id}`, {
-        method: "DELETE",
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(`Coupon ${code} deleted.`);
-        setCoupons((prev) => prev.filter((c) => c.id !== id));
-      }
-    } catch {
-      toast.error("Error deleting coupon");
-    }
+  const toggleCategory = (slug: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug]
+    );
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-ink/10">
         <div>
-          <h1 className="font-display font-black text-3xl text-white tracking-tight">
-            Discount Coupons & Promos
-          </h1>
-          <p className="text-xs font-mono text-white/50 mt-1">
-            Configure order threshold vouchers, first-order promotions, and corporate partner discounts
+          <div className="flex items-center gap-2">
+            <span className="p-2 rounded-xl bg-violet/10 text-violet">
+              <Tag className="w-5 h-5" />
+            </span>
+            <h1 className="font-display font-bold text-2xl text-ink tracking-tight">
+              Coupons & Promotions
+            </h1>
+          </div>
+          <p className="text-xs font-mono text-ink/60 mt-1">
+            Discount rules, maximum discount caps, minimum order thresholds, and race-safe atomic redemptions
           </p>
         </div>
 
         <button
-          onClick={() => setShowCreateModal(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-pf-violet text-white text-xs font-mono uppercase tracking-wider font-bold rounded-xl hover:bg-pf-violet/90 transition-colors shadow-sm"
+          type="button"
+          onClick={() => setShowModal(true)}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-violet text-white text-xs font-mono font-medium rounded-xl hover:bg-violet-hover transition-colors shadow-sm self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
-          <span>Create Coupon</span>
+          Create Coupon
         </button>
       </div>
 
+      {/* Search Bar */}
+      <div className="bg-white p-4 rounded-2xl border border-ink/10 shadow-sm flex items-center justify-between">
+        <div className="flex-1 max-w-md relative">
+          <Search className="w-4 h-4 absolute left-3 top-3 text-ink/40" />
+          <input
+            type="text"
+            placeholder="Search coupon code (e.g. FIRSTORDER)..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-3 py-2 text-xs font-mono border border-ink/10 rounded-xl focus:outline-none focus:border-violet bg-paper/30"
+          />
+        </div>
+
+        <div className="text-xs font-mono text-ink/60">
+          <span className="font-bold text-ink">{coupons.filter((c) => c.active).length}</span> active campaigns
+        </div>
+      </div>
+
       {/* Coupons Table */}
-      <div className="bg-[#181324] rounded-2xl border border-white/10 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-ink/10 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs font-mono">
-            <thead className="bg-[#110D1A] text-white/40 uppercase border-b border-white/10">
-              <tr>
+          <table className="w-full text-left border-collapse font-mono text-xs">
+            <thead>
+              <tr className="border-b border-ink/10 bg-paper/40 text-[11px] uppercase tracking-wider text-ink/60">
                 <th className="py-3 px-4">Coupon Code</th>
-                <th className="py-3 px-4">Discount</th>
-                <th className="py-3 px-4">Min. Subtotal</th>
-                <th className="py-3 px-4">Restrictions</th>
-                <th className="py-3 px-4">Usage</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 text-right">Actions</th>
+                <th className="py-3 px-3">Type & Discount</th>
+                <th className="py-3 px-3">Min Cart</th>
+                <th className="py-3 px-3">Max Cap</th>
+                <th className="py-3 px-3">Redemption Quota</th>
+                <th className="py-3 px-3">Rules & Restrictions</th>
+                <th className="py-3 px-3">Expiry</th>
+                <th className="py-3 px-4 text-right">Status Toggle</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-ink/5">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="py-10 text-center text-white/40 font-mono">
-                    Loading promotional vouchers...
+                  <td colSpan={8} className="py-12 text-center text-ink/40">
+                    Loading coupons...
                   </td>
                 </tr>
               ) : coupons.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-10 text-center text-white/40 font-mono">
-                    No active discount coupons found.
+                  <td colSpan={8} className="py-12 text-center text-ink/40">
+                    No promotional coupons found.
                   </td>
                 </tr>
               ) : (
-                coupons.map((c) => (
-                  <tr key={c.id} className="hover:bg-white/5 transition-colors">
-                    <td className="py-3.5 px-4 font-bold text-white">
-                      <span className="font-mono text-sm px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-pf-lime">
-                        {c.code}
-                      </span>
-                    </td>
+                coupons.map((c) => {
+                  const discountDisplay =
+                    c.type === "PERCENTAGE" ? `${c.value}% OFF` : `₹${(c.value / 100).toFixed(0)} FLAT`;
+                  const capDisplay = c.maxDiscountCapPaise
+                    ? `₹${(c.maxDiscountCapPaise / 100).toFixed(0)} cap`
+                    : "No Cap";
+                  const isSpecialFirstOrder = c.code === "FIRSTORDER";
 
-                    <td className="py-3.5 px-4 font-bold text-white">
-                      {c.type === "PERCENTAGE" ? `${c.value}% OFF` : `₹${c.value} FLAT OFF`}
-                    </td>
+                  return (
+                    <tr
+                      key={c.id}
+                      className={`hover:bg-paper/20 transition-colors ${
+                        !c.active ? "opacity-60 bg-paper/20" : ""
+                      }`}
+                    >
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`font-bold px-2.5 py-1 rounded-lg text-xs ${
+                              isSpecialFirstOrder
+                                ? "bg-spot-lime/20 text-ink border border-spot-lime"
+                                : "bg-violet/10 text-violet border border-violet/20"
+                            }`}
+                          >
+                            {c.code}
+                          </span>
+                        </div>
+                      </td>
 
-                    <td className="py-3.5 px-4 text-white/70">
-                      ₹{c.minSubtotal.toLocaleString("en-IN")}
-                    </td>
+                      <td className="py-3.5 px-3">
+                        <span className="font-bold text-ink">{discountDisplay}</span>
+                      </td>
 
-                    <td className="py-3.5 px-4">
-                      {c.firstOrderOnly ? (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] bg-purple-500/20 text-purple-300">
-                          1st Order Only
-                        </span>
-                      ) : (
-                        <span className="text-white/40">No user limit</span>
-                      )}
-                    </td>
+                      <td className="py-3.5 px-3 text-ink/80">
+                        ₹{(c.minSubtotalPaise / 100).toLocaleString("en-IN")}
+                      </td>
 
-                    <td className="py-3.5 px-4 text-white/80">
-                      {c.usageCount} orders
-                    </td>
+                      <td className="py-3.5 px-3 text-ink/70">{capDisplay}</td>
 
-                    <td className="py-3.5 px-4">
-                      <button
-                        onClick={() => handleToggleCoupon(c)}
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase transition-colors ${c.active
-                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                            : "bg-white/10 text-white/40 border border-white/20"
+                      <td className="py-3.5 px-3">
+                        <div className="flex flex-col text-[11px]">
+                          <span className="font-bold text-ink">
+                            {c.usageCount} {c.totalUsageLimit ? `/ ${c.totalUsageLimit}` : "used"}
+                          </span>
+                          <span className="text-[10px] text-ink/40">
+                            Limit: {c.perUserLimit} per customer
+                          </span>
+                        </div>
+                      </td>
+
+                      <td className="py-3.5 px-3">
+                        <div className="flex flex-wrap gap-1 text-[10px]">
+                          {c.firstOrderOnly && (
+                            <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 font-bold border border-emerald-500/20">
+                              First Order Only
+                            </span>
+                          )}
+                          {c.applicableCategories && c.applicableCategories.length > 0 ? (
+                            <span className="px-1.5 py-0.5 rounded bg-ink/5 text-ink/70">
+                              {c.applicableCategories.length} categories
+                            </span>
+                          ) : (
+                            <span className="px-1.5 py-0.5 rounded bg-paper text-ink/50">
+                              Site-wide
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      <td className="py-3.5 px-3 text-[11px] text-ink/60">
+                        {c.expiresAt ? new Date(c.expiresAt).toLocaleDateString("en-IN") : "Never"}
+                      </td>
+
+                      <td className="py-3.5 px-4 text-right">
+                        <button
+                          type="button"
+                          onClick={() => handleToggle(c)}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors ${
+                            c.active
+                              ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200"
+                              : "bg-paper text-ink/40 border-ink/10 hover:bg-emerald-50 hover:text-emerald-700"
                           }`}
-                      >
-                        {c.active ? "Active" : "Disabled"}
-                      </button>
-                    </td>
-
-                    <td className="py-3.5 px-4 text-right">
-                      <button
-                        onClick={() => handleDeleteCoupon(c.id, c.code)}
-                        className="text-white/40 hover:text-rose-400 p-1.5 transition-colors"
-                        title="Delete Coupon"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                        >
+                          {c.active ? (
+                            <>
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              Active
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="w-3 h-3 text-ink/40" />
+                              Disabled
+                            </>
+                          )}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -229,114 +316,176 @@ export default function AdminCouponsPage() {
       </div>
 
       {/* Create Coupon Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#181324] border border-white/20 rounded-2xl max-w-md w-full p-6 space-y-5">
-            <div>
-              <h3 className="font-display font-bold text-xl text-white">
-                Create New Promotion Voucher
-              </h3>
-              <p className="text-xs font-mono text-white/50 mt-1">
-                Vouchers are validated securely on server checkout
-              </p>
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl border border-ink/10 shadow-2xl max-w-lg w-full p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-ink/10">
+              <div>
+                <h3 className="font-display font-bold text-lg text-ink">
+                  Create Promo Coupon
+                </h3>
+                <p className="text-xs font-mono text-ink/50 mt-0.5">
+                  Configure discount formula, maximum caps, and category targeting
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                className="p-1 rounded-lg text-ink/40 hover:text-ink hover:bg-paper"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            <form onSubmit={handleCreateCoupon} className="space-y-4">
-              <div>
-                <label className="block text-xs font-mono uppercase text-white/60 mb-1.5">
-                  Coupon Code
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. DIWALI20"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.toUpperCase())}
-                  className="w-full bg-[#110D1A] border border-white/20 rounded-xl px-3 py-2 text-xs font-mono text-white placeholder-white/40 focus:outline-none focus:border-pf-violet uppercase"
-                  required
-                />
-              </div>
-
+            <form onSubmit={handleCreateCoupon} className="space-y-4 font-mono text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-mono uppercase text-white/60 mb-1.5">
-                    Discount Type
-                  </label>
-                  <select
-                    value={type}
-                    onChange={(e) => setType(e.target.value as "PERCENTAGE" | "FLAT")}
-                    className="w-full bg-[#110D1A] border border-white/20 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-pf-violet"
-                  >
-                    <option value="PERCENTAGE">Percentage (%)</option>
-                    <option value="FLAT">Flat INR (₹)</option>
-                  </select>
+                  <label className="block text-ink/70 mb-1">Coupon Code *</label>
+                  <input
+                    type="text"
+                    required
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.toUpperCase())}
+                    placeholder="e.g. WELCOME15"
+                    className="w-full px-3 py-2 border border-ink/10 rounded-xl focus:outline-none focus:border-violet font-bold"
+                  />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-mono uppercase text-white/60 mb-1.5">
-                    Value {type === "PERCENTAGE" ? "(%)" : "(₹)"}
+                  <label className="block text-ink/70 mb-1">Discount Type *</label>
+                  <select
+                    value={type}
+                    onChange={(e) => setType(e.target.value as "PERCENTAGE" | "FLAT")}
+                    className="w-full px-3 py-2 border border-ink/10 rounded-xl focus:outline-none focus:border-violet bg-white"
+                  >
+                    <option value="PERCENTAGE">Percentage (%)</option>
+                    <option value="FLAT">Flat Amount (₹)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-ink/70 mb-1">
+                    {type === "PERCENTAGE" ? "Percent (%)" : "Flat (₹)"} *
                   </label>
                   <input
                     type="number"
-                    placeholder="15"
+                    min={1}
+                    required
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
-                    className="w-full bg-[#110D1A] border border-white/20 rounded-xl px-3 py-2 text-xs font-mono text-white placeholder-white/40 focus:outline-none focus:border-pf-violet"
-                    required
+                    className="w-full px-3 py-2 border border-ink/10 rounded-xl focus:outline-none focus:border-violet"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-ink/70 mb-1">Max Cap (₹)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={maxDiscountCap}
+                    onChange={(e) => setMaxDiscountCap(e.target.value)}
+                    placeholder="e.g. 500"
+                    disabled={type === "FLAT"}
+                    className="w-full px-3 py-2 border border-ink/10 rounded-xl focus:outline-none focus:border-violet disabled:bg-paper"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-ink/70 mb-1">Min Cart (₹)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={minSubtotal}
+                    onChange={(e) => setMinSubtotal(e.target.value)}
+                    placeholder="e.g. 1000"
+                    className="w-full px-3 py-2 border border-ink/10 rounded-xl focus:outline-none focus:border-violet"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-mono uppercase text-white/60 mb-1.5">
-                  Minimum Cart Subtotal (₹)
-                </label>
-                <input
-                  type="number"
-                  value={minSubtotal}
-                  onChange={(e) => setMinSubtotal(e.target.value)}
-                  className="w-full bg-[#110D1A] border border-white/20 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-pf-violet"
-                />
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-ink/70 mb-1">Global Limit</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={totalUsageLimit}
+                    onChange={(e) => setTotalUsageLimit(e.target.value)}
+                    placeholder="500"
+                    className="w-full px-3 py-2 border border-ink/10 rounded-xl focus:outline-none focus:border-violet"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-ink/70 mb-1">Per User</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={perUserLimit}
+                    onChange={(e) => setPerUserLimit(parseInt(e.target.value, 10) || 1)}
+                    placeholder="1"
+                    className="w-full px-3 py-2 border border-ink/10 rounded-xl focus:outline-none focus:border-violet"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-ink/70 mb-1">Expiry Date</label>
+                  <input
+                    type="date"
+                    value={expiresAt}
+                    onChange={(e) => setExpiresAt(e.target.value)}
+                    className="w-full px-3 py-2 border border-ink/10 rounded-xl focus:outline-none focus:border-violet bg-white"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-mono uppercase text-white/60 mb-1.5">
-                  Expiry Date
-                </label>
-                <input
-                  type="date"
-                  value={expiresAt}
-                  onChange={(e) => setExpiresAt(e.target.value)}
-                  className="w-full bg-[#110D1A] border border-white/20 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-pf-violet"
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
+              <label className="flex items-center gap-2 p-2.5 rounded-xl border border-ink/10 hover:bg-paper/30 cursor-pointer">
                 <input
                   type="checkbox"
-                  id="firstOrderCheck"
                   checked={firstOrderOnly}
                   onChange={(e) => setFirstOrderOnly(e.target.checked)}
-                  className="rounded border-white/20 bg-[#110D1A] text-pf-violet focus:ring-0"
+                  className="rounded text-violet focus:ring-violet h-4 w-4"
                 />
-                <label htmlFor="firstOrderCheck" className="text-xs font-mono text-white/80 cursor-pointer">
-                  Limit to customer&apos;s first purchase only
-                </label>
+                <div>
+                  <span className="font-bold text-ink">First Order Only</span>
+                  <p className="text-[10px] text-ink/50">Restricted strictly to new accounts</p>
+                </div>
+              </label>
+
+              <div>
+                <label className="block text-ink/70 mb-1">Applicable Categories</label>
+                <div className="grid grid-cols-2 gap-1.5 p-2 rounded-xl border border-ink/10 bg-paper/20">
+                  {allCategories.map((cat) => (
+                    <label key={cat.slug} className="flex items-center gap-1.5 text-[11px] cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedCategories.includes(cat.slug)}
+                        onChange={() => toggleCategory(cat.slug)}
+                        className="rounded text-violet"
+                      />
+                      <span>{cat.name}</span>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-[10px] text-ink/40 mt-1">Leave all unchecked for site-wide applicability.</p>
               </div>
 
-              <div className="flex justify-end gap-3 pt-3">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-ink/10">
                 <button
                   type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 rounded-xl bg-white/10 text-white/80 text-xs font-mono hover:bg-white/20"
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2 border border-ink/10 rounded-xl text-ink/60 hover:bg-paper"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 rounded-xl bg-pf-violet text-white text-xs font-mono font-bold hover:bg-pf-violet/90 disabled:opacity-50"
+                  disabled={saving}
+                  className="px-5 py-2 bg-violet text-white rounded-xl hover:bg-violet-hover disabled:opacity-50"
                 >
-                  {submitting ? "Creating..." : "Save Coupon"}
+                  {saving ? "Saving..." : "Create Campaign"}
                 </button>
               </div>
             </form>

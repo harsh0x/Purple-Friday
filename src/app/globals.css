@@ -113,3 +113,171 @@
     scroll-behavior: auto !important;
   }
 }
+
+
+/* ==============================================================================
+   ADMIN DASHBOARD MODERN TYPOGRAPHY & THEME SYSTEM (LIGHT & DARK MODE)
+   ============================================================================== */
+
+/* 1. Crisp Modern Sans-Serif Typography Stack for Admin Portal */
+[data-admin-root],
+.admin-portal {
+  font-family: var(--font-instrument), "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+[data-admin-root] h1,
+[data-admin-root] h2,
+[data-admin-root] h3,
+[data-admin-root] h4,
+[data-admin-root] h5,
+[data-admin-root] h6,
+[data-admin-root] .font-display {
+  font-family: var(--font-instrument), "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* Remap pixelated monospace to crisp modern sans on body, labels, subtitles, tables, and cards */
+[data-admin-root] .font-mono:not([data-mono-strict]):not(.font-mono-code):not(code):not(pre) {
+  font-family: var(--font-instrument), "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: normal;
+}
+
+/* Monospace is reserved strictly for Order IDs, SKU codes, hashes, and timestamps */
+[data-admin-root] [data-mono-strict],
+[data-admin-root] .font-mono-code,
+[data-admin-root] code,
+[data-admin-root] pre,
+[data-admin-root] [data-order-id],
+[data-admin-root] [data-sku] {
+  font-family: var(--font-dm-mono), monospace !important;
+  letter-spacing: -0.01em;
+}
+
+/* 2. Dark Theme Palette (Obsidian / Slate / Purple Friday Electric Violet & Lime) */
+[data-admin-root].admin-dark,
+[data-admin-root][data-theme="dark"],
+.admin-dark {
+  --admin-canvas: #0F0D15;
+  --admin-surface: #13111C;
+  --admin-card: #1A1726;
+  --admin-border: #2A253B;
+  --admin-text-primary: #F4F3F8;
+  --admin-text-secondary: #9E98B3;
+  --admin-text-muted: #736C8D;
+  --admin-accent-violet: #7C3AED;
+  --admin-accent-lime: #D9F99D;
+  background-color: #0F0D15;
+  color: #F4F3F8;
+}
+
+/* Content Surface (Main Container) */
+.admin-dark main,
+[data-theme="dark"] main {
+  background-color: #13111C !important;
+  border-color: #2A253B !important;
+  color: #F4F3F8 !important;
+}
+
+/* Cards & Surfaces */
+.admin-dark .bg-white,
+[data-theme="dark"] .bg-white {
+  background-color: #1A1726 !important;
+  border-color: #2A253B !important;
+  color: #F4F3F8 !important;
+}
+
+.admin-dark .bg-\[\#FAF7F2\],
+.admin-dark .bg-\[\#F5F0E8\],
+[data-theme="dark"] .bg-\[\#FAF7F2\],
+[data-theme="dark"] .bg-\[\#F5F0E8\] {
+  background-color: #151220 !important;
+  border-color: #2A253B !important;
+  color: #F4F3F8 !important;
+}
+
+/* Borders */
+.admin-dark .border-\[\#15101F\]\/10,
+.admin-dark .border-\[\#15101F\]\/15,
+.admin-dark .border-\[\#15101F\]\/20,
+.admin-dark .border-\[\#15101F\]\/5,
+[data-theme="dark"] .border-\[\#15101F\]\/10,
+[data-theme="dark"] .border-\[\#15101F\]\/15,
+[data-theme="dark"] .border-\[\#15101F\]\/20,
+[data-theme="dark"] .border-\[\#15101F\]\/5 {
+  border-color: #2A253B !important;
+}
+
+/* Typography Colors */
+.admin-dark .text-\[\#15101F\],
+[data-theme="dark"] .text-\[\#15101F\] {
+  color: #F4F3F8 !important;
+}
+
+.admin-dark .text-\[\#15101F\]\/60,
+.admin-dark .text-\[\#15101F\]\/65,
+.admin-dark .text-\[\#15101F\]\/70,
+.admin-dark .text-\[\#15101F\]\/80,
+[data-theme="dark"] .text-\[\#15101F\]\/60,
+[data-theme="dark"] .text-\[\#15101F\]\/65,
+[data-theme="dark"] .text-\[\#15101F\]\/70,
+[data-theme="dark"] .text-\[\#15101F\]\/80 {
+  color: #9E98B3 !important;
+}
+
+.admin-dark .text-\[\#15101F\]\/40,
+.admin-dark .text-\[\#15101F\]\/50,
+[data-theme="dark"] .text-\[\#15101F\]\/40,
+[data-theme="dark"] .text-\[\#15101F\]\/50 {
+  color: #736C8D !important;
+}
+
+/* Dark Mode Table Styling */
+.admin-dark table thead tr,
+[data-theme="dark"] table thead tr {
+  background-color: #151220 !important;
+  color: #9E98B3 !important;
+  border-color: #2A253B !important;
+}
+
+.admin-dark table tbody tr,
+[data-theme="dark"] table tbody tr {
+  border-color: #2A253B !important;
+  color: #F4F3F8 !important;
+}
+
+.admin-dark table tbody tr:hover,
+[data-theme="dark"] table tbody tr:hover {
+  background-color: #211D32 !important;
+}
+
+/* Status Badges in Dark Mode */
+.admin-dark .bg-rose-100,
+[data-theme="dark"] .bg-rose-100 {
+  background-color: rgba(225, 29, 72, 0.2) !important;
+  color: #FDA4AF !important;
+  border-color: rgba(225, 29, 72, 0.4) !important;
+}
+
+.admin-dark .bg-amber-100,
+[data-theme="dark"] .bg-amber-100 {
+  background-color: rgba(245, 158, 11, 0.2) !important;
+  color: #FCD34D !important;
+  border-color: rgba(245, 158, 11, 0.4) !important;
+}
+
+.admin-dark .bg-emerald-100,
+[data-theme="dark"] .bg-emerald-100 {
+  background-color: rgba(16, 185, 129, 0.2) !important;
+  color: #6EE7B7 !important;
+  border-color: rgba(16, 185, 129, 0.4) !important;
+}
+
+.admin-dark .bg-purple-100,
+[data-theme="dark"] .bg-purple-100 {
+  background-color: rgba(124, 58, 237, 0.2) !important;
+  color: #C4B5FD !important;
+  border-color: rgba(124, 58, 237, 0.4) !important;
+}

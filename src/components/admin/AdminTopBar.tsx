@@ -13,6 +13,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { CommandPalette } from "./CommandPalette";
+import { AdminThemeToggle } from "./AdminThemeToggle";
 
 interface AdminTopBarProps {
   userName?: string | null;
@@ -113,8 +114,11 @@ export function AdminTopBar({
           </button>
         </div>
 
-        {/* Right: Round icon buttons and user menu */}
+        {/* Right: Round icon buttons, theme toggle and user menu */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Dark / Light Theme Mode Toggle */}
+          <AdminThemeToggle />
+
           {/* Notifications Bell */}
           <div className="relative">
             <button

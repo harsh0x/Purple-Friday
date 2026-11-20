@@ -37,7 +37,11 @@ export default async function AdminLayout({
 
     // If unauthenticated (e.g. on /admin/login), render without shell wrapper
     if (!userRole || !isStaffRole(userRole)) {
-      return <div className="min-h-screen bg-[#15101F] text-white">{children}</div>;
+      return (
+        <div data-admin-root="true" className="min-h-screen bg-[#15101F] text-white admin-portal admin-dark font-sans">
+          {children}
+        </div>
+      );
     }
 
     return (

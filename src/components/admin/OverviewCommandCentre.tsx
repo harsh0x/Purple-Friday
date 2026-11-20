@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { OverviewDashboardData, FunnelItem, KpiTile, AttentionItem } from "@/server/analytics/overview-service";
+import { useAdminTheme } from "./AdminThemeContext";
 
 interface Props {
   initialData: OverviewDashboardData;
@@ -19,6 +20,8 @@ interface Props {
 export function OverviewCommandCentre({ initialData }: Props) {
   const [data] = useState<OverviewDashboardData>(initialData);
   const [timeRange, setTimeRange] = useState<"7D" | "30D" | "90D">("30D");
+  const { theme } = useAdminTheme();
+  const isDark = theme === "dark";
 
   const currentSeries =
     timeRange === "7D"
@@ -31,14 +34,22 @@ export function OverviewCommandCentre({ initialData }: Props) {
   const maxVal = Math.max(...currentSeries.netRevenue, 100);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 font-sans">
       {/* 1. Live Operational Funnel Strip */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-mono uppercase tracking-widest text-[#15101F]/60 font-semibold">
+          <span
+            className={`text-xs font-sans uppercase tracking-wider font-semibold ${
+              isDark ? "text-[#9E98B3]" : "text-[#15101F]/70"
+            }`}
+          >
             Live Atelier Operational Funnel
           </span>
-          <span className="text-[11px] font-mono text-[#15101F]/50">
+          <span
+            className={`text-xs font-sans ${
+              isDark ? "text-[#736C8D]" : "text-[#15101F]/50"
+            }`}
+          >
             Real-time pipeline dispatch telemetry
           </span>
         </div>
@@ -49,26 +60,52 @@ export function OverviewCommandCentre({ initialData }: Props) {
               href={item.href}
               className={`group p-4 rounded-2xl border transition-all hover:shadow-md ${
                 item.isOverdueAlert
-                  ? "bg-rose-50/80 border-rose-200 hover:border-rose-300"
+                  ? isDark
+                    ? "bg-rose-950/30 border-rose-800/40 hover:border-rose-700/60"
+                    : "bg-rose-50/80 border-rose-200 hover:border-rose-300"
+                  : isDark
+                  ? "bg-[#1A1726] border-[#2A253B] hover:border-[#7C3AED]/50"
                   : "bg-white border-[#15101F]/10 hover:border-[#6A2CFF]/40"
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-mono uppercase tracking-wider text-[#15101F]/60 font-medium truncate">
+                <span
+                  className={`text-xs font-sans font-medium truncate ${
+                    isDark ? "text-[#9E98B3]" : "text-[#15101F]/70"
+                  }`}
+                >
                   {item.label}
                 </span>
-                <ArrowUpRight className="w-3.5 h-3.5 text-[#15101F]/40 group-hover:text-[#6A2CFF] transition-colors" />
+                <ArrowUpRight
+                  className={`w-3.5 h-3.5 transition-colors ${
+                    isDark
+                      ? "text-[#736C8D] group-hover:text-[#D9F99D]"
+                      : "text-[#15101F]/40 group-hover:text-[#6A2CFF]"
+                  }`}
+                />
               </div>
-              <div className="mt-2 flex items-baseline gap-2">
+              <div className="mt-2.5 flex items-baseline gap-2">
                 <span
-                  className={`font-mono text-2xl font-black ${
-                    item.isOverdueAlert ? "text-rose-600" : "text-[#15101F]"
+                  className={`font-sans text-2xl font-bold tracking-tight ${
+                    item.isOverdueAlert
+                      ? isDark
+                        ? "text-rose-400"
+                        : "text-rose-600"
+                      : isDark
+                      ? "text-[#F4F3F8]"
+                      : "text-[#15101F]"
                   }`}
                 >
                   {item.count}
                 </span>
                 {item.isOverdueAlert && (
-                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">
+                  <span
+                    className={`text-[10px] font-sans font-bold px-1.5 py-0.5 rounded ${
+                      isDark
+                        ? "bg-rose-950/70 text-rose-300 border border-rose-800/50"
+                        : "bg-rose-100 text-rose-700"
+                    }`}
+                  >
                     SLA ALERT
                   </span>
                 )}
@@ -81,31 +118,65 @@ export function OverviewCommandCentre({ initialData }: Props) {
       {/* 2. Big Chart Card + Category Donut Card */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Big Chart Card with Segmented Time Control */}
-        <div className="lg:col-span-2 bg-white rounded-3xl p-6 sm:p-7 border border-[#15101F]/10 shadow-sm flex flex-col justify-between">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#15101F]/10">
+        <div
+          className={`lg:col-span-2 rounded-3xl p-6 sm:p-7 border shadow-sm flex flex-col justify-between transition-colors ${
+            isDark
+              ? "bg-[#1A1726] border-[#2A253B]"
+              : "bg-white border-[#15101F]/10"
+          }`}
+        >
+          <div
+            className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b ${
+              isDark ? "border-[#2A253B]" : "border-[#15101F]/10"
+            }`}
+          >
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="font-display font-bold text-lg text-[#15101F] tracking-tight">
+                <h2
+                  className={`font-sans font-bold text-lg tracking-tight ${
+                    isDark ? "text-[#F4F3F8]" : "text-[#15101F]"
+                  }`}
+                >
                   Net Revenue & True Net Margin Over Time
                 </h2>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-[#6A2CFF]/10 text-[#6A2CFF]">
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[11px] font-sans font-semibold ${
+                    isDark
+                      ? "bg-[#7C3AED]/20 text-[#C4B5FD] border border-[#7C3AED]/30"
+                      : "bg-[#6A2CFF]/10 text-[#6A2CFF]"
+                  }`}
+                >
                   Excl. GST
                 </span>
               </div>
-              <p className="text-xs font-mono text-[#15101F]/60 mt-0.5">
+              <p
+                className={`text-xs font-sans mt-0.5 ${
+                  isDark ? "text-[#9E98B3]" : "text-[#15101F]/65"
+                }`}
+              >
                 Realized revenue vs true bottom-line margin after COGS, freight, gateway fees & RTO losses
               </p>
             </div>
 
             {/* Segmented Time Control */}
-            <div className="inline-flex items-center p-1 rounded-2xl bg-[#F5F0E8] border border-[#15101F]/10 text-xs font-mono shrink-0">
+            <div
+              className={`inline-flex items-center p-1 rounded-2xl border text-xs font-sans shrink-0 ${
+                isDark
+                  ? "bg-[#13111C] border-[#2A253B]"
+                  : "bg-[#F5F0E8] border-[#15101F]/10"
+              }`}
+            >
               {(["7D", "30D", "90D"] as const).map((range) => (
                 <button
                   key={range}
                   onClick={() => setTimeRange(range)}
-                  className={`px-3 py-1.5 rounded-xl font-semibold transition-all ${
+                  className={`px-3 py-1.5 rounded-xl font-medium transition-all ${
                     timeRange === range
-                      ? "bg-[#15101F] text-white shadow-sm"
+                      ? isDark
+                        ? "bg-[#7C3AED] text-white shadow-sm font-semibold"
+                        : "bg-[#15101F] text-white shadow-sm font-semibold"
+                      : isDark
+                      ? "text-[#9E98B3] hover:text-[#F4F3F8]"
                       : "text-[#15101F]/60 hover:text-[#15101F]"
                   }`}
                 >
@@ -126,26 +197,42 @@ export function OverviewCommandCentre({ initialData }: Props) {
               return (
                 <div key={idx} className="flex-1 flex flex-col items-center gap-2 group relative">
                   {/* Tooltip */}
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full mb-2 z-20 pointer-events-none bg-[#15101F] text-white text-[11px] font-mono rounded-xl p-2 shadow-xl whitespace-nowrap">
+                  <div
+                    className={`opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full mb-2 z-20 pointer-events-none text-xs font-sans rounded-xl p-2.5 shadow-xl whitespace-nowrap border ${
+                      isDark
+                        ? "bg-[#13111C] border-[#2A253B] text-[#F4F3F8]"
+                        : "bg-[#15101F] border-transparent text-white"
+                    }`}
+                  >
                     <div className="font-bold">{date}</div>
-                    <div className="text-emerald-400">Net Rev: ₹{rev.toLocaleString("en-IN")}</div>
-                    <div className="text-[#CDB8FF]">Net Margin: ₹{margin.toLocaleString("en-IN")}</div>
+                    <div className="text-emerald-400 font-medium">Net Rev: ₹{rev.toLocaleString("en-IN")}</div>
+                    <div className="text-[#CDB8FF] font-medium">Net Margin: ₹{margin.toLocaleString("en-IN")}</div>
                   </div>
 
                   {/* Dual Bars */}
                   <div className="w-full flex items-end justify-center gap-1 h-44">
                     {/* Revenue Bar */}
                     <div
-                      className="w-full max-w-[18px] bg-[#6A2CFF] rounded-t-md transition-all duration-500 hover:brightness-110"
+                      className={`w-full max-w-[18px] rounded-t-md transition-all duration-500 hover:brightness-110 ${
+                        isDark ? "bg-[#8B5CF6]" : "bg-[#6A2CFF]"
+                      }`}
                       style={{ height: `${heightPercent}%` }}
                     />
                     {/* Margin Bar */}
                     <div
-                      className="w-full max-w-[18px] bg-[#D8FF3F] rounded-t-md transition-all duration-500 hover:brightness-110 border border-[#15101F]/10"
+                      className={`w-full max-w-[18px] rounded-t-md transition-all duration-500 hover:brightness-110 border ${
+                        isDark
+                          ? "bg-[#D9F99D] border-transparent"
+                          : "bg-[#D8FF3F] border-[#15101F]/10"
+                      }`}
                       style={{ height: `${marginPercent}%` }}
                     />
                   </div>
-                  <span className="text-[10px] font-mono text-[#15101F]/50 truncate max-w-[36px]">
+                  <span
+                    className={`text-[11px] font-sans truncate max-w-[38px] ${
+                      isDark ? "text-[#736C8D]" : "text-[#15101F]/60"
+                    }`}
+                  >
                     {date.split(" ")[0]}
                   </span>
                 </div>
@@ -154,20 +241,28 @@ export function OverviewCommandCentre({ initialData }: Props) {
           </div>
 
           {/* Chart Legend & Summary */}
-          <div className="pt-4 border-t border-[#15101F]/10 flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-[#15101F]/70">
+          <div
+            className={`pt-4 border-t flex flex-wrap items-center justify-between gap-3 text-xs font-sans ${
+              isDark
+                ? "border-[#2A253B] text-[#9E98B3]"
+                : "border-[#15101F]/10 text-[#15101F]/70"
+            }`}
+          >
             <div className="flex items-center gap-4">
               <span className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded bg-[#6A2CFF]" />
+                <span className={`w-3 h-3 rounded ${isDark ? "bg-[#8B5CF6]" : "bg-[#6A2CFF]"}`} />
                 <span>Net Revenue (Excl GST)</span>
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded bg-[#D8FF3F] border border-[#15101F]/20" />
+                <span className={`w-3 h-3 rounded ${isDark ? "bg-[#D9F99D]" : "bg-[#D8FF3F] border border-[#15101F]/20"}`} />
                 <span>True Net Margin</span>
               </span>
             </div>
             <Link
               href="/admin/margin"
-              className="font-semibold text-[#6A2CFF] hover:underline flex items-center gap-1"
+              className={`font-semibold hover:underline flex items-center gap-1 ${
+                isDark ? "text-[#C4B5FD]" : "text-[#6A2CFF]"
+              }`}
             >
               <span>View Margin Waterfall</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
@@ -176,12 +271,26 @@ export function OverviewCommandCentre({ initialData }: Props) {
         </div>
 
         {/* Donut Card: Orders by Product Category */}
-        <div className="bg-white rounded-3xl p-6 sm:p-7 border border-[#15101F]/10 shadow-sm flex flex-col justify-between">
+        <div
+          className={`rounded-3xl p-6 sm:p-7 border shadow-sm flex flex-col justify-between transition-colors ${
+            isDark
+              ? "bg-[#1A1726] border-[#2A253B]"
+              : "bg-white border-[#15101F]/10"
+          }`}
+        >
           <div>
-            <h2 className="font-display font-bold text-lg text-[#15101F] tracking-tight">
+            <h2
+              className={`font-sans font-bold text-lg tracking-tight ${
+                isDark ? "text-[#F4F3F8]" : "text-[#15101F]"
+              }`}
+            >
               Orders by Category
             </h2>
-            <p className="text-xs font-mono text-[#15101F]/60 mt-0.5">
+            <p
+              className={`text-xs font-sans mt-0.5 ${
+                isDark ? "text-[#9E98B3]" : "text-[#15101F]/60"
+              }`}
+            >
               Production distribution across atelier catalogues
             </p>
           </div>
@@ -194,7 +303,7 @@ export function OverviewCommandCentre({ initialData }: Props) {
                   cx="50"
                   cy="50"
                   r="40"
-                  stroke="#EDE6DA"
+                  stroke={isDark ? "#2A253B" : "#EDE6DA"}
                   strokeWidth="12"
                   fill="none"
                 />
@@ -224,10 +333,18 @@ export function OverviewCommandCentre({ initialData }: Props) {
                 })}
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
-                <span className="font-mono text-xl font-black text-[#15101F]">
+                <span
+                  className={`font-sans text-xl font-bold tracking-tight ${
+                    isDark ? "text-[#F4F3F8]" : "text-[#15101F]"
+                  }`}
+                >
                   {data.categoryDonut.reduce((sum, item) => sum + item.count, 0)}
                 </span>
-                <span className="text-[10px] font-mono text-[#15101F]/60 uppercase tracking-wider">
+                <span
+                  className={`text-[10px] font-sans uppercase tracking-wider ${
+                    isDark ? "text-[#9E98B3]" : "text-[#15101F]/60"
+                  }`}
+                >
                   Units
                 </span>
               </div>
@@ -235,22 +352,44 @@ export function OverviewCommandCentre({ initialData }: Props) {
           </div>
 
           {/* Category Legend */}
-          <div className="space-y-2 pt-4 border-t border-[#15101F]/10">
+          <div
+            className={`space-y-2 pt-4 border-t ${
+              isDark ? "border-[#2A253B]" : "border-[#15101F]/10"
+            }`}
+          >
             {data.categoryDonut.map((item) => (
               <div
                 key={item.category}
-                className="flex items-center justify-between text-xs font-mono"
+                className="flex items-center justify-between text-xs font-sans"
               >
                 <div className="flex items-center gap-2 truncate">
                   <span
                     className="w-2.5 h-2.5 rounded-full shrink-0"
                     style={{ backgroundColor: item.color }}
                   />
-                  <span className="text-[#15101F]/70 truncate">{item.category}</span>
+                  <span
+                    className={`truncate font-medium ${
+                      isDark ? "text-[#9E98B3]" : "text-[#15101F]/70"
+                    }`}
+                  >
+                    {item.category}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[#15101F]/50 font-normal">{item.percentage}%</span>
-                  <span className="font-bold text-[#15101F]">{item.count}</span>
+                  <span
+                    className={`font-normal ${
+                      isDark ? "text-[#736C8D]" : "text-[#15101F]/50"
+                    }`}
+                  >
+                    {item.percentage}%
+                  </span>
+                  <span
+                    className={`font-semibold ${
+                      isDark ? "text-[#F4F3F8]" : "text-[#15101F]"
+                    }`}
+                  >
+                    {item.count}
+                  </span>
                 </div>
               </div>
             ))}
@@ -261,11 +400,21 @@ export function OverviewCommandCentre({ initialData }: Props) {
       {/* 3. KPI Tiles Grid with Count-up Values & Role Filtering */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-mono uppercase tracking-widest text-[#15101F]/60 font-semibold">
+          <span
+            className={`text-xs font-sans uppercase tracking-wider font-semibold ${
+              isDark ? "text-[#9E98B3]" : "text-[#15101F]/70"
+            }`}
+          >
             Key Performance Indicators ({data.role.replace(/_/g, " ")})
           </span>
           {data.role === "SUPER_ADMIN" && (
-            <span className="text-[11px] font-mono text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-semibold">
+            <span
+              className={`text-[11px] font-sans px-2 py-0.5 rounded-full font-semibold ${
+                isDark
+                  ? "bg-emerald-950/50 text-emerald-300 border border-emerald-800/40"
+                  : "text-emerald-700 bg-emerald-50"
+              }`}
+            >
               Executive Financial View
             </span>
           )}
@@ -274,32 +423,52 @@ export function OverviewCommandCentre({ initialData }: Props) {
           {data.kpiTiles.map((tile: KpiTile) => (
             <div
               key={tile.id}
-              className="bg-white rounded-3xl p-5 border border-[#15101F]/10 shadow-sm flex flex-col justify-between hover:border-[#6A2CFF]/30 transition-all"
+              className={`rounded-3xl p-5 border shadow-sm flex flex-col justify-between transition-all ${
+                isDark
+                  ? "bg-[#1A1726] border-[#2A253B] hover:border-[#7C3AED]/40"
+                  : "bg-white border-[#15101F]/10 hover:border-[#6A2CFF]/30"
+              }`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-mono uppercase tracking-wider text-[#15101F]/60 font-medium">
+                <span
+                  className={`text-xs font-sans uppercase tracking-wider font-medium ${
+                    isDark ? "text-[#9E98B3]" : "text-[#15101F]/60"
+                  }`}
+                >
                   {tile.label}
                 </span>
                 {tile.trend === "up" ? (
-                  <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
+                  <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
                 ) : tile.trend === "down" ? (
-                  <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                  <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
                 ) : null}
               </div>
               <div className="mt-3">
-                <div className="font-mono text-2xl font-black text-[#15101F] tracking-tight">
+                <div
+                  className={`font-sans text-2xl font-bold tracking-tight ${
+                    isDark ? "text-[#F4F3F8]" : "text-[#15101F]"
+                  }`}
+                >
                   {tile.value}
                 </div>
                 {tile.change && (
                   <div
-                    className={`text-[10px] font-mono font-semibold mt-1 ${
-                      tile.trend === "up" ? "text-emerald-600" : "text-[#15101F]/60"
+                    className={`text-[11px] font-sans font-medium mt-1 ${
+                      tile.trend === "up"
+                        ? "text-emerald-500"
+                        : isDark
+                        ? "text-[#9E98B3]"
+                        : "text-[#15101F]/60"
                     }`}
                   >
                     {tile.change}
                   </div>
                 )}
-                <div className="text-[11px] text-[#15101F]/60 font-sans mt-0.5 truncate">
+                <div
+                  className={`text-[11px] font-sans mt-0.5 truncate ${
+                    isDark ? "text-[#736C8D]" : "text-[#15101F]/60"
+                  }`}
+                >
                   {tile.subtitle}
                 </div>
               </div>
@@ -311,15 +480,35 @@ export function OverviewCommandCentre({ initialData }: Props) {
       {/* 4. Actionable "Needs Your Attention" + Recent Activity Feed */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Needs Your Attention List */}
-        <div className="bg-white rounded-3xl p-6 border border-[#15101F]/10 shadow-sm">
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#15101F]/10">
+        <div
+          className={`rounded-3xl p-6 border shadow-sm transition-colors ${
+            isDark
+              ? "bg-[#1A1726] border-[#2A253B]"
+              : "bg-white border-[#15101F]/10"
+          }`}
+        >
+          <div
+            className={`flex items-center justify-between mb-4 pb-3 border-b ${
+              isDark ? "border-[#2A253B]" : "border-[#15101F]/10"
+            }`}
+          >
             <div className="flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-[#6A2CFF]" />
-              <h3 className="font-display font-bold text-base text-[#15101F]">
+              <AlertCircle className={`w-4 h-4 ${isDark ? "text-[#8B5CF6]" : "text-[#6A2CFF]"}`} />
+              <h3
+                className={`font-sans font-bold text-base ${
+                  isDark ? "text-[#F4F3F8]" : "text-[#15101F]"
+                }`}
+              >
                 Needs Your Attention ({data.attentionItems.length})
               </h3>
             </div>
-            <span className="text-xs font-mono text-[#15101F]/50">Action required</span>
+            <span
+              className={`text-xs font-sans ${
+                isDark ? "text-[#736C8D]" : "text-[#15101F]/50"
+              }`}
+            >
+              Action required
+            </span>
           </div>
 
           <div className="space-y-3">
@@ -327,31 +516,57 @@ export function OverviewCommandCentre({ initialData }: Props) {
               <Link
                 key={item.id}
                 href={item.href}
-                className="block p-4 rounded-2xl bg-[#FAF7F2] border border-[#15101F]/10 hover:border-[#6A2CFF]/40 hover:bg-white transition-all group"
+                className={`block p-4 rounded-2xl border transition-all group ${
+                  isDark
+                    ? "bg-[#13111C] border-[#2A253B] hover:border-[#7C3AED]/50 hover:bg-[#1A1726]"
+                    : "bg-[#FAF7F2] border-[#15101F]/10 hover:border-[#6A2CFF]/40 hover:bg-white"
+                }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-sans font-bold text-sm text-[#15101F] group-hover:text-[#6A2CFF] transition-colors">
+                      <span
+                        className={`font-sans font-semibold text-sm transition-colors ${
+                          isDark
+                            ? "text-[#F4F3F8] group-hover:text-[#D9F99D]"
+                            : "text-[#15101F] group-hover:text-[#6A2CFF]"
+                        }`}
+                      >
                         {item.title}
                       </span>
                       <span
-                        className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
+                        className={`text-[10px] font-sans px-2 py-0.5 rounded font-semibold ${
                           item.priority === "URGENT"
-                            ? "bg-rose-100 text-rose-700"
+                            ? isDark
+                              ? "bg-rose-950/60 text-rose-300 border border-rose-800/50"
+                              : "bg-rose-100 text-rose-700"
                             : item.priority === "HIGH"
-                            ? "bg-amber-100 text-amber-800"
+                            ? isDark
+                              ? "bg-amber-950/60 text-amber-300 border border-amber-800/50"
+                              : "bg-amber-100 text-amber-800"
+                            : isDark
+                            ? "bg-emerald-950/60 text-emerald-300 border border-emerald-800/50"
                             : "bg-emerald-100 text-emerald-800"
                         }`}
                       >
                         {item.badge}
                       </span>
                     </div>
-                    <p className="text-xs text-[#15101F]/70 font-sans mt-1">
+                    <p
+                      className={`text-xs font-sans mt-1 ${
+                        isDark ? "text-[#9E98B3]" : "text-[#15101F]/70"
+                      }`}
+                    >
                       {item.description}
                     </p>
                   </div>
-                  <ArrowUpRight className="w-4 h-4 text-[#15101F]/40 group-hover:text-[#6A2CFF] shrink-0 transition-colors" />
+                  <ArrowUpRight
+                    className={`w-4 h-4 shrink-0 transition-colors ${
+                      isDark
+                        ? "text-[#736C8D] group-hover:text-[#D9F99D]"
+                        : "text-[#15101F]/40 group-hover:text-[#6A2CFF]"
+                    }`}
+                  />
                 </div>
               </Link>
             ))}
@@ -359,17 +574,33 @@ export function OverviewCommandCentre({ initialData }: Props) {
         </div>
 
         {/* Recent Activity Feed */}
-        <div className="bg-white rounded-3xl p-6 border border-[#15101F]/10 shadow-sm">
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#15101F]/10">
+        <div
+          className={`rounded-3xl p-6 border shadow-sm transition-colors ${
+            isDark
+              ? "bg-[#1A1726] border-[#2A253B]"
+              : "bg-white border-[#15101F]/10"
+          }`}
+        >
+          <div
+            className={`flex items-center justify-between mb-4 pb-3 border-b ${
+              isDark ? "border-[#2A253B]" : "border-[#15101F]/10"
+            }`}
+          >
             <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-[#6A2CFF]" />
-              <h3 className="font-display font-bold text-base text-[#15101F]">
+              <Clock className={`w-4 h-4 ${isDark ? "text-[#8B5CF6]" : "text-[#6A2CFF]"}`} />
+              <h3
+                className={`font-sans font-bold text-base ${
+                  isDark ? "text-[#F4F3F8]" : "text-[#15101F]"
+                }`}
+              >
                 Recent Atelier Activity Feed
               </h3>
             </div>
             <Link
               href="/admin/audit"
-              className="text-xs font-mono font-semibold text-[#6A2CFF] hover:underline"
+              className={`text-xs font-sans font-semibold hover:underline ${
+                isDark ? "text-[#C4B5FD]" : "text-[#6A2CFF]"
+              }`}
             >
               Full Audit Log &rarr;
             </Link>
@@ -379,24 +610,55 @@ export function OverviewCommandCentre({ initialData }: Props) {
             {data.recentActivity.map((act) => (
               <div
                 key={act.id}
-                className="flex items-start justify-between gap-3 p-3.5 rounded-2xl bg-[#FAF7F2]/60 border border-[#15101F]/5"
+                className={`flex items-start justify-between gap-3 p-3.5 rounded-2xl border transition-colors ${
+                  isDark
+                    ? "bg-[#13111C]/80 border-[#2A253B]"
+                    : "bg-[#FAF7F2]/60 border-[#15101F]/5"
+                }`}
               >
                 <div className="flex items-start gap-3">
-                  <div className="w-7 h-7 rounded-xl bg-[#6A2CFF]/10 text-[#6A2CFF] flex items-center justify-center shrink-0 mt-0.5">
+                  <div
+                    className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                      isDark
+                        ? "bg-[#7C3AED]/20 text-[#D9F99D]"
+                        : "bg-[#6A2CFF]/10 text-[#6A2CFF]"
+                    }`}
+                  >
                     <Sparkles className="w-3.5 h-3.5" />
                   </div>
                   <div>
-                    <div className="text-xs font-sans font-bold text-[#15101F]">
+                    <div
+                      className={`text-xs font-sans font-semibold ${
+                        isDark ? "text-[#F4F3F8]" : "text-[#15101F]"
+                      }`}
+                    >
                       {act.action}
                     </div>
-                    <div className="text-[11px] font-sans text-[#15101F]/60 mt-0.5">
+                    <div
+                      className={`text-xs font-sans mt-0.5 ${
+                        isDark ? "text-[#9E98B3]" : "text-[#15101F]/60"
+                      }`}
+                    >
                       {act.detail}
                     </div>
                   </div>
                 </div>
                 <div className="flex flex-col items-end shrink-0">
-                  <span className="text-[10px] font-mono text-[#15101F]/50">{act.timestamp}</span>
-                  <span className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded bg-white text-[#15101F]/70 border border-[#15101F]/10 mt-1">
+                  <span
+                    data-mono-strict="true"
+                    className={`text-[11px] font-mono ${
+                      isDark ? "text-[#736C8D]" : "text-[#15101F]/50"
+                    }`}
+                  >
+                    {act.timestamp}
+                  </span>
+                  <span
+                    className={`text-[10px] font-sans font-semibold px-2 py-0.5 rounded mt-1 border ${
+                      isDark
+                        ? "bg-[#1A1726] text-[#C4B5FD] border-[#2A253B]"
+                        : "bg-white text-[#15101F]/70 border-[#15101F]/10"
+                    }`}
+                  >
                     {act.tag}
                   </span>
                 </div>

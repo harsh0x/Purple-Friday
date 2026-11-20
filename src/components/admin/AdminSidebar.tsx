@@ -27,9 +27,9 @@ export function AdminSidebar({
         <div className="flex items-center justify-between">
           <Link
             href="/admin"
-            className="flex items-center gap-2.5 font-display font-black text-xl text-[#FAF7F2] tracking-tight group"
+            className="flex items-center gap-2.5 font-sans font-black text-xl text-[#F4F3F8] tracking-tight group"
           >
-            <span className="w-3 h-3 rounded-full bg-[#D8FF3F] shadow-sm animate-pulse" />
+            <span className="w-3 h-3 rounded-full bg-[#D9F99D] shadow-sm animate-pulse" />
             <span>
               PF <span className="text-[#CDB8FF] group-hover:text-white transition-colors">ADMIN</span>
             </span>
@@ -45,9 +45,9 @@ export function AdminSidebar({
           )}
         </div>
 
-        <div className="text-[11px] font-mono uppercase tracking-wider text-[#DDD4E6]/60 pb-3 border-b border-white/10 flex items-center justify-between">
+        <div className="text-xs font-sans font-medium text-[#9E98B3] pb-3 border-b border-white/10 flex items-center justify-between">
           <span>Control Room</span>
-          <span className="text-[#D8FF3F]">India Hub</span>
+          <span className="text-[#D9F99D] font-semibold">India Hub</span>
         </div>
 
         {/* Grouped Navigation */}
@@ -62,10 +62,10 @@ export function AdminSidebar({
 
             return (
               <div key={section.id} className="space-y-1.5">
-                <div className="px-3 text-[10px] font-mono uppercase tracking-widest text-[#9F8CB8]/80 font-semibold">
+                <div className="px-3 text-[11px] font-sans uppercase tracking-wider text-[#9E98B3] font-bold">
                   {section.label}
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   {visibleItems.map((item) => {
                     const Icon = item.icon;
                     const isActive =
@@ -78,24 +78,24 @@ export function AdminSidebar({
                         key={item.id}
                         href={item.href}
                         onClick={onCloseMobile}
-                        className={`flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-mono uppercase tracking-wider transition-all duration-200 ${
+                        className={`flex items-center justify-between px-3.5 py-2 rounded-2xl text-[13px] font-sans transition-all duration-200 ${
                           isActive
-                            ? "bg-[#6A2CFF] text-white font-bold shadow-md shadow-[#6A2CFF]/30 translate-x-1"
-                            : "text-[#DDD4E6]/70 hover:text-white hover:bg-white/5"
+                            ? "bg-[#7C3AED] text-white font-semibold shadow-md shadow-[#7C3AED]/30 translate-x-1"
+                            : "text-[#F4F3F8]/80 hover:text-white hover:bg-white/5 font-medium"
                         }`}
                       >
                         <div className="flex items-center gap-3">
                           <Icon
-                            className={`w-4 h-4 transition-colors ${
+                            className={`w-4 h-4 transition-colors shrink-0 ${
                               isActive ? "text-white" : "text-[#CDB8FF]"
                             }`}
                           />
-                          <span>{item.label}</span>
+                          <span className="truncate">{item.label}</span>
                         </div>
                         {item.badgeCount !== undefined && item.badgeCount > 0 && (
                           <span
-                            className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
-                              isActive ? "bg-white text-[#6A2CFF]" : "bg-[#6A2CFF] text-white"
+                            className={`px-2 py-0.5 rounded-full text-[11px] font-sans font-bold ${
+                              isActive ? "bg-white text-[#7C3AED]" : "bg-[#7C3AED] text-white"
                             }`}
                           >
                             {item.badgeCount}
@@ -112,32 +112,32 @@ export function AdminSidebar({
       </div>
 
       {/* Bottom Meter & Storefront Link */}
-      <div className="pt-6 border-t border-white/10 space-y-4">
+      <div className="pt-5 border-t border-white/10 space-y-3.5">
         {/* Dispatch SLA Today Meter */}
         <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-2">
-          <div className="flex items-center justify-between text-[11px] font-mono text-[#DDD4E6]">
+          <div className="flex items-center justify-between text-xs font-sans text-[#F4F3F8]">
             <div className="flex items-center gap-1.5">
-              <Activity className="w-3.5 h-3.5 text-[#D8FF3F]" />
-              <span className="font-semibold uppercase tracking-wider">Dispatch SLA Today</span>
+              <Activity className="w-3.5 h-3.5 text-[#D9F99D]" />
+              <span className="font-semibold">Dispatch SLA Today</span>
             </div>
-            <span className="text-[#D8FF3F] font-bold">98.5%</span>
+            <span className="text-[#D9F99D] font-bold">98.5%</span>
           </div>
           <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[#6A2CFF] to-[#D8FF3F]"
+              className="h-full rounded-full bg-gradient-to-r from-[#7C3AED] to-[#D9F99D]"
               style={{ width: "98.5%" }}
             />
           </div>
-          <div className="text-[10px] font-mono text-[#9F8CB8]/70 flex justify-between">
+          <div className="text-[11px] font-sans text-[#9E98B3] flex justify-between">
             <span>Target: 95.0%</span>
-            <span>All ateliers operational</span>
+            <span>All ateliers active</span>
           </div>
         </div>
 
         <Link
           href="/"
           target="_blank"
-          className="flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-mono text-[#CDB8FF] hover:text-[#D8FF3F] hover:bg-white/5 transition-colors"
+          className="flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-sans font-medium text-[#CDB8FF] hover:text-[#D9F99D] hover:bg-white/5 transition-colors"
         >
           <span>View Public Store</span>
           <ArrowUpRight className="w-3.5 h-3.5" />
@@ -149,18 +149,18 @@ export function AdminSidebar({
   return (
     <>
       {/* Desktop Floating Rounded Sidebar */}
-      <aside className="hidden md:flex flex-col w-64 lg:w-72 shrink-0 m-4 p-5 bg-[#15101F]/90 backdrop-blur-md rounded-3xl border border-white/10 shadow-2xl text-white">
+      <aside className="hidden md:flex flex-col w-64 lg:w-72 shrink-0 m-4 p-5 bg-[#110E1B] backdrop-blur-md rounded-3xl border border-[#2A253B] shadow-2xl text-white">
         {sidebarContent}
       </aside>
 
       {/* Mobile / Tablet Drawer */}
       {isOpenMobile && (
         <div
-          className="fixed inset-0 z-50 md:hidden bg-[#15101F]/80 backdrop-blur-sm"
+          className="fixed inset-0 z-50 md:hidden bg-[#0F0D15]/80 backdrop-blur-sm"
           onClick={onCloseMobile}
         >
           <div
-            className="fixed inset-y-0 left-0 w-72 max-w-[85vw] p-6 bg-[#181224] border-r border-white/10 shadow-2xl overflow-y-auto animate-in slide-in-from-left duration-200"
+            className="fixed inset-y-0 left-0 w-72 max-w-[85vw] p-6 bg-[#110E1B] border-r border-[#2A253B] shadow-2xl overflow-y-auto animate-in slide-in-from-left duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             {sidebarContent}

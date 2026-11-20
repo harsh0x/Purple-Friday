@@ -106,10 +106,10 @@ export default function AdminLoginPage() {
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-white/5 border border-white/10 mb-4 shadow-stamp-sm">
             <ShieldCheck className="w-6 h-6 text-[#D8FF3F]" />
           </div>
-          <h1 className="font-display font-black text-2xl sm:text-3xl tracking-tight text-[#FAF7F2]">
+          <h1 className="font-sans font-bold text-2xl sm:text-3xl tracking-tight text-[#FAF7F2]">
             Purple Friday <span className="text-[#CDB8FF]">Admin</span>
           </h1>
-          <p className="mt-2 text-xs font-mono uppercase tracking-widest text-[#DDD4E6]/70">
+          <p className="mt-2 text-xs font-sans uppercase tracking-wider text-[#DDD4E6]/70 font-medium">
             India Atelier Control Room
           </p>
         </div>
@@ -172,7 +172,7 @@ export default function AdminLoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3.5 px-4 bg-[#6A2CFF] hover:bg-[#5820DC] text-white font-mono text-xs uppercase tracking-widest font-semibold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-[#6A2CFF]/20 active:translate-y-0.5 transition-all disabled:opacity-50"
+          className="w-full py-3.5 px-4 bg-[#6A2CFF] hover:bg-[#5820DC] text-white font-sans text-xs uppercase tracking-wider font-semibold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-[#6A2CFF]/20 active:translate-y-0.5 transition-all disabled:opacity-50"
         >
           <span>{loading ? "Authenticating..." : "Sign In to Admin"}</span>
           <ArrowRight className="w-4 h-4" />
@@ -228,7 +228,7 @@ export default function AdminLoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3.5 px-4 bg-[#D8FF3F] hover:bg-[#C4ED2B] text-[#15101F] font-mono text-xs uppercase tracking-widest font-black rounded-xl flex items-center justify-center gap-2 shadow-lg active:translate-y-0.5 transition-all disabled:opacity-50"
+          className="w-full py-3.5 px-4 bg-[#D8FF3F] hover:bg-[#C4ED2B] text-[#15101F] font-sans text-xs uppercase tracking-wider font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg active:translate-y-0.5 transition-all disabled:opacity-50"
         >
           <span>{loading ? "Updating Password..." : "Set New Password & Continue"}</span>
           <ArrowRight className="w-4 h-4" />

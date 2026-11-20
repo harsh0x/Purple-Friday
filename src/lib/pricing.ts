@@ -1,5 +1,20 @@
 import prisma from "./prisma";
 import { findProductBySlug } from "./catalogue";
+import {
+  toPaise,
+  toRupees,
+  roundHalfUp,
+  validateMoqAndStep,
+  resolveSlabUnitPrice,
+  DEFAULT_GST_RATE,
+  FREE_SHIPPING_THRESHOLD_PAISE,
+  STANDARD_SHIPPING_FEE_PAISE,
+  calculateGstBreakdown,
+  applyCouponDiscount,
+  CouponRule,
+} from "@/server/pricing/engine";
+
+export { calculateGstBreakdown };
 
 export interface CartItemInput {
   productId: string;
@@ -7,6 +22,7 @@ export interface CartItemInput {
   qty: number;
   options?: Record<string, string>;
   designId?: string;
+  customPricePaise?: number;
 }
 
 export interface CalculatedItem {
@@ -148,55 +164,37 @@ export const CATALOG_FALLBACK: Record<
   },
 };
 
-export const FREE_SHIPPING_THRESHOLD = 2500;
-export const STANDARD_SHIPPING_FEE = 150;
-export const STANDARD_GST_RATE = 0.18; // 18% GST for custom printing / merch in India
+export const FREE_SHIPPING_THRESHOLD = toRupees(FREE_SHIPPING_THRESHOLD_PAISE); // 2500
+export const STANDARD_SHIPPING_FEE = toRupees(STANDARD_SHIPPING_FEE_PAISE); // 150
+export const STANDARD_GST_RATE = DEFAULT_GST_RATE; // 0.18
 
 /**
- * Normalizes quantity against product minQty and qtyStep.
+ * Normalizes quantity against product minQty and qtyStep using unified engine.
  */
 export function normalizeQuantity(qty: number, minQty: number, qtyStep: number): number {
-  if (qty < minQty) return minQty;
-  if (qtyStep <= 1) return Math.floor(qty);
-
-  const remainder = (qty - minQty) % qtyStep;
-  if (remainder === 0) return qty;
-
-  // Round up to nearest valid step
-  return qty + (qtyStep - remainder);
+  return validateMoqAndStep(qty, minQty, qtyStep).normalizedQty;
 }
 
 /**
- * Finds the unit price for a given quantity across tier brackets.
+ * Finds the unit price for a given quantity across tier brackets using unified engine.
  */
 export function resolveTierPrice(
   qty: number,
   basePrice: number,
   tiers: Array<{ minQty: number; maxQty: number | null; unitPrice: number }>
 ): number {
-  if (!tiers || tiers.length === 0) return basePrice;
+  const slabs = (tiers || []).map((t) => ({
+    minQty: t.minQty,
+    maxQty: t.maxQty,
+    unitPricePaise: toPaise(t.unitPrice),
+  }));
 
-  // Sort tiers ascending by minQty
-  const sortedTiers = [...tiers].sort((a, b) => a.minQty - b.minQty);
-
-  for (const tier of sortedTiers) {
-    if (qty >= tier.minQty && (tier.maxQty === null || qty <= tier.maxQty)) {
-      return tier.unitPrice;
-    }
-  }
-
-  // If quantity exceeds the highest tier, return the highest tier price
-  const highestTier = sortedTiers[sortedTiers.length - 1];
-  if (qty >= highestTier.minQty) {
-    return highestTier.unitPrice;
-  }
-
-  return basePrice;
+  const pricePaise = resolveSlabUnitPrice(qty, slabs, toPaise(basePrice));
+  return toRupees(pricePaise);
 }
 
 /**
- * Calculate the authoritative cart total on the server.
- * Never trust the client for money!
+ * Calculate the authoritative cart total on the server using unified pure pricing engine.
  */
 export async function calculateCartPricing(
   items: CartItemInput[],
@@ -217,7 +215,11 @@ export async function calculateCartPricing(
     } | null = null;
 
     // Try finding product in Database if live DATABASE_URL exists
-    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("sample-project") && !process.env.DATABASE_URL.includes("user:password")) {
+    if (
+      process.env.DATABASE_URL &&
+      !process.env.DATABASE_URL.includes("sample-project") &&
+      !process.env.DATABASE_URL.includes("user:password")
+    ) {
       try {
         const dbProduct = await prisma.product.findFirst({
           where: {
@@ -271,14 +273,14 @@ export async function calculateCartPricing(
       }
     }
 
-    // 1. Normalize quantity
+    // 1. Normalize quantity using engine
     const normalizedQty = normalizeQuantity(
       item.qty,
       productData.minQty,
       productData.qtyStep
     );
 
-    // 2. Resolve Tier Unit Price
+    // 2. Resolve Tier Unit Price using engine
     const tierUnitPrice = resolveTierPrice(
       normalizedQty,
       productData.basePrice,
@@ -317,10 +319,10 @@ export async function calculateCartPricing(
     });
   }
 
-  // 4. Calculate Subtotal
+  // 4. Subtotal
   const subtotal = calculatedItems.reduce((acc, curr) => acc + curr.lineTotal, 0);
 
-  // 5. Coupon Discount Verification
+  // 5. Coupon Discount Verification via engine rule
   let discount = 0;
   let discountBreakdown:
     | { code: string; amount: number; description: string }
@@ -328,11 +330,17 @@ export async function calculateCartPricing(
 
   if (couponCode) {
     const cleanCode = couponCode.trim().toUpperCase();
-
-    // Verification logic
     if (cleanCode === "FIRSTORDER") {
-      if (subtotal >= 1000) {
-        discount = Math.round(subtotal * 0.12); // 12% off
+      const couponRule: CouponRule = {
+        code: "FIRSTORDER",
+        type: "PERCENTAGE",
+        value: 12,
+        minSubtotalPaise: toPaise(1000),
+        active: true,
+      };
+      const couponResult = applyCouponDiscount(toPaise(subtotal), couponRule);
+      if (couponResult.eligible) {
+        discount = toRupees(couponResult.discountPaise);
         discountBreakdown = {
           code: "FIRSTORDER",
           amount: discount,
@@ -344,8 +352,8 @@ export async function calculateCartPricing(
 
   const discountedSubtotal = Math.max(0, subtotal - discount);
 
-  // 6. GST Calculation (18% in India for custom printed goods)
-  const gst = Math.round(discountedSubtotal * STANDARD_GST_RATE);
+  // 6. GST Calculation
+  const gst = roundHalfUp(discountedSubtotal * STANDARD_GST_RATE);
 
   // 7. Shipping Calculation
   const isFreeShipping = discountedSubtotal >= FREE_SHIPPING_THRESHOLD || subtotal === 0;

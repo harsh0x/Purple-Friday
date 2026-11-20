@@ -31,6 +31,7 @@ import { OrderStatusBadge } from "@/components/admin/OrderStatusBadge";
 import { OrderSlaBadge } from "@/components/admin/OrderSlaBadge";
 import { MaskedOrderDetail } from "@/server/orders/orders-service";
 import { OrderStatus } from "@/server/orders/state-machine";
+import { ArtworkIngestionCard } from "@/components/admin/ArtworkIngestionCard";
 
 export default function AdminOrderDetailPage({
   params,
@@ -471,6 +472,25 @@ export default function AdminOrderDetailPage({
                         </div>
                       </div>
                     </div>
+
+                    {/* Artwork Ingestion & Preflight Card */}
+                    <ArtworkIngestionCard
+                      orderNumber={order.orderNumber}
+                      itemId={item.id}
+                      currentArtworkUrl={item.artworkUrl}
+                      onArtworkUpdated={(newUrl) => {
+                        setOrder((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                items: prev.items.map((it) =>
+                                  it.id === item.id ? { ...it, artworkUrl: newUrl } : it
+                                ),
+                              }
+                            : null
+                        );
+                      }}
+                    />
                   </div>
                 );
               })}

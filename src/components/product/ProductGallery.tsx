@@ -178,22 +178,20 @@ export function ProductGallery({
         <button
           type="button"
           onClick={() => setActiveView("front")}
-          className={`py-2 px-3 border-2 font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
-            activeView === "front"
+          className={`py-2 px-3 border-2 font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${activeView === "front"
               ? "border-violet bg-violet text-white shadow-stamp-sm"
               : "border-ink/20 bg-white text-ink hover:border-ink"
-          }`}
+            }`}
         >
           <span>Front View (Chest)</span>
         </button>
         <button
           type="button"
           onClick={() => setActiveView("back")}
-          className={`py-2 px-3 border-2 font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
-            activeView === "back"
+          className={`py-2 px-3 border-2 font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${activeView === "back"
               ? "border-violet bg-violet text-white shadow-stamp-sm"
               : "border-ink/20 bg-white text-ink hover:border-ink"
-          }`}
+            }`}
         >
           <span>Rear View (Upper Back)</span>
         </button>

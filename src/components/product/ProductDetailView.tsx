@@ -134,9 +134,9 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailPro
   const shapes: ShapeOption[] = isBadge
     ? [
         { id: "contour", name: "Logo Cutout", description: "Contour Die Cut", icon: "contour" },
-        { id: "circle", name: "Circle", description: "58mm Standard", icon: "circle" },
-        { id: "square", name: "Square", description: "50x50mm Edge", icon: "square" },
-        { id: "rect", name: "Rectangle", description: "70x25mm Name", icon: "rect" },
+  { id: "circle", name: "Circle", description: "58mm Standard", icon: "circle" },
+  { id: "square", name: "Square", description: "50x50mm Edge", icon: "square" },
+  { id: "rect", name: "Rectangle", description: "70x25mm Name", icon: "rect" },
       ]
     : [];
 
@@ -155,22 +155,22 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailPro
   const fabrics: FabricOption[] = isApparel
     ? [
         {
-          id: "cotton-100",
-          name: "100% Super-Combed Cotton",
-          weightGsm: product.template.includes("hoodie") ? 320 : 180,
+    id: "cotton-100",
+      name: "100% Super-Combed Cotton",
+        weightGsm: product.template.includes("hoodie") ? 320 : 180,
           badge: "Popular",
-          description: "Bio-washed, pre-shrunk silky jersey",
+            description: "Bio-washed, pre-shrunk silky jersey",
         },
-        {
-          id: "french-terry",
-          name: "Heavyweight French Terry",
-          weightGsm: product.template.includes("hoodie") ? 360 : 240,
+  {
+    id: "french-terry",
+      name: "Heavyweight French Terry",
+        weightGsm: product.template.includes("hoodie") ? 360 : 240,
           badge: "Premium",
-          description: "Structured streetwear drape",
+            description: "Structured streetwear drape",
         },
       ]
     : isCap
-    ? [
+    ?[
         {
           id: "cotton-twill",
           name: "100% Brushed Cotton Twill",
@@ -203,9 +203,9 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailPro
 
     const sizeSummary = isApparel
       ? Object.entries(sizeSplit)
-          .filter(([, count]) => count > 0)
-          .map(([s, count]) => `${s}: ${count}`)
-          .join(", ")
+        .filter(([, count]) => count > 0)
+        .map(([s, count]) => `${s}: ${count}`)
+        .join(", ")
       : selectedSize;
 
     const optionKey = `${product.slug}-${selectedColorName}-${sizeSummary}-${selectedShape}-${selectedFabric}-${selectedFinish}-${selectedEngraving}`;
@@ -264,274 +264,270 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailPro
   };
 
   return (
-    <div className="bg-paper min-h-screen">
-      {/* Breadcrumb Navigation */}
-      <nav
-        aria-label="Breadcrumb"
-        className="border-b border-ink/20 bg-paper-pure px-4 md:px-8 py-3 text-xs font-mono text-ink/70"
-      >
-        <div className="mx-auto max-w-7xl flex items-center gap-2">
-          <Link href="/" className="hover:text-violet transition-colors">
-            Home
-          </Link>
-          <span>/</span>
-          {product.categorySlug && (
-            <>
-              <Link
-                href={categoryHref(product.categorySlug)}
-                className="hover:text-violet transition-colors capitalize"
-              >
-                {product.categorySlug.replace(/-/g, " ")}
-              </Link>
-              <span>/</span>
-            </>
-          )}
-          <span className="text-ink font-bold truncate">{product.name}</span>
-        </div>
-      </nav>
-
-      {/* Main Viewport Grid */}
-      <div className="mx-auto max-w-7xl px-4 md:px-8 py-8 md:py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
-          {/* Left Column: Real Photographic Gallery & Zoom Stage (6 cols) */}
-          <div className="lg:col-span-6 sticky top-24">
-            <ProductGallery
-              template={product.template}
-              slug={effectivePhotoSlug}
-              selectedColor={selectedColor}
-              productName={product.name}
-              isApparel={isApparel}
-            />
+      <div className="bg-paper min-h-screen">
+        {/* Breadcrumb Navigation */}
+        <nav
+          aria-label="Breadcrumb"
+          className="border-b border-ink/20 bg-paper-pure px-4 md:px-8 py-3 text-xs font-mono text-ink/70"
+        >
+          <div className="mx-auto max-w-7xl flex items-center gap-2">
+            <Link href="/" className="hover:text-violet transition-colors">
+              Home
+            </Link>
+            <span>/</span>
+            {product.categorySlug && (
+              <>
+                <Link
+                  href={categoryHref(product.categorySlug)}
+                  className="hover:text-violet transition-colors capitalize"
+                >
+                  {product.categorySlug.replace(/-/g, " ")}
+                </Link>
+                <span>/</span>
+              </>
+            )}
+            <span className="text-ink font-bold truncate">{product.name}</span>
           </div>
+        </nav>
 
-          {/* Right Column: Product Info & Purchase Controls (6 cols) */}
-          <div className="lg:col-span-6 space-y-6">
-            {/* Header info */}
-            <div>
-              {/* Badges & Trust Chips */}
-              <div className="flex flex-wrap items-center gap-2 mb-3">
-                {product.badges.map((b) => (
-                  <span
-                    key={b}
-                    className="font-mono text-[10px] font-bold uppercase tracking-wider bg-spot-lime text-ink px-2.5 py-0.5 border border-ink/30 rounded-xs"
-                  >
-                    {b}
-                  </span>
-                ))}
-                <span className="font-mono text-[10px] text-ink/70 bg-ink/5 px-2.5 py-0.5 border border-ink/10 rounded-xs">
-                  100% Studio Proof Included
-                </span>
-              </div>
+              {/* Main Viewport Grid */}
+              <div className="mx-auto max-w-7xl px-4 md:px-8 py-8 md:py-12">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+                  {/* Left Column: Real Photographic Gallery & Zoom Stage (6 cols) */}
+                  <div className="lg:col-span-6 sticky top-24">
+                    <ProductGallery
+                      template={product.template}
+                      slug={effectivePhotoSlug}
+                      selectedColor={selectedColor}
+                      productName={product.name}
+                      isApparel={isApparel}
+                    />
+                  </div>
 
-              {/* Product Title */}
-              <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-extrabold text-ink leading-tight">
-                {product.name}
-              </h1>
+                {/* Right Column: Product Info & Purchase Controls (6 cols) */}
+                <div className="lg:col-span-6 space-y-6">
+                  {/* Header info */}
+                  <div>
+                    {/* Badges & Trust Chips */}
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                      {product.badges.map((b) => (
+                        <span
+                          key={b}
+                          className="font-mono text-[10px] font-bold uppercase tracking-wider bg-spot-lime text-ink px-2.5 py-0.5 border border-ink/30 rounded-xs"
+                        >
+                          {b}
+                        </span>
+                      ))}
+                      <span className="font-mono text-[10px] text-ink/70 bg-ink/5 px-2.5 py-0.5 border border-ink/10 rounded-xs">
+                        100% Studio Proof Included
+                      </span>
+                    </div>
 
-              {/* Rating & Orders Count */}
-              <div className="mt-2.5 flex items-center gap-3">
+                        {/* Product Title */}
+                        <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-extrabold text-ink leading-tight">
+                          {product.name}
+                        </h1>
+
+                              {/* Rating & Orders Count */ }
+                              < div className = "mt-2.5 flex items-center gap-3" >
                 <div className="flex items-center gap-1 text-violet">
                   {[...Array(5)].map((_, i) => (
                     <Star key={i} className="h-3.5 w-3.5 fill-violet text-violet" />
                   ))}
-                  <span className="font-mono text-xs font-bold text-ink ml-1.5">
-                    {product.rating}
-                  </span>
-                </div>
-                <span className="text-ink/30">•</span>
-                <span className="font-mono text-xs text-ink/70">
-                  {product.reviewCount} Verified Reviews
-                </span>
-                <span className="text-ink/30">•</span>
-                <span className="font-mono text-xs text-emerald-700 font-bold flex items-center gap-1">
-                  <ShieldCheck className="h-3.5 w-3.5" />
-                  1,200+ runs delivered
-                </span>
-              </div>
-            </div>
-
-            {/* Price Block */}
-            <div className="border-2 border-ink bg-white p-4 shadow-stamp">
-              <div className="flex items-baseline gap-3">
-                <span className="font-mono text-3xl font-black text-ink">
-                  {formatINR(unitPrice)}
-                </span>
-                <span className="font-mono text-base text-ink/40 line-through">
-                  {formatINR(product.mrp)}
-                </span>
-                {discountPercent > 0 && (
-                  <span className="font-mono text-xs font-bold text-ink bg-spot-lime px-2 py-0.5 border border-ink/20 rounded">
-                    Save {discountPercent}%
-                  </span>
-                )}
-                <span className="font-mono text-xs text-ink/60">/ piece</span>
-              </div>
-              <div className="mt-1 flex items-center justify-between text-xs font-mono text-ink/70">
-                <span>Inclusive of all taxes (18% GST input credit eligible)</span>
-                <span>Min Order: {product.minQty} pcs</span>
-              </div>
-            </div>
-
-            {/* Option Selectors: Shapes, Colours, Fabrics */}
-            <div className="border-2 border-ink bg-white p-5 shadow-stamp space-y-6">
-              <OptionSelectors
-                shapes={shapes}
-                selectedShape={selectedShape}
-                onSelectShape={setSelectedShape}
-                colors={effectiveColors}
-                selectedColor={selectedColor}
-                onSelectColor={setSelectedColor}
-                fabrics={fabrics}
-                selectedFabric={selectedFabric}
-                onSelectFabric={setSelectedFabric}
-                sizes={nonApparelSizes}
-                selectedSize={selectedSize}
-                onSelectSize={setSelectedSize}
-              />
-
-              {/* Custom Badges Finish Selector */}
-              {isBadge && (
-                <div className="space-y-2 pt-2 border-t border-ink/10">
-                  <label className="block font-mono text-xs font-bold text-ink uppercase tracking-wider">
-                    Surface Finish
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { id: "gloss", label: "Artisan Gloss" },
-                      { id: "matte", label: "Anti-Glare Matte" },
-                      { id: "brushed", label: "Metallic Brushed" },
-                    ].map((fin) => (
-                      <button
-                        key={fin.id}
-                        type="button"
-                        onClick={() => setSelectedFinish(fin.id)}
-                        className={`p-2 font-mono text-xs font-bold border-2 transition-all ${
-                          selectedFinish === fin.id
-                            ? "border-ink bg-violet text-white shadow-stamp-sm"
-                            : "border-ink/20 bg-white text-ink hover:border-ink"
-                        }`}
-                      >
-                        {fin.label}
-                      </button>
-                    ))}
+                        <span className="font-mono text-xs font-bold text-ink ml-1.5">
+                          {product.rating}
+                        </span>
+                      </div>
+                      <span className="text-ink/30">•</span>
+                      <span className="font-mono text-xs text-ink/70">
+                        {product.reviewCount} Verified Reviews
+                      </span>
+                      <span className="text-ink/30">•</span>
+                      <span className="font-mono text-xs text-emerald-700 font-bold flex items-center gap-1">
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                        1,200+ runs delivered
+                      </span>
+                    </div>
                   </div>
-                </div>
-              )}
 
-              {/* Corporate Gifts Engraving Selector */}
-              {isCorporateGift && (
-                <div className="space-y-2 pt-2 border-t border-ink/10">
-                  <label className="block font-mono text-xs font-bold text-ink uppercase tracking-wider">
-                    Custom Marking Technique
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {[
-                      { id: "laser-mirror", label: "Mirror Gold Laser" },
-                      { id: "fiber-matte", label: "Fiber Matte Etch" },
-                      { id: "blind-deboss", label: "Blind Debossing" },
-                    ].map((eng) => (
-                      <button
-                        key={eng.id}
-                        type="button"
-                        onClick={() => setSelectedEngraving(eng.id)}
-                        className={`p-2 font-mono text-xs font-bold border-2 transition-all ${
-                          selectedEngraving === eng.id
-                            ? "border-ink bg-violet text-white shadow-stamp-sm"
-                            : "border-ink/20 bg-white text-ink hover:border-ink"
-                        }`}
-                      >
-                        {eng.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+                        {/* Price Block */ }
+                        < div className="border-2 border-ink bg-white p-4 shadow-stamp">
+                      <div className="flex items-baseline gap-3">
+                        <span className="font-mono text-3xl font-black text-ink">
+                          {formatINR(unitPrice)}
+                        </span>
+                        <span className="font-mono text-base text-ink/40 line-through">
+                          {formatINR(product.mrp)}
+                        </span>
+                        {discountPercent > 0 && (
+                          <span className="font-mono text-xs font-bold text-ink bg-spot-lime px-2 py-0.5 border border-ink/20 rounded">
+                            Save {discountPercent}%
+                          </span>
+                        )}
+                        <span className="font-mono text-xs text-ink/60">/ piece</span>
+                      </div>
+                      <div className="mt-1 flex items-center justify-between text-xs font-mono text-ink/70">
+                        <span>Inclusive of all taxes (18% GST input credit eligible)</span>
+                        <span>Min Order: {product.minQty} pcs</span>
+                      </div>
+                    </div>
 
-            {/* Quantity Price Tier Selector with Stepper */}
-            <div className="border-2 border-ink bg-white p-5 shadow-[4px_4px_0_0_#15101F]">
-              <QuantityPriceTiers
-                tiers={product.priceTiers}
-                quantity={quantity}
-                minQty={product.minQty}
-                qtyStep={product.qtyStep}
-                basePrice={product.basePrice}
-                mrp={product.mrp}
-                onQuantityChange={handleQuantityChange}
-              />
-            </div>
+                      {/* Option Selectors: Shapes, Colours, Fabrics */}
+                      <div className="border-2 border-ink bg-white p-5 shadow-stamp space-y-6">
+                        <OptionSelectors
+                          shapes={shapes}
+                          selectedShape={selectedShape}
+                          onSelectShape={setSelectedShape}
+                          colors={effectiveColors}
+                          selectedColor={selectedColor}
+                          onSelectColor={setSelectedColor}
+                          fabrics={fabrics}
+                          selectedFabric={selectedFabric}
+                          onSelectFabric={setSelectedFabric}
+                          sizes={nonApparelSizes}
+                          selectedSize={selectedSize}
+                          onSelectSize={setSelectedSize}
+                        />
 
-            {/* Apparel Size-Wise Quantity Picker */}
-            {isApparel && (
-              <ApparelSizePicker
-                targetQuantity={quantity}
-                sizeSplit={sizeSplit}
-                onChange={setSizeSplit}
-              />
-            )}
+                        {/* Custom Badges Finish Selector */}
+                        {isBadge && (
+                          <div className="space-y-2 pt-2 border-t border-ink/10">
+                            <label className="block font-mono text-xs font-bold text-ink uppercase tracking-wider">
+                              Surface Finish
+                            </label>
+                            <div className="grid grid-cols-3 gap-2">
+                              {[
+                                { id: "gloss", label: "Artisan Gloss" },
+                                { id: "matte", label: "Anti-Glare Matte" },
+                                { id: "brushed", label: "Metallic Brushed" },
+                              ].map((fin) => (
+                                <button
+                                  key={fin.id}
+                                  type="button"
+                                  onClick={() => setSelectedFinish(fin.id)}
+                                  className={`p-2 font-mono text-xs font-bold border-2 transition-all ${selectedFinish === fin.id
+                                      ? "border-ink bg-violet text-white shadow-stamp-sm"
+                                      : "border-ink/20 bg-white text-ink hover:border-ink"
+                                    }`}
+                                >
+                                  {fin.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
 
-            {/* CTAs Block */}
-            <div className="space-y-3 pt-2">
-              {/* Primary Stamp CTA: Customizer */}
-              <button
-                type="button"
-                onClick={handleDesignNow}
-                className="w-full flex items-center justify-center gap-3 border-2 border-ink bg-violet text-white font-mono text-base font-extrabold uppercase tracking-wider py-4 shadow-stamp hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-stamp-hover active:translate-x-[4px] active:translate-y-[4px] active:shadow-stamp-active transition-all"
-              >
-                <Sparkles className="h-5 w-5 text-spot-lime" />
-                <span>Design Your {product.shortName}</span>
-              </button>
+                      {/* Corporate Gifts Engraving Selector */}
+                      {isCorporateGift && (
+                        <div className="space-y-2 pt-2 border-t border-ink/10">
+                          <label className="block font-mono text-xs font-bold text-ink uppercase tracking-wider">
+                            Custom Marking Technique
+                          </label>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            {[
+                              { id: "laser-mirror", label: "Mirror Gold Laser" },
+                              { id: "fiber-matte", label: "Fiber Matte Etch" },
+                              { id: "blind-deboss", label: "Blind Debossing" },
+                            ].map((eng) => (
+                              <button
+                                key={eng.id}
+                                type="button"
+                                onClick={() => setSelectedEngraving(eng.id)}
+                                className={`p-2 font-mono text-xs font-bold border-2 transition-all ${selectedEngraving === eng.id
+                                    ? "border-ink bg-violet text-white shadow-stamp-sm"
+                                    : "border-ink/20 bg-white text-ink hover:border-ink"
+                                  }`}
+                              >
+                                {eng.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
 
-              {/* Secondary Direct Add to Cart, Wishlist & Share */}
+                    {/* Quantity Price Tier Selector with Stepper */}
+                    <div className="border-2 border-ink bg-white p-5 shadow-[4px_4px_0_0_#15101F]">
+                      <QuantityPriceTiers
+                        tiers={product.priceTiers}
+                        quantity={quantity}
+                        minQty={product.minQty}
+                        qtyStep={product.qtyStep}
+                        basePrice={product.basePrice}
+                        mrp={product.mrp}
+                        onQuantityChange={handleQuantityChange}
+                      />
+                    </div>
+
+                      {/* Apparel Size-Wise Quantity Picker */}
+                      {isApparel && (
+                        <ApparelSizePicker
+                          targetQuantity={quantity}
+                          sizeSplit={sizeSplit}
+                          onChange={setSizeSplit}
+                        />
+                      )}
+
+                        {/* CTAs Block */}
+                        <div className="space-y-3 pt-2">
+                          {/* Primary Stamp CTA: Customizer */}
+                          <button
+                            type="button"
+                            onClick={handleDesignNow}
+                            className="w-full flex items-center justify-center gap-3 border-2 border-ink bg-violet text-white font-mono text-base font-extrabold uppercase tracking-wider py-4 shadow-stamp hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-stamp-hover active:translate-x-[4px] active:translate-y-[4px] active:shadow-stamp-active transition-all"
+                          >
+                            <Sparkles className="h-5 w-5 text-spot-lime" />
+                            <span>Design Your {product.shortName}</span>
+                          </button>
+
+                            {/* Secondary Direct Add to Cart, Wishlist & Share */}
               <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleAddToCart}
-                  disabled={isApparel && !sizeSplitMatches}
-                  className={`flex-1 flex items-center justify-center gap-2 border-2 border-ink font-mono text-xs font-bold uppercase tracking-wider py-3 shadow-stamp-sm transition-all ${
-                    isApparel && !sizeSplitMatches
-                      ? "bg-paper text-ink/40 border-ink/40 cursor-not-allowed shadow-none"
-                      : "bg-white text-ink hover:bg-paper hover:translate-x-[1px] hover:translate-y-[1px]"
-                  }`}
-                >
-                  <ShoppingCart className="h-4 w-4" />
-                  <span>
-                    {isApparel && !sizeSplitMatches
-                      ? `Select Sizes (${totalSizeSelected}/${quantity})`
-                      : `Add Plain / Blank Order (${quantity} pcs)`}
-                  </span>
-                </button>
+                            <button
+                              type="button"
+                              onClick={handleAddToCart}
+                              disabled={isApparel && !sizeSplitMatches}
+                              className={`flex-1 flex items-center justify-center gap-2 border-2 border-ink font-mono text-xs font-bold uppercase tracking-wider py-3 shadow-stamp-sm transition-all ${isApparel && !sizeSplitMatches
+                                  ? "bg-paper text-ink/40 border-ink/40 cursor-not-allowed shadow-none"
+                                  : "bg-white text-ink hover:bg-paper hover:translate-x-[1px] hover:translate-y-[1px]"
+                                }`}
+                            >
+                              <ShoppingCart className="h-4 w-4" />
+                              <span>
+                                {isApparel && !sizeSplitMatches
+                                  ? `Select Sizes (${totalSizeSelected}/${quantity})`
+                                  : `Add Plain / Blank Order (${quantity} pcs)`}
+                              </span>
+                            </button>
 
-                <button
-                  type="button"
-                  onClick={() => toggleWishlist(product.slug)}
-                  aria-label={isFavorited ? "Remove from wishlist" : "Add to wishlist"}
-                  className={`h-11 w-11 shrink-0 rounded-sm border-2 border-ink flex items-center justify-center shadow-stamp-sm hover:bg-paper transition-all ${
-                    isFavorited
-                      ? "bg-rose-50 text-rose-600 border-rose-600"
-                      : "bg-white text-ink"
-                  }`}
+                            <button
+                              type="button"
+                              onClick={() => toggleWishlist(product.slug)}
+                              aria-label={isFavorited ? "Remove from wishlist" : "Add to wishlist"}
+                            className={`h-11 w-11 shrink-0 rounded-sm border-2 border-ink flex items-center justify-center shadow-stamp-sm hover:bg-paper transition-all ${isFavorited
+                                ? "bg-rose-50 text-rose-600 border-rose-600"
+                                : "bg-white text-ink"
+                              }`}
                 >
-                  <Heart className={`h-4 w-4 ${isFavorited ? "fill-rose-600" : ""}`} />
-                </button>
+                            <Heart className={`h-4 w-4 ${isFavorited ? "fill-rose-600" : ""}`} />
+                          </button>
 
-                <button
-                  type="button"
-                  onClick={handleShare}
-                  aria-label="Share product"
-                  className="h-11 w-11 shrink-0 rounded-sm border-2 border-ink bg-white text-ink hover:bg-paper flex items-center justify-center shadow-stamp-sm transition-all"
-                >
-                  <Share2 className="h-4 w-4" />
-                </button>
-              </div>
+                        <button
+                          type="button"
+                          onClick={handleShare}
+                          aria-label="Share product"
+                          className="h-11 w-11 shrink-0 rounded-sm border-2 border-ink bg-white text-ink hover:bg-paper flex items-center justify-center shadow-stamp-sm transition-all"
+                        >
+                          <Share2 className="h-4 w-4" />
+                        </button>
+                      </div>
 
-              {/* Size mismatch helper warning */}
-              {isApparel && !sizeSplitMatches && (
-                <div className="flex items-center justify-center gap-1.5 text-xs font-mono text-violet font-semibold pt-1">
-                  <AlertCircle className="h-3.5 w-3.5" />
-                  <span>Please allocate all {quantity} pieces across sizes above before ordering</span>
-                </div>
-              )}
+                    {/* Size mismatch helper warning */}
+                    {isApparel && !sizeSplitMatches && (
+                      <div className="flex items-center justify-center gap-1.5 text-xs font-mono text-violet font-semibold pt-1">
+                        <AlertCircle className="h-3.5 w-3.5" />
+                        <span>Please allocate all {quantity} pieces across sizes above before ordering</span>
+                      </div>
+                    )}
 
               {/* Let Our Team Design It Modal Trigger */}
               <div className="text-center pt-1">
@@ -545,14 +541,14 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailPro
             {/* Delivery Estimator */}
             <DeliveryEstimator subtotal={lineTotal} />
 
-            {/* Technical Specifications Accordion Tabs */}
-            <ProductAccordionTabs
-              specs={product.specChips.map((s) => ({ label: "Feature", value: s }))}
-              printMethod={product.printMethod}
-              minQty={product.minQty}
-            />
-          </div>
-        </div>
+                  {/* Technical Specifications Accordion Tabs */}
+                  <ProductAccordionTabs
+                    specs={product.specChips.map((s) => ({ label: "Feature", value: s }))}
+                    printMethod={product.printMethod}
+                    minQty={product.minQty}
+                  />
+                </div>
+              </div>
       </div>
 
       {/* Reviews Section */}
@@ -586,14 +582,14 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailPro
         </section>
       )}
 
-      {/* Sticky Mobile Bar */}
-      <StickyMobileBar
-        productName={product.shortName}
-        unitPrice={unitPrice}
-        productSlug={product.slug}
-        selectedColor={selectedColor}
-        quantity={quantity}
-      />
-    </div>
+  {/* Sticky Mobile Bar */ }
+  <StickyMobileBar
+    productName={product.shortName}
+    unitPrice={unitPrice}
+    productSlug={product.slug}
+    selectedColor={selectedColor}
+    quantity={quantity}
+  />
+    </div >
   );
 }

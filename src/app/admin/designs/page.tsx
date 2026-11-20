@@ -5,18 +5,14 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   Palette,
-  Clock,
-  ArrowRight,
   ExternalLink,
   RefreshCw,
   Send,
-  AlertCircle,
-  FileCheck,
   CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { OrderStatusBadge } from "@/components/admin/OrderStatusBadge";
-import { OrderSlaBadge } from "@/components/admin/OrderSlaBadge";
+import { MaskedOrderSummary } from "@/server/orders/orders-service";
 
 interface DesignQueueOrder {
   id: string;
@@ -57,13 +53,13 @@ export default function DesignApprovalsQueuePage() {
       const dataRevision = await resRevision.json();
 
       const combined = [
-        ...(dataRevision.orders || []),
-        ...(dataUploaded.orders || []),
+        ...((dataRevision.orders || []) as MaskedOrderSummary[]),
+        ...((dataUploaded.orders || []) as MaskedOrderSummary[]),
       ];
 
       // Fetch detail for each to get line items artwork
       const detailed = await Promise.all(
-        combined.map(async (o: any) => {
+        combined.map(async (o: MaskedOrderSummary) => {
           try {
             const detailRes = await fetch(`/api/admin/orders/${o.orderNumber}`);
             const detailData = await detailRes.json();
@@ -77,7 +73,7 @@ export default function DesignApprovalsQueuePage() {
               createdAt: ord.createdAt,
               updatedAt: ord.updatedAt,
               assignedDesignerName: ord.assignedDesignerId ? "Ananya Deshmukh" : null,
-              items: (ord.items || []).map((it: any) => ({
+              items: (ord.items || []).map((it: { id: string; productId: string; artworkUrl?: string | null; mockupUrl?: string | null; printMethod?: string | null; qty: number }) => ({
                 id: it.id,
                 productName: it.productId.replace(/-/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase()),
                 artworkUrl: it.artworkUrl,

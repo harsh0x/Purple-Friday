@@ -3,19 +3,21 @@ import { ADMIN_NAVIGATION } from "../lib/admin/navigation";
 import { ALL_PERMISSIONS } from "../lib/admin/permissions";
 
 describe("Admin Shell Architecture & Responsive Navigation", () => {
-  it("registry only exposes implemented sections and routes for Part 1", () => {
+  it("registry only exposes implemented sections and routes for Part 1 & Part 2", () => {
     const sectionIds = ADMIN_NAVIGATION.map((s) => s.id);
-    expect(sectionIds).toEqual(["overview", "system"]);
+    expect(sectionIds).toEqual(["overview", "pipeline", "system"]);
 
     const allItems = ADMIN_NAVIGATION.flatMap((s) => s.items);
     const hrefs = allItems.map((i) => i.href);
     expect(hrefs).toContain("/admin");
+    expect(hrefs).toContain("/admin/orders");
+    expect(hrefs).toContain("/admin/designs");
+    expect(hrefs).toContain("/admin/production");
     expect(hrefs).toContain("/admin/team");
     expect(hrefs).toContain("/admin/audit");
     expect(hrefs).toContain("/admin/settings");
 
     // Strictly ensure no unbuilt / future part routes are exposed in the navigation registry
-    expect(hrefs).not.toContain("/admin/orders");
     expect(hrefs).not.toContain("/admin/products");
     expect(hrefs).not.toContain("/admin/coupons");
     expect(hrefs).not.toContain("/admin/reviews");

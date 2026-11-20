@@ -133,3 +133,4 @@ describe("Print Area Math & Clamping Engine", () => {
     expect(pixelY + pixelH).toBeLessThanOrEqual(canvasSize);
   });
 });
+

@@ -5,26 +5,21 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   ArrowLeft,
-  Calendar,
   User,
   MapPin,
-  Building,
   CreditCard,
   Layers,
   History,
   FileText,
   AlertTriangle,
-  CheckCircle2,
   Send,
   MessageSquare,
-  FileCheck,
   RefreshCw,
   ExternalLink,
   Printer,
   ShieldCheck,
   X,
   XCircle,
-  HelpCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { OrderStatusBadge } from "@/components/admin/OrderStatusBadge";
@@ -500,7 +495,7 @@ export default function AdminOrderDetailPage({
                       productId={item.productId}
                       artworkUrl={item.artworkUrl}
                       currentMockupUrl={item.mockupUrl}
-                      existingPlacement={item.placement as any}
+                      existingPlacement={item.placement as { x?: number; y?: number; width?: number; height?: number; rotation?: number; pantone?: string; notes?: string } | null}
                       initialPrintMethod={item.printMethod}
                       orderVersion={order.version}
                       onMockupSaved={(newMockupUrl) => {

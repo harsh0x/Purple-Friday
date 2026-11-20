@@ -255,48 +255,48 @@ export function ProductMockup({
   const maskUrl = `/products/${resolvedSlug}/mask-${viewFile}.png`;
   const staticFallback = `/products/${resolvedSlug}/${view === "back" ? "back-" : ""}${size}.webp`;
 
-  useEffect(() => {
-    let isCancelled = false;
+    useEffect(() => {
+      let isCancelled = false;
 
-    const render = async () => {
-      if (!effectiveLogo) {
-        setIsRendered(false);
-        return;
-      }
-      const canvas = canvasRef.current;
-      const container = containerRef.current;
-      if (!canvas || !container) return;
+        const render = async () => {
+          if (!effectiveLogo) {
+            setIsRendered(false);
+            return;
+          }
+          const canvas = canvasRef.current;
+          const container = containerRef.current;
+          if (!canvas || !container) return;
 
-      const rect = container.getBoundingClientRect();
-      const displayWidth = Math.max(120, Math.round(rect.width || 320));
-      const displayHeight = Math.max(120, Math.round(rect.height || 320));
+          const rect = container.getBoundingClientRect();
+          const displayWidth = Math.max(120, Math.round(rect.width || 320));
+          const displayHeight = Math.max(120, Math.round(rect.height || 320));
 
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
-      canvas.width = Math.round(displayWidth * dpr);
-      canvas.height = Math.round(displayHeight * dpr);
+          const dpr = Math.min(2, window.devicePixelRatio || 1);
+          canvas.width = Math.round(displayWidth * dpr);
+          canvas.height = Math.round(displayHeight * dpr);
 
-      try {
-        await renderMockupToCanvas(canvas, {
-          photoUrl,
-          maskUrl,
-          color,
-          logoUrl: effectiveLogo,
-          printArea: effectivePrintArea,
-          printMethod: effectivePrintMethod,
-          surface: effectiveSurface,
-          dpr,
-        });
+            try {
+              await renderMockupToCanvas(canvas, {
+                photoUrl,
+                maskUrl,
+                color,
+                logoUrl: effectiveLogo,
+                printArea: effectivePrintArea,
+                printMethod: effectivePrintMethod,
+                surface: effectiveSurface,
+                dpr,
+              });
 
-        if (!isCancelled) {
-          setIsRendered(true);
+          if (!isCancelled) {
+            setIsRendered(true);
+          }
+        } catch {
+          // Fall back gracefully to static image without throwing
+          if (!isCancelled) {
+            setIsRendered(false);
+          }
         }
-      } catch {
-        // Fall back gracefully to static image without throwing
-        if (!isCancelled) {
-          setIsRendered(false);
-        }
-      }
-    };
+      };
 
     // Debounce render slightly for rapid swatch switching
     const timer = setTimeout(render, 30);
@@ -314,38 +314,37 @@ export function ProductMockup({
     effectiveSurface,
   ]);
 
-  return (
-    <div
-      ref={containerRef}
-      className={`relative overflow-hidden flex items-center justify-center bg-paper-pure select-none ${className}`}
-    >
-      {effectiveLogo ? (
-        <>
-          <canvas
-            ref={canvasRef}
-            className={`w-full h-full object-contain transition-opacity duration-300 ${
-              isRendered ? "opacity-100" : "opacity-0"
-            }`}
-          />
-          {!isRendered && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={staticFallback}
-              alt={resolvedSlug}
-              className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-              loading="lazy"
+      return (
+      <div
+        ref={containerRef}
+        className={`relative overflow-hidden flex items-center justify-center bg-paper-pure select-none ${className}`}
+      >
+        {effectiveLogo ? (
+          <>
+            <canvas
+              ref={canvasRef}
+              className={`w-full h-full object-contain transition-opacity duration-300 ${isRendered ? "opacity-100" : "opacity-0"
+                }`}
             />
-          )}
-        </>
-      ) : (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={staticFallback}
-          alt={resolvedSlug}
-          className="w-full h-full object-contain pointer-events-none"
-          loading="lazy"
-        />
-      )}
+            {!isRendered && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={staticFallback}
+                alt={resolvedSlug}
+                className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+                loading="lazy"
+              />
+            )}
+          </>
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={staticFallback}
+            alt={resolvedSlug}
+            className="w-full h-full object-contain pointer-events-none"
+            loading="lazy"
+          />
+        )}
 
       {showBadge && (
         <span className="absolute bottom-2 left-2 z-10 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider bg-ink/80 text-white rounded-xs backdrop-blur-xs">

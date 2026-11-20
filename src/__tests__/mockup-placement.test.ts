@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { getPrintAreaForTemplate, PRODUCT_PRINT_AREAS } from "@/lib/customizer/print-areas";
+import { getPrintAreaForTemplate } from "@/lib/customizer/print-areas";
 import { ORDER_STORE, StoredOrderRecord } from "@/server/orders/state-machine";
 
 describe("Mockup Print-Zone Placement & Clamping (Step 4)", () => {

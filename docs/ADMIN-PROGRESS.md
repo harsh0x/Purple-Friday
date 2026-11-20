@@ -2,115 +2,137 @@
 
 > Project: Purple Friday Admin Dashboard
 > Parts: 6 Parts Planned
-> Current Active Part: **PART 1** (Status: **COMPLETE**)
+> Current Active Part: **PART 2** (Status: **COMPLETE**)
 
 ---
 
-## Part 1 Tracker: Foundation, Auth, RBAC & Core Shell
+## Part 1 Tracker: Foundation, Auth, RBAC & Core Shell (COMPLETE)
+- [x] Step 0: Read whole project, baseline audit, write `docs/ADMIN-ARCHITECTURE.md`
+- [x] Step 1: Write `docs/ADMIN-RULES.md`
+- [x] Step 2: Data Foundation (RBAC User roles, AuditLog append-only trigger, Notification, AppSetting)
+- [x] Step 3: Admin Auth & RBAC (Isolated `/admin/login`, session idle timeout, permission guards)
+- [x] Step 4: The Admin Shell (Sidebar, Topbar, Overview, Team & Roles, Audit Log, Settings, Notifications)
+- [x] Step 5: Verification & Wrap-up (Typecheck, Lint, Tests, 0 storefront bundle impact, WCAG AA)
+
+---
+
+## Part 2 Tracker: Orders & Design-to-Print Pipeline (COMPLETE)
 
 ### Steps Overview
-- [x] **Step 0**: Read whole project, baseline audit, write `docs/ADMIN-ARCHITECTURE.md`
-  - Verified baseline: Typecheck PASSED, Lint PASSED, Tests PASSED (104 tests), Build PASSED (storefront 28 kB / 216 kB JS, shared 106 kB)
-- [x] **Step 1**: Write `docs/ADMIN-RULES.md`
-  - Operational rules, security rules (server-side RBAC, strict Zod validation, DDE formula injection mitigation, optimistic concurrency versioning), design specification (ink, paper, violet, lilac, spot lime palette), and roles matrix
-- [x] **Step 2**: Data Foundation
-  - Extended `UserRole` enum with `SUPER_ADMIN`, `GRAPHIC_DESIGNER`, `FACTORY_MANAGER`, `SUPPORT_AGENT`
-  - Extended `User` model with `active`, `lastLogin`, `mustChangePassword`, and `version` (optimistic locking)
-  - Enhanced `AuditLog` model with `actor`, `actorRole`, `action`, `entityType`, `entityId`, `before`, `after`, `requestId`, `ipHash`
-  - Created PostgreSQL migration `001_audit_log_append_only.sql` enforcing append-only trigger (rejects UPDATE/DELETE)
-  - Implemented immutable `writeAudit()` helper in `src/lib/admin/audit.ts`
-  - Added `Notification` table and helper (`src/lib/admin/notifications.ts`)
-  - Added `AppSetting` table and helper (`src/lib/admin/app-settings.ts`)
-  - Added idempotent seeder for initial Super Admin in `prisma/seed.ts` (bcrypt cost 12, `mustChangePassword: true`)
-- [x] **Step 3**: Admin Auth & RBAC
-  - Separate `/admin/login` page isolated from customer auth
-  - Rate limiting, 5 failed attempts locks for 15 minutes, generic error messages
-  - 8-hour session cap with 30-minute idle timeout enforcement in `src/lib/admin/admin-session.ts`
-  - Created permission module `src/lib/admin/permissions.ts` mapping roles to strict permission strings
-  - Server guard `requirePermission()` and UI component `<PermissionGate>` (`src/components/admin/PermissionGate.tsx`)
-  - Middleware updated with route protection, role home screen routing, `X-Robots-Tag: noindex, nofollow`, and cache control
-  - Comprehensive Vitest test suite `src/__tests__/admin-rbac.test.ts` (13 tests verifying matrix, home screens, lockout, tokens, audit)
-- [x] **Step 4**: The Admin Shell
-  - Grouped navigation registry `src/lib/admin/navigation.ts` (Overview + System: Team & Roles, Audit Log, Settings)
-  - Floating rounded sidebar `src/components/admin/AdminSidebar.tsx` with frosted ink glass, uppercase DM Mono labels, active violet pill, Dispatch SLA meter, and responsive drawer
-  - Top bar `src/components/admin/AdminTopBar.tsx` with search field, notification bell with unread badge + dropdown, and user menu with secure logout
-  - Command palette `src/components/admin/CommandPalette.tsx` (Ctrl+K / Cmd+K keyboard navigation)
-  - India greeting bar `src/components/admin/AdminGreeting.tsx` (real date in Asia/Kolkata format, greeting, 0 attention items)
-  - Performance page transition wrapper `src/components/admin/PageTransition.tsx`
-  - Real-dimension loading skeleton `src/app/admin/loading.tsx`, error boundary `src/app/admin/error.tsx`, and not-found `src/app/admin/not-found.tsx`
-  - Dedicated admin shell layout `src/app/admin/layout.tsx` (isolated bundle, no storefront smooth-scroll or GSAP loaded)
-  - Overview page `src/app/admin/page.tsx` & `src/components/admin/OverviewCharts.tsx` (clean empty state, no fake numbers, segmented 7D/30D/90D control, SVG empty charts, rounded KPI tiles)
-  - Fully built Team & Roles page `src/app/admin/team/page.tsx` & `/api/admin/team/route.ts` (Super Admin only, list staff, invite/create staff, change role, toggle active, force password reset, all audit logged)
-  - Fully built Audit Log page `src/app/admin/audit/page.tsx` & `/api/admin/audit/route.ts` & `/api/admin/audit/export/route.ts` (Super Admin only, searchable, filterable, detail modal, DDE-sanitized CSV export)
-  - Fully built Settings page `src/app/admin/settings/page.tsx` & `/api/admin/settings/route.ts` (Super Admin only, store details form, GSTIN, enforced India time zone, secret-less outside service health)
-  - Fully built Notifications page `src/app/admin/notifications/page.tsx` & `/api/admin/notifications/route.ts` (role-targeted, mark read / mark all read)
-- [x] **Step 5**: Verification & Wrap-up
-  - Zero-error Typecheck (`tsc --noEmit`)
-  - Zero-error Lint (`next lint`, 0 warnings, 0 errors)
-  - Vitest test suite: 17 test suites, 120 tests passed (100%)
-  - Production build: 75 static/dynamic routes compiled cleanly
-  - Storefront bundle verification: Storefront homepage (`/`) remained exactly 28 kB (216 kB first load JS) and shared JS remained 106 kB (zero bloat from admin)
-  - Contrast check script: `scripts/admin-contrast-check.ts` verified 14 token pairs across all admin surfaces — 100% passed WCAG AA (ratios 5.42:1 to 18.65:1)
-  - Responsive audit: 320px, 375px, 768px, 1024px, 1440px, 1920px verified without horizontal scroll; drawer operates cleanly.
+- [x] **Step 1: Pure Order State Machine & Cancellation Gate**
+  - Canonical statuses: `ORDER_PLACED`, `ARTWORK_UPLOADED`, `MOCKUP_SENT`, `REVISION_REQUESTED`, `CUSTOMER_APPROVED`, `IN_PRINTING`, `QC_PASSED`, `DISPATCHED`, `DELIVERED`, `CANCELLED`, `REFUNDED`, `RTO`.
+  - Backwards-compatible `LEGACY_STATUS_MAP` and schema migration keeping legacy orders readable.
+  - Strict transition matrix `TRANSITION_TABLE` in `src/server/orders/state-machine.ts`.
+  - Pure function `canTransition(from, to, role, context)` enforcing table rules and RBAC matrix.
+  - Sole mutation function `changeOrderStatus(orderId, to, actor, reason, expectedVersion)`.
+  - Cancellation Gate: customer may only cancel within 2 hours of order creation (`cancellation_window_hours` setting) AND only before `IN_PRINTING`. Staff cancellation requires written justification reason.
+  - QC Rework function `recordQcRework()` logs failure event on `IN_PRINTING` without changing status.
+  - Comprehensive Vitest test suite (`src/__tests__/order-state-machine.test.ts` - 18 tests passing 100%).
+- [x] **Step 2: Order List and Order Detail Pages**
+  - Order service `src/server/orders/orders-service.ts` with seeded realistic Indian apparel & corporate gifting orders.
+  - Server-paginated, URL-state-synced table at `/admin/orders` with search (order #, customer name, email, phone) and filters (status, payment status, overdue, designer).
+  - Bulk actions: DDE formula-injection sanitized CSV export (`safeCsvCell`), bulk designer assignment.
+  - Visual status badge component `<OrderStatusBadge />` with icon and color-coded status.
+  - SLA badge `<OrderSlaBadge />`: green (>24h), amber (8-24h), red (<8h), pulsing `OVERDUE` with red border, and `PAUSED` indicator while waiting on customer.
+  - Strict role-based financial masking: `GRAPHIC_DESIGNER` and `FACTORY_MANAGER` NEVER see prices, totals, or payment summaries.
+  - Order Detail page `/admin/orders/[orderNumber]`: customer & address, items with artwork and mockup side-by-side, size breakdown, timeline (`OrderEvent`), internal notes, and permitted next action buttons driven strictly by `canTransition`.
+  - Comprehensive Vitest test suite (`src/__tests__/order-service.test.ts` - 10 tests passing 100%).
+- [x] **Step 3: Artwork Ingestion & Pre-Flight Analysis**
+  - Module `src/server/artwork/artwork-ingestion.ts` and API `/api/admin/artwork/ingest`.
+  - Accepts PNG, JPG, WebP, SVG, PDF directly; stores AI and CDR as downloadable source files (direct preview disabled).
+  - Magic byte detection with `file-type`, 25 MB hard limit, random UUID filenames in `storage/artwork/`.
+  - Private storage served only via permission-checked route `/api/admin/artwork/[artworkId]/download`.
+  - SVG sanitization via `sanitizeSvg()` and rasterized PNG preview via `sharp`.
+  - Effective DPI computation: pixels divided by print width in inches (`optimal` >= 300 DPI, `warning` 150-299 DPI, `very_low` < 150 DPI). Flags with plain explanation without blocking order.
+  - Dominant color extraction: 3 to 5 colors with HEX and approximate CMYK percentages.
+  - Manual Pantone PMS input field on order item card.
+  - Comprehensive Vitest test suite (`src/__tests__/artwork-ingestion.test.ts` - 8 tests passing 100%).
+- [x] **Step 4: Mockup and Print-Zone Placement Atelier**
+  - Integrated `src/lib/customizer/print-areas.ts` and `src/lib/mockup-canvas.ts`.
+  - Interactive canvas tool `<MockupPlacementEditor />` on order items:
+    - Displays product base photo and boundary print-zone mask.
+    - Clamped positioning: X, Y, scale, and rotation are strictly clipped inside the print-zone mask.
+    - Print method selection: DTF, Sublimation, Embroidery, Laser Engraving.
+    - Pantone PMS code and designer notes.
+    - "Save Mockup & Placement" renders composite canvas to PNG and saves via `/api/admin/orders/[orderNumber]/items/[itemId]/mockup`.
+  - Comprehensive Vitest test suite (`src/__tests__/mockup-placement.test.ts` - 2 tests passing 100%).
+- [x] **Step 5: Proof & Approval Workflow**
+  - Module `src/server/orders/proof-service.ts` and API `/api/admin/orders/[orderNumber]/send-mockup`.
+  - Generates secure 24-byte random approval token stored hashed with SHA-256 and 14-day expiration.
+  - Public mobile-first approval page `/proof/[token]` with rate limiting: large mockup view, original logo, size breakdown, "Approve Design Proof" and "Request Changes" with feedback textarea.
+  - WhatsApp notification generator (`wa.me` fallback link for one-click staff dispatch) + Resend email adapter.
+  - 48-hour Dispatch SLA clock: starts on `CUSTOMER_APPROVED`, pauses in `MOCKUP_SENT` / `REVISION_REQUESTED`, stores accumulated `totalPausedDurationMs`.
+  - Cron tick handler `/api/cron/tick`: guards with `CRON_SECRET`, checks 24h & 48h unapproved proof reminders, logs idempotent `Job` rows, flags SLA breaches.
+  - Comprehensive Vitest test suite (`src/__tests__/proof-workflow.test.ts` - 5 tests passing 100%).
+- [x] **Step 6: Production Job Sheet & Queues**
+  - One-click Job Sheet PDF generator `src/server/production/jobsheet-generator.ts` and endpoint `/api/admin/orders/[orderNumber]/jobsheet` using `pdf-lib`:
+    - Scannable QR code matrix linking directly to admin order URL.
+    - Physical print dimensions in mm and Pantone codes.
+    - Print method and apparel size breakdown table with physical checkboxes (`[ ]`).
+    - Packaging instructions and special handling.
+    - Sign-off blocks for Print Operator and QC Inspector.
+  - Design Approvals Queue `/admin/designs`: oldest `ARTWORK_UPLOADED` and `REVISION_REQUESTED` first with inline proofing actions.
+  - Production Queue `/admin/production`: orders grouped by print method (DTF, Sublimation, Embroidery, Laser Engraving) for batch print runs, bulk "Mark IN_PRINTING" and "Mark QC_PASSED" actions.
+  - Navigation Registry `src/lib/admin/navigation.ts`: revealed `Orders`, `Design Approvals`, and `Production` with permission gating.
+  - Comprehensive Vitest test suite (`src/__tests__/jobsheet-and-queues.test.ts` - 2 tests passing 100%).
+- [x] **Step 7: Verification & Final Commit**
+  - End-to-end integration test `src/__tests__/order-pipeline-lifecycle.test.ts` covering entire lifecycle: order placement -> designer mockup -> forbidden skip attempt -> customer approval -> printing -> QC pass -> dispatch -> delivered.
+  - Playwright E2E suite `e2e/admin-order-pipeline.spec.ts` covering route protections and public proof token validation.
+  - Zero-error Typecheck (`tsc --noEmit`).
+  - Zero-error Lint (`next lint` - 0 errors, 0 warnings).
+  - 100% Vitest pass: 24 test suites, 166 tests passed.
+  - Production build: 80 static & dynamic routes compiled cleanly.
+  - Storefront bundle verification: `/` remains exactly 28 kB (216 kB first load JS) and shared JS remains 106 kB (zero admin bundle leakage).
+  - WCAG AA contrast check: 14 token pairs audited and passed.
 
 ---
 
-## Files Created & Modified in Part 1
+## Part 2 Files Created & Modified
 
-### Documentation:
-- `docs/ADMIN-ARCHITECTURE.md` / `purple-friday/docs/ADMIN-ARCHITECTURE.md`
-- `docs/ADMIN-RULES.md` / `purple-friday/docs/ADMIN-RULES.md`
-- `docs/ADMIN-PROGRESS.md` / `purple-friday/docs/ADMIN-PROGRESS.md`
-
-### Database & Migrations:
+### State Machine & Order Core:
 - `purple-friday/prisma/schema.prisma`
-- `purple-friday/prisma/seed.ts`
-- `purple-friday/prisma/migrations/001_audit_log_append_only.sql`
-- `purple-friday/scripts/db-migrate.ts`
-
-### Security, Auth & RBAC Core:
-- `purple-friday/src/lib/admin/permissions.ts`
-- `purple-friday/src/lib/admin/admin-session.ts`
-- `purple-friday/src/lib/admin/audit.ts`
-- `purple-friday/src/lib/admin/app-settings.ts`
-- `purple-friday/src/lib/admin/notifications.ts`
+- `purple-friday/src/server/orders/state-machine.ts`
+- `purple-friday/src/server/orders/orders-service.ts`
+- `purple-friday/src/server/orders/proof-service.ts`
+- `purple-friday/src/server/artwork/artwork-ingestion.ts`
+- `purple-friday/src/server/production/jobsheet-generator.ts`
 - `purple-friday/src/lib/admin/navigation.ts`
-- `purple-friday/src/lib/auth-service.ts`
+- `purple-friday/src/lib/customizer/print-areas.ts`
 - `purple-friday/src/lib/security/csv.ts`
-- `purple-friday/middleware.ts`
 
-### Admin API Endpoints:
-- `purple-friday/src/app/api/admin/auth/login/route.ts`
-- `purple-friday/src/app/api/admin/auth/logout/route.ts`
-- `purple-friday/src/app/api/admin/auth/session/route.ts`
-- `purple-friday/src/app/api/admin/auth/change-password/route.ts`
-- `purple-friday/src/app/api/admin/team/route.ts`
-- `purple-friday/src/app/api/admin/audit/route.ts`
-- `purple-friday/src/app/api/admin/audit/export/route.ts`
-- `purple-friday/src/app/api/admin/settings/route.ts`
-- `purple-friday/src/app/api/admin/notifications/route.ts`
+### Admin & Public API Endpoints:
+- `purple-friday/src/app/api/admin/orders/route.ts`
+- `purple-friday/src/app/api/admin/orders/[orderNumber]/route.ts`
+- `purple-friday/src/app/api/admin/orders/[orderNumber]/transition/route.ts`
+- `purple-friday/src/app/api/admin/orders/[orderNumber]/rework/route.ts`
+- `purple-friday/src/app/api/admin/orders/[orderNumber]/notes/route.ts`
+- `purple-friday/src/app/api/admin/orders/[orderNumber]/send-mockup/route.ts`
+- `purple-friday/src/app/api/admin/orders/[orderNumber]/jobsheet/route.ts`
+- `purple-friday/src/app/api/admin/orders/[orderNumber]/items/[itemId]/mockup/route.ts`
+- `purple-friday/src/app/api/admin/artwork/ingest/route.ts`
+- `purple-friday/src/app/api/admin/artwork/[artworkId]/download/route.ts`
+- `purple-friday/src/app/api/proof/[token]/route.ts`
+- `purple-friday/src/app/api/proof/[token]/approve/route.ts`
+- `purple-friday/src/app/api/proof/[token]/reject/route.ts`
+- `purple-friday/src/app/api/cron/tick/route.ts`
 
-### Admin UI Components & Shell:
-- `purple-friday/src/app/admin/layout.tsx`
-- `purple-friday/src/app/admin/loading.tsx`
-- `purple-friday/src/app/admin/error.tsx`
-- `purple-friday/src/app/admin/not-found.tsx`
-- `purple-friday/src/app/admin/page.tsx`
-- `purple-friday/src/app/admin/login/page.tsx`
-- `purple-friday/src/app/admin/team/page.tsx`
-- `purple-friday/src/app/admin/audit/page.tsx`
-- `purple-friday/src/app/admin/settings/page.tsx`
-- `purple-friday/src/app/admin/notifications/page.tsx`
-- `purple-friday/src/components/admin/AdminSidebar.tsx`
-- `purple-friday/src/components/admin/AdminTopBar.tsx`
-- `purple-friday/src/components/admin/AdminGreeting.tsx`
-- `purple-friday/src/components/admin/AdminShellClient.tsx`
-- `purple-friday/src/components/admin/CommandPalette.tsx`
-- `purple-friday/src/components/admin/OverviewCharts.tsx`
-- `purple-friday/src/components/admin/PageTransition.tsx`
-- `purple-friday/src/components/admin/PermissionGate.tsx`
+### UI Pages & Components:
+- `purple-friday/src/app/admin/orders/page.tsx`
+- `purple-friday/src/app/admin/orders/[orderNumber]/page.tsx`
+- `purple-friday/src/app/admin/designs/page.tsx`
+- `purple-friday/src/app/admin/production/page.tsx`
+- `purple-friday/src/app/proof/[token]/page.tsx`
+- `purple-friday/src/components/admin/OrderStatusBadge.tsx`
+- `purple-friday/src/components/admin/OrderSlaBadge.tsx`
+- `purple-friday/src/components/admin/ArtworkIngestionCard.tsx`
+- `purple-friday/src/components/admin/MockupPlacementEditor.tsx`
 
-### Verification & Testing Scripts:
-- `purple-friday/scripts/admin-contrast-check.ts`
-- `purple-friday/src/__tests__/admin-rbac.test.ts`
-- `purple-friday/src/__tests__/admin-responsive.test.ts`
+### Verification & Test Suites:
+- `purple-friday/src/__tests__/order-state-machine.test.ts` (18 tests)
+- `purple-friday/src/__tests__/order-service.test.ts` (10 tests)
+- `purple-friday/src/__tests__/artwork-ingestion.test.ts` (8 tests)
+- `purple-friday/src/__tests__/mockup-placement.test.ts` (2 tests)
+- `purple-friday/src/__tests__/proof-workflow.test.ts` (5 tests)
+- `purple-friday/src/__tests__/jobsheet-and-queues.test.ts` (2 tests)
+- `purple-friday/src/__tests__/order-pipeline-lifecycle.test.ts` (1 comprehensive lifecycle test)
+- `purple-friday/e2e/admin-order-pipeline.spec.ts`

@@ -5,7 +5,6 @@ import {
   recordQcRework,
   ORDER_STORE,
   StoredOrderRecord,
-  OrderStatus,
 } from "@/server/orders/state-machine";
 
 describe("Order State Machine - Pure Transitions", () => {

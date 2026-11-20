@@ -61,9 +61,8 @@ export function ProductCard({ product }: { product: ProductCardData }) {
             <button
               type="button"
               onClick={() => toggleWishlist(product.slug)}
-              className={`p-1.5 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet ${
-                isFavorited ? "text-violet fill-violet" : "text-ink/40 hover:text-violet"
-              }`}
+              className={`p-1.5 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet ${isFavorited ? "text-violet fill-violet" : "text-ink/40 hover:text-violet"
+                }`}
               aria-label={isFavorited ? "Remove from wishlist" : "Save to wishlist"}
             >
               <Heart className={`h-4 w-4 ${isFavorited ? "fill-violet stroke-violet" : ""}`} />

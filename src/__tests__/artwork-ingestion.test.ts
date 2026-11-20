@@ -5,7 +5,6 @@ import {
   evaluateDpi,
   rgbToCmyk,
   rgbToHex,
-  extractDominantColors,
 } from "@/server/artwork/artwork-ingestion";
 
 describe("Artwork Ingestion - Color & DPI Math", () => {

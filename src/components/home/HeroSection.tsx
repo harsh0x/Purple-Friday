@@ -205,11 +205,10 @@ export function HeroSection() {
                 onDragLeave={() => setIsDragging(false)}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`p-4 border-2 border-dashed rounded-sm text-center cursor-pointer transition-colors mb-4 ${
-                  isDragging
+                className={`p-4 border-2 border-dashed rounded-sm text-center cursor-pointer transition-colors mb-4 ${isDragging
                     ? "border-violet bg-violet/5"
                     : "border-ink/30 bg-paper hover:border-violet"
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-center gap-2 text-xs font-mono text-ink">
                   <UploadCloud className="h-4 w-4 text-violet" />

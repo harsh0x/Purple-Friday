@@ -5,12 +5,9 @@ import Image from "next/image";
 import {
   CheckCircle2,
   RotateCcw,
-  Clock,
   ShieldCheck,
   AlertTriangle,
   Layers,
-  Sparkles,
-  MessageSquare,
   Check,
   RefreshCw,
 } from "lucide-react";

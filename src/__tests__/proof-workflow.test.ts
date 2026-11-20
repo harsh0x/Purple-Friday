@@ -78,9 +78,10 @@ describe("Proof & Approval Workflow (Step 5)", () => {
     expect(proof?.items[0].productName).toBeDefined();
 
     // Verify no financial leak
-    expect((proof as any).total).toBeUndefined();
-    expect((proof as any).subtotal).toBeUndefined();
-    expect((proof as any).gst).toBeUndefined();
+    const proofRecord = proof as unknown as Record<string, unknown>;
+    expect(proofRecord.total).toBeUndefined();
+    expect(proofRecord.subtotal).toBeUndefined();
+    expect(proofRecord.gst).toBeUndefined();
   });
 
   it("approves proof as customer, moves status to CUSTOMER_APPROVED, and resumes SLA", async () => {

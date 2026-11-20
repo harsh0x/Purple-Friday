@@ -1,9 +1,8 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import {
   listAdminOrders,
   getAdminOrderDetail,
   bulkAssignDesigner,
-  addOrderInternalNote,
   exportOrdersCsv,
   computeOrderSla,
 } from "@/server/orders/orders-service";

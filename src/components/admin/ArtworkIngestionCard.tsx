@@ -1,20 +1,16 @@
 "use client";
 
 import React, { useState } from "react";
-import Image from "next/image";
 import {
   UploadCloud,
-  FileCheck,
   AlertTriangle,
-  Info,
   CheckCircle2,
   FileCode,
   Download,
   Palette,
-  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
-import { ArtworkAnalysisResult, ColorProfile } from "@/server/artwork/artwork-ingestion";
+import { ArtworkAnalysisResult } from "@/server/artwork/artwork-ingestion";
 
 interface ArtworkIngestionCardProps {
   orderNumber: string;
@@ -26,7 +22,6 @@ interface ArtworkIngestionCardProps {
 export function ArtworkIngestionCard({
   orderNumber,
   itemId,
-  currentArtworkUrl,
   onArtworkUpdated,
 }: ArtworkIngestionCardProps) {
   const [uploading, setUploading] = useState(false);

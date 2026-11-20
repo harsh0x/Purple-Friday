@@ -1,21 +1,16 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import Image from "next/image";
 import {
   Move,
   Maximize2,
   RotateCw,
   Printer,
-  Palette,
-  CheckCircle2,
-  Layers,
   Save,
-  RefreshCw,
   Sliders,
 } from "lucide-react";
 import { toast } from "sonner";
-import { getPrintAreaForTemplate, PrintAreaBounds } from "@/lib/customizer/print-areas";
+import { getPrintAreaForTemplate } from "@/lib/customizer/print-areas";
 
 interface MockupPlacementEditorProps {
   orderNumber: string;
@@ -49,7 +44,6 @@ export function MockupPlacementEditor({
   itemId,
   productId,
   artworkUrl,
-  currentMockupUrl,
   existingPlacement,
   initialPrintMethod = "DTF",
   orderVersion,

@@ -10,10 +10,6 @@ import {
   Square,
   ExternalLink,
   RefreshCw,
-  Clock,
-  Layers,
-  AlertOctagon,
-  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import { OrderStatusBadge } from "@/components/admin/OrderStatusBadge";
@@ -51,13 +47,13 @@ export default function FactoryProductionQueuePage() {
       const data = await res.json();
 
       const productionStatuses = ["CUSTOMER_APPROVED", "IN_PRINTING", "QC_PASSED"];
-      const active = (data.orders || []).filter((o: any) =>
+      const active = (data.orders || []).filter((o: { status: string }) =>
         productionStatuses.includes(o.status)
       );
 
       // Fetch detail for each to extract print methods and sizes
       const detailed = await Promise.all(
-        active.map(async (o: any) => {
+        active.map(async (o: { orderNumber: string; isOverdue: boolean; hoursRemaining?: number | null; isPaused: boolean }) => {
           try {
             const detailRes = await fetch(`/api/admin/orders/${o.orderNumber}`);
             const detailData = await detailRes.json();

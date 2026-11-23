@@ -24,6 +24,10 @@ async function main() {
     return;
   }
 
+  if (!process.env.DIRECT_URL && databaseUrl) {
+    process.env.DIRECT_URL = databaseUrl;
+  }
+
   try {
     console.log("[db:migrate] Pushing schema to PostgreSQL database...");
     execSync("npx prisma db push --skip-generate", { stdio: "inherit" });

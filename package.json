@@ -17,10 +17,10 @@
     "routes:txt": "tsx scripts/generate-routes-and-logins.ts",
     "check:case": "tsx scripts/check-import-case.ts",
     "postinstall": "prisma generate",
-    "vercel-build": "prisma migrate deploy && next build"
+    "vercel-build": "tsx scripts/db-migrate.ts && next build"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": "20.x"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -74,7 +74,7 @@
     "@eslint/eslintrc": "^3",
     "@playwright/test": "^1.65.0",
     "@types/bcryptjs": "^2.4.6",
-    "@types/node": "^20",
+    "@types/node": "^20.19.43 || ^22.0.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/web-push": "^3.6.4",

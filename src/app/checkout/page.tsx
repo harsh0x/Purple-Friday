@@ -154,8 +154,13 @@ export default function CheckoutPage() {
         cart.clearCart();
         toast.success("Order placed successfully!");
 
+        // Construct target confirmation URL with token for guaranteed authorization
+        const targetUrl = orderData.token
+          ? `/order/${orderData.orderNumber}/confirmation?token=${encodeURIComponent(orderData.token)}`
+          : `/order/${orderData.orderNumber}/confirmation`;
+
         // Redirect to Confirmation
-        router.push(`/order/${orderData.orderNumber}/confirmation`);
+        router.push(targetUrl);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : "Failed to place order";
         toast.error(msg);

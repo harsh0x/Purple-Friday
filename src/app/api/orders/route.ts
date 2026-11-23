@@ -95,10 +95,16 @@ export async function POST(req: NextRequest) {
 
     if (idempotencyKey && ORDER_IDEMPOTENCY_MAP.has(idempotencyKey)) {
       const cached = ORDER_IDEMPOTENCY_MAP.get(idempotencyKey)!;
+      const isHttps =
+        req.nextUrl.protocol === "https:" ||
+        req.headers.get("x-forwarded-proto") === "https" ||
+        req.url.startsWith("https://");
+
       const res = NextResponse.json({
         success: true,
         orderId: cached.orderId,
         orderNumber: cached.orderNumber,
+        token: cached.cookieToken,
         total: cached.total,
         paymentMethod: cached.paymentMethod,
         paymentStatus: cached.paymentStatus,
@@ -107,14 +113,14 @@ export async function POST(req: NextRequest) {
       // Maintain guest ownership cookie
       res.cookies.set(`pf_guest_order_${cached.orderNumber}`, cached.cookieToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        secure: isHttps,
         sameSite: "lax",
         path: "/",
         maxAge: 60 * 60 * 24 * 7,
       });
       res.cookies.set("pf_guest_order", cached.cookieToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        secure: isHttps,
         sameSite: "lax",
         path: "/",
         maxAge: 60 * 60 * 24 * 7,
@@ -178,32 +184,38 @@ export async function POST(req: NextRequest) {
         ORDER_IDEMPOTENCY_MAP.set(idempotencyKey, responsePayload);
       }
 
-        const response = NextResponse.json({
-          success: true,
-          orderId: order.id,
-          orderNumber: order.orderNumber,
-          total: order.total,
-          paymentMethod: order.paymentMethod || "COD",
-          paymentStatus: order.paymentStatus || "PENDING",
-        });
+    const isHttps =
+      req.nextUrl.protocol === "https:" ||
+      req.headers.get("x-forwarded-proto") === "https" ||
+      req.url.startsWith("https://");
 
-        // Set signed httpOnly cookie for guest ownership
-        response.cookies.set(`pf_guest_order_${order.orderNumber}`, guestToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "lax",
-          path: "/",
-          maxAge: 60 * 60 * 24 * 7,
-        });
-        response.cookies.set("pf_guest_order", guestToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "lax",
-          path: "/",
-          maxAge: 60 * 60 * 24 * 7,
-        });
+    const response = NextResponse.json({
+      success: true,
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      token: guestToken,
+      total: order.total,
+      paymentMethod: order.paymentMethod || "COD",
+      paymentStatus: order.paymentStatus || "PENDING",
+    });
 
-        return response;
+    // Set signed httpOnly cookie for guest ownership
+    response.cookies.set(`pf_guest_order_${order.orderNumber}`, guestToken, {
+      httpOnly: true,
+      secure: isHttps,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7,
+    });
+    response.cookies.set("pf_guest_order", guestToken, {
+      httpOnly: true,
+      secure: isHttps,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7,
+    });
+
+    return response;
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : "Failed to create order";
         return NextResponse.json({ success: false, error: msg }, { status: 500 });

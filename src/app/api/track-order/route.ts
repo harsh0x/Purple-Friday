@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getOrderByNumber } from "@/lib/orders";
+import { getOrderByNumberAsync } from "@/lib/orders";
 import { maskCustomerName, maskPhoneNumber, maskEmail } from "@/lib/security/privacy";
 
 const trackOrderSchema = z.object({
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     const cleanOrderNumber = orderNumber.trim().toUpperCase();
     const cleanContact = contact.trim().toLowerCase();
 
-    const order = getOrderByNumber(cleanOrderNumber);
+    const order = await getOrderByNumberAsync(cleanOrderNumber);
 
     const matchesEmail = order?.customerEmail.toLowerCase() === cleanContact;
     const matchesPhone =

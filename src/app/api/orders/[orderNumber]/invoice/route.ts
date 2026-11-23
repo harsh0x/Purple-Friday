@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOrderByNumber } from "@/lib/orders";
+import { getOrderByNumberAsync } from "@/lib/orders";
 import { generateGstInvoicePdf } from "@/lib/invoice-generator";
 
 export async function GET(
@@ -12,7 +12,7 @@ export async function GET(
     return NextResponse.json({ error: "Missing order number" }, { status: 400 });
   }
 
-  const order = getOrderByNumber(orderNumber);
+  const order = await getOrderByNumberAsync(orderNumber);
   if (!order) {
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }

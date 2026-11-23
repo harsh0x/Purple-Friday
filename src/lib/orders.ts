@@ -167,6 +167,7 @@ export async function createOrder(params: CreateOrderParams): Promise<StoredOrde
 
   ORDER_REGISTRY.set(orderId, orderRecord);
   ORDER_REGISTRY.set(orderNumber, orderRecord);
+  ORDER_REGISTRY.set(orderNumber.toUpperCase(), orderRecord);
 
   // Sync to ORDER_STORE
   const stateRecord: StoredOrderRecord = {
@@ -267,8 +268,139 @@ export async function createOrder(params: CreateOrderParams): Promise<StoredOrde
   return orderRecord;
 }
 
+function convertStateRecordToStoredOrder(rec: StoredOrderRecord): StoredOrder {
+  const addr = (rec.address || {}) as Record<string, string>;
+  return {
+    id: rec.id,
+    orderNumber: rec.orderNumber,
+    userId: rec.userId || undefined,
+    customerName: addr.customerName || (rec as unknown as Record<string, string>).customerName || "Customer",
+    customerEmail: addr.customerEmail || (rec as unknown as Record<string, string>).customerEmail || "",
+    customerPhone: addr.customerPhone || (rec as unknown as Record<string, string>).customerPhone || "",
+    companyName: addr.companyName || (rec as unknown as Record<string, string>).companyName || undefined,
+    gstin: rec.gstin || undefined,
+    shippingAddress: {
+      line1: addr.line1 || "",
+      line2: addr.line2,
+      city: addr.city || "",
+      state: addr.state || "",
+      pin: addr.pin || "",
+    },
+    items: (rec.items || []).map((it) => {
+      const itRec = it as unknown as Record<string, unknown>;
+      const unitRupees = typeof it.unitPrice === "number" && it.unitPrice > 1000
+        ? Math.round(it.unitPrice / 100)
+        : it.unitPrice || 0;
+      return {
+        productId: it.productId,
+        productName: (itRec.productName as string) || "Custom Merch",
+        template: (itRec.template as string) || "Custom Merch",
+        unitPrice: unitRupees,
+        qty: it.qty,
+        lineTotal: unitRupees * it.qty,
+        designId: itRec.designId as string | undefined,
+        options: (it.options || {}) as Record<string, string>,
+      };
+    }),
+    subtotal: typeof rec.subtotal === "number" && rec.subtotal > 10000 ? Math.round(rec.subtotal / 100) : rec.subtotal,
+    discount: typeof rec.discount === "number" && rec.discount > 10000 ? Math.round(rec.discount / 100) : rec.discount || 0,
+    shipping: typeof rec.shipping === "number" && rec.shipping > 10000 ? Math.round(rec.shipping / 100) : rec.shipping || 0,
+    gst: typeof rec.gst === "number" && rec.gst > 10000 ? Math.round(rec.gst / 100) : rec.gst,
+    total: typeof rec.total === "number" && rec.total > 10000 ? Math.round(rec.total / 100) : rec.total,
+    status: rec.status,
+    paymentMethod: rec.paymentMethod || "COD",
+    paymentStatus: rec.paymentStatus || "PENDING",
+    createdAt: rec.createdAt || new Date().toISOString(),
+    updatedAt: rec.updatedAt || new Date().toISOString(),
+  };
+}
+
 export function getOrderByNumber(orderNumber: string): StoredOrder | undefined {
-  return ORDER_REGISTRY.get(orderNumber);
+  if (!orderNumber) return undefined;
+  const clean = orderNumber.trim();
+  const direct = ORDER_REGISTRY.get(clean) || ORDER_REGISTRY.get(clean.toUpperCase());
+  if (direct) return direct;
+
+  const stateMem = ORDER_STORE.get(clean) || ORDER_STORE.get(clean.toUpperCase());
+  if (stateMem) {
+    const converted = convertStateRecordToStoredOrder(stateMem);
+    ORDER_REGISTRY.set(clean, converted);
+    return converted;
+  }
+
+  return undefined;
+}
+
+export async function getOrderByNumberAsync(orderNumber: string): Promise<StoredOrder | undefined> {
+  const memoryResult = getOrderByNumber(orderNumber);
+  if (memoryResult) return memoryResult;
+
+  if (!orderNumber) return undefined;
+  const clean = orderNumber.trim();
+
+  try {
+    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
+      const dbOrder = await prisma.order.findFirst({
+        where: {
+          OR: [{ id: clean }, { orderNumber: clean }],
+        },
+        include: {
+          items: {
+            include: { product: true },
+          },
+        },
+      });
+
+      if (dbOrder) {
+        const addr = (dbOrder.address || {}) as Record<string, string>;
+        const mapped: StoredOrder = {
+          id: dbOrder.id,
+          orderNumber: dbOrder.orderNumber,
+          userId: dbOrder.userId || undefined,
+          customerName: addr.customerName || "Customer",
+          customerEmail: addr.customerEmail || "",
+          customerPhone: addr.customerPhone || "",
+          companyName: addr.companyName,
+          gstin: dbOrder.gstin || undefined,
+          shippingAddress: {
+            line1: addr.line1 || "",
+            line2: addr.line2,
+            city: addr.city || "",
+            state: addr.state || "",
+            pin: addr.pin || "",
+          },
+          items: dbOrder.items.map((it) => ({
+            productId: it.productId,
+            productName: it.product?.name || "Custom Item",
+            template: it.product?.shortName || "Custom Item",
+            unitPrice: it.unitPrice,
+            qty: it.qty,
+            lineTotal: it.unitPrice * it.qty,
+            designId: it.designId || undefined,
+            options: (it.options || {}) as Record<string, string>,
+          })),
+          subtotal: dbOrder.subtotal,
+          discount: dbOrder.discount,
+          shipping: dbOrder.shipping,
+          gst: dbOrder.gst,
+          total: dbOrder.total,
+          status: dbOrder.status as StoredOrder["status"],
+          paymentMethod: dbOrder.paymentMethod,
+          paymentStatus: dbOrder.paymentStatus,
+          createdAt: dbOrder.createdAt.toISOString(),
+          updatedAt: dbOrder.updatedAt.toISOString(),
+        };
+
+        ORDER_REGISTRY.set(dbOrder.orderNumber, mapped);
+        ORDER_REGISTRY.set(dbOrder.id, mapped);
+        return mapped;
+      }
+    }
+  } catch (err) {
+    console.warn("[orders] Database order fetch error:", err);
+  }
+
+  return undefined;
 }
 
 export function getOrderById(orderId: string): StoredOrder | undefined {

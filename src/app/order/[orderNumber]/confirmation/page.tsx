@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -13,25 +13,28 @@ import {
   Package,
   ArrowRight,
 } from "lucide-react";
-import { getOrderByNumber } from "@/lib/orders";
+import { getOrderByNumberAsync } from "@/lib/orders";
 import { verifyGuestOrderToken } from "@/lib/security/guest-order";
 
 interface PageProps {
   params: Promise<{ orderNumber: string }>;
+  searchParams?: Promise<{ token?: string }>;
 }
 
-export default async function OrderConfirmationPage({ params }: PageProps) {
+export default async function OrderConfirmationPage({ params, searchParams }: PageProps) {
   const { orderNumber } = await params;
-  const order = getOrderByNumber(orderNumber);
+  const { token: urlToken } = (await searchParams) || {};
+  const order = await getOrderByNumberAsync(orderNumber);
 
   if (!order) {
     notFound();
   }
 
-  // Security check: verify guest ownership cookie or logged-in session
+  // Security check: verify guest ownership cookie or logged-in session or signed token in URL
   const session = await getServerSession(authOptions);
   const cookieStore = await cookies();
   const guestToken =
+    urlToken ||
     cookieStore.get(`pf_guest_order_${orderNumber}`)?.value ||
     cookieStore.get("pf_guest_order")?.value;
 
@@ -39,10 +42,10 @@ export default async function OrderConfirmationPage({ params }: PageProps) {
   const isOwnerSession = session?.user && (session.user as { id?: string }).id === order.userId;
   const isAdmin = session?.user && (session.user as { role?: string }).role === "SUPER_ADMIN";
 
-  // Allow access if guest cookie matches, user owns the order, or admin is viewing
+  // Allow access if guest cookie/token matches, user owns the order, admin is viewing, or in dev/local
   if (!isGuestAuthorized && !isOwnerSession && !isAdmin && process.env.NODE_ENV === "production") {
-    // If neither cookie nor session matches in production, fail safe
-    notFound();
+    // If neither cookie nor token matches in production, guide the customer to track-order instead of 404
+    redirect(`/track-order?orderNumber=${encodeURIComponent(orderNumber)}`);
   }
 
   return (

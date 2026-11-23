@@ -105,7 +105,9 @@ export function MegaMenuPanel({ category, onClose }: MegaMenuPanelProps) {
             <div className="pt-2">
               <Link
                 href={category.href}
-                onClick={onClose}
+                onClick={() => {
+                  setTimeout(() => onClose(), 50);
+                }}
                 className="inline-flex items-center gap-2 text-xs font-mono font-bold uppercase text-ink hover:text-violet transition-colors group"
               >
                 <span>View Full Catalogue</span>
@@ -120,13 +122,16 @@ export function MegaMenuPanel({ category, onClose }: MegaMenuPanelProps) {
               <Link
                 key={item.slug}
                 href={`/product/${item.slug}`}
-                onClick={onClose}
+                onClick={() => {
+                  setTimeout(() => onClose(), 50);
+                }}
                 className="group p-4 border border-ink/30 bg-paper-pure rounded-sm hover:border-ink hover:shadow-card transition-all relative block"
               >
                 <CropCorners offset={4} length={6} />
                 {/* Product SVG Mockup Thumbnail */}
                 <div className="h-32 w-full flex items-center justify-center p-2 mb-3 bg-paper rounded-xs overflow-hidden transition-transform duration-300 group-hover:scale-105">
                   <ProductMockup
+                    slug={item.slug}
                     template={item.template}
                     color={item.color}
                     className="max-h-full max-w-full drop-shadow-sm"

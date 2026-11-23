@@ -90,113 +90,137 @@ export function OrderProcessTimeline() {
 
       <div className="mx-auto max-w-7xl">
         {/* Section Header */}
-        <div className="mb-14 text-center">
-          <div className="inline-flex items-center gap-2 border border-ink/20 bg-violet/10 px-3 py-1 text-xs font-mono font-medium text-violet uppercase tracking-wider mb-3">
-            <span className="h-1.5 w-1.5 rounded-full bg-violet animate-pulse" />
-            Clear Delivery Guarantee
-          </div>
-          <h2 className="font-display text-3xl font-extrabold tracking-tight text-ink sm:text-4xl md:text-5xl">
-            From your proof to your door
-          </h2>
-          <p className="mt-3 text-base text-ink/70 max-w-2xl mx-auto font-sans">
-            No guessing games. Track every stage of your run in real time with our calibrated 5-point production pipeline.
-          </p>
-        </div>
+          <div className="mb-12 text-center px-2">
+            <div className="inline-flex items-center gap-2 border border-ink/20 bg-violet/10 px-3 py-1 text-xs font-mono font-medium text-violet uppercase tracking-wider mb-3">
+              <span className="h-1.5 w-1.5 rounded-full bg-violet animate-pulse" />
+              Clear Delivery Guarantee
+            </div>
+              <h2 className="font-display text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-ink break-words">
+                From your proof to your door
+              </h2>
+                <p className="mt-3 text-sm sm:text-base text-ink/70 max-w-2xl mx-auto font-sans">
+                  No guessing games. Track every stage of your run in real time with our calibrated 5-point production pipeline.
+                </p>
+              </div>
 
-        {/* Desktop / Horizontal Timeline */}
-        <div className="relative hidden md:block pt-8 pb-12">
-          {/* Background Track Line */}
-          <div className="absolute top-14 left-[10%] right-[10%] h-[3px] bg-ink/15 -z-0" />
+              {/* Desktop / Horizontal Timeline */}
+              <div className="relative hidden md:block pt-8 pb-12">
+                {/* Background Track Line */}
+                <div className="absolute top-14 left-[10%] right-[10%] h-[3px] bg-ink/15 -z-0" />
 
-          {/* Animated SVG Progress Line */}
-          <svg
-            className="absolute top-14 left-[10%] right-[10%] w-[80%] h-[3px] overflow-visible -z-0 pointer-events-none"
-            preserveAspectRatio="none"
-          >
-            <line
-              x1="0"
-              y1="0"
-              x2="100%"
-              y2="0"
-              stroke="#6A2CFF"
-              strokeWidth="4"
-              strokeDasharray="1000"
-              strokeDashoffset={1000 - scrollProgress * 1000}
-              className="transition-[stroke-dashoffset] duration-150 ease-out"
-            />
-          </svg>
+                {/* Animated SVG Progress Line */}
+                <svg
+                  className="absolute top-14 left-[10%] right-[10%] w-[80%] h-[3px] overflow-visible -z-0 pointer-events-none"
+                  preserveAspectRatio="none"
+                >
+                  <line
+                    x1="0"
+                    y1="0"
+                    x2="100%"
+                    y2="0"
+                    stroke="#6A2CFF"
+                    strokeWidth="4"
+                    strokeDasharray="1000"
+                    strokeDashoffset={1000 - scrollProgress * 1000}
+                    className="transition-[stroke-dashoffset] duration-150 ease-out"
+                  />
+                </svg>
 
-          {/* 5 Steps Grid */}
-          <div className="grid grid-cols-5 gap-4 relative z-10">
-            {STEPS.map((step, idx) => {
-              const Icon = step.icon;
-              const stepRatio = idx / (STEPS.length - 1);
-              const isPassed = scrollProgress >= stepRatio;
+                {/* 5 Steps Grid */}
+                <div className="grid grid-cols-5 gap-4 relative z-10">
+                  {STEPS.map((step, idx) => {
+                    const Icon = step.icon;
+                    const stepRatio = idx / (STEPS.length - 1);
+                    const isPassed = scrollProgress >= stepRatio;
 
-              return (
-                <div key={step.id} className="flex flex-col items-center text-center px-2 group">
-                  {/* Step node icon */}
-                  <div
-                    className={`h-12 w-12 rounded-full border-2 border-ink flex items-center justify-center transition-all duration-300 ${
-                      isPassed
-                        ? "bg-violet text-white shadow-[3px_3px_0_0_#15101F]"
-                        : "bg-white text-ink shadow-[2px_2px_0_0_#15101F]"
-                    }`}
-                  >
-                    <Icon className="h-5 w-5 stroke-[2.2]" />
-                  </div>
+                    return (
+                      <div key={step.id} className="flex flex-col items-center text-center px-2 group">
+                        {/* Step node icon */}
+                        <div
+                          className={`h-12 w-12 rounded-full border-2 border-ink flex items-center justify-center transition-all duration-300 ${isPassed
+                              ? "bg-violet text-white shadow-[3px_3px_0_0_#15101F]"
+                              : "bg-white text-ink shadow-[2px_2px_0_0_#15101F]"
+                            }`}
+                        >
+                          <Icon className="h-5 w-5 stroke-[2.2]" />
+                        </div>
 
-                  <span className="mt-4 font-mono text-xs font-bold text-violet tracking-wider">
-                    STAGE {step.stepNumber}
-                  </span>
-                  <h3 className="mt-1 font-display text-lg font-bold text-ink leading-snug">
-                    {step.title}
-                  </h3>
-                  <span className="mt-1 inline-block font-mono text-[11px] font-bold text-ink bg-ink/10 px-2.5 py-0.5 border border-ink/20 rounded-xs">
-                    {step.duration}
-                  </span>
-                  <p className="mt-2 text-xs font-sans text-ink leading-relaxed">
-                    {step.description}
-                  </p>
+                        <span className="mt-4 font-mono text-xs font-bold text-violet tracking-wider">
+                          STAGE {step.stepNumber}
+                        </span>
+                        <h3 className="mt-1 font-display text-lg font-bold text-ink leading-snug">
+                          {step.title}
+                        </h3>
+                        <span className="mt-1 inline-block font-mono text-[11px] font-bold text-ink bg-ink/10 px-2.5 py-0.5 border border-ink/20 rounded-xs">
+                          {step.duration}
+                        </span>
+                        <p className="mt-2 text-xs font-sans text-ink leading-relaxed">
+                          {step.description}
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
-        </div>
+              </div>
 
-          {/* Mobile / Vertical Timeline */}
-          <div className="relative md:hidden pl-6 border-l-2 border-ink/20 space-y-8 my-6">
-            {STEPS.map((step) => {
-              const Icon = step.icon;
-              return (
-                <div key={step.id} className="relative pl-6">
-                  {/* Node icon on line */}
-                  <div className="absolute -left-[31px] top-0 h-9 w-9 rounded-full border-2 border-ink bg-violet text-white flex items-center justify-center shadow-[2px_2px_0_0_#15101F]">
-                    <Icon className="h-4 w-4" />
-                  </div>
+                  {/* Mobile / Vertical Timeline with synchronized scroll-driven progress */ }
+                  <div className="relative md:hidden my-6 px-2 pb-16">
+                    {/* Background Track Line */}
+                    <div className="absolute left-[26px] top-4 bottom-8 w-[3px] bg-ink/15 rounded-full" />
 
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-violet">
-                        STAGE {step.stepNumber}
-                      </span>
-                      <span className="font-mono text-[10px] text-ink/60 bg-ink/5 px-1.5 py-0.5 border border-ink/10">
-                        {step.duration}
-                      </span>
-                    </div>
-                    <h3 className="mt-1 font-display text-base font-bold text-ink">
-                      {step.title}
-                    </h3>
-                    <p className="mt-1 text-xs text-ink/75 leading-relaxed font-sans">
-                      {step.description}
-                    </p>
-                  </div>
-                </div>
-              );
+                    {/* Animated Scroll Progress Line */}
+                    <div
+                      className="absolute left-[26px] top-4 w-[3px] bg-violet rounded-full transition-all duration-150 ease-out"
+                      style={{
+                        height: `${Math.min(100, Math.max(0, scrollProgress * 100))}%`,
+                        maxHeight: "calc(100% - 50px)",
+                      }}
+                    />
+
+                    <div className="space-y-8 relative z-10">
+                      {STEPS.map((step, idx) => {
+                        const Icon = step.icon;
+                        const stepRatio = idx / (STEPS.length - 1);
+                        const isPassed = scrollProgress >= stepRatio;
+
+                        return (
+                              <div key={step.id} className="relative flex items-start gap-4">
+                                {/* Node icon aligned right over vertical track line (26px - 18px = 8px offset from left) */}
+                                <div
+                                  className={`ml-2 h-9 w-9 rounded-full border-2 border-ink flex items-center justify-center shrink-0 transition-all duration-300 ${isPassed
+                                      ? "bg-violet text-white shadow-[2px_2px_0_0_#15101F] scale-105"
+                                      : "bg-white text-ink shadow-[1px_1px_0_0_#15101F]"
+                                    }`}
+                                >
+                                  <Icon className="h-4 w-4 stroke-[2.2]" />
+                                </div>
+
+                                      <div className="flex-1 pt-0.5 min-w-0 pr-2">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          <span
+                                            className={`font-mono text-xs font-bold tracking-wider transition-colors ${isPassed ? "text-violet" : "text-ink/60"
+                                              }`}
+                                          >
+                                            STAGE {step.stepNumber}
+                                          </span>
+                                            <span className="font-mono text-[10px] font-bold text-ink bg-ink/5 px-2 py-0.5 border border-ink/15 rounded-xs">
+                                              {step.duration}
+                                            </span>
+                                        </div>
+                                          <h3 className="mt-1 font-display text-base font-bold text-ink leading-snug">
+                                            {step.title}
+                                          </h3>
+                                          <p className="mt-1 text-xs text-ink/75 leading-relaxed font-sans">
+                                            {step.description}
+                                          </p>
+                                      </div>
+                                  </div>
+                                  );
             })}
-          </div>
-        </div>
-    </section>
-  );
-}
+                                </div>
+                              </div>
+                            </div>
+                          </section>
+                        );
+                      }
 

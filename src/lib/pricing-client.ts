@@ -190,3 +190,180 @@ export function resolveTierPrice(
   const pricePaise = resolveSlabUnitPrice(qty, slabs, toPaise(basePrice));
   return toRupees(pricePaise);
 }
+
+/**
+ * Standard coupon definitions supported across both client and server.
+ */
+export const SUPPORTED_COUPONS: Record<
+  string,
+  { type: "PERCENTAGE" | "FLAT"; value: number; minSubtotal: number; description: string }
+> = {
+  FIRSTORDER: {
+    type: "PERCENTAGE",
+    value: 12,
+    minSubtotal: 1000,
+    description: "12% Welcome Discount applied",
+  },
+  WELCOME10: {
+    type: "PERCENTAGE",
+    value: 10,
+    minSubtotal: 500,
+    description: "10% Welcome Discount applied",
+  },
+  PURPLE10: {
+    type: "PERCENTAGE",
+    value: 10,
+    minSubtotal: 500,
+    description: "10% Special Discount applied",
+  },
+  PURPLEFRIDAY: {
+    type: "PERCENTAGE",
+    value: 10,
+    minSubtotal: 500,
+    description: "10% Festival Discount applied",
+  },
+  FLAT100: {
+    type: "FLAT",
+    value: 100,
+    minSubtotal: 1000,
+    description: "₹100 Flat Discount applied",
+  },
+  SAVE15: {
+    type: "PERCENTAGE",
+    value: 15,
+    minSubtotal: 2500,
+    description: "15% Bulk Order Discount applied",
+  },
+};
+
+/**
+ * Evaluates coupon against cart subtotal.
+ */
+export function evaluateCoupon(
+  subtotal: number,
+  couponCode?: string
+): {
+  eligible: boolean;
+  discount: number;
+  breakdown?: { code: string; amount: number; description: string };
+  reason?: string;
+} {
+  if (!couponCode) return { eligible: false, discount: 0 };
+  const cleanCode = couponCode.trim().toUpperCase();
+  const rule = SUPPORTED_COUPONS[cleanCode];
+
+  if (!rule) {
+    return {
+      eligible: false,
+      discount: 0,
+      reason: `Invalid coupon code "${cleanCode}". Try FIRSTORDER for 12% off.`,
+    };
+  }
+
+  if (subtotal < rule.minSubtotal) {
+    return {
+      eligible: false,
+      discount: 0,
+      reason: `Coupon ${cleanCode} requires a minimum cart value of ₹${rule.minSubtotal}. Add ₹${rule.minSubtotal - subtotal} more.`,
+    };
+  }
+
+  let discount = 0;
+  if (rule.type === "PERCENTAGE") {
+    discount = Math.round((subtotal * rule.value) / 100);
+  } else {
+    discount = Math.min(rule.value, subtotal);
+  }
+
+  return {
+    eligible: true,
+    discount,
+    breakdown: {
+      code: cleanCode,
+      amount: discount,
+      description: rule.description,
+    },
+  };
+}
+
+/**
+ * Fast synchronous client cart calculation for instant zero-latency UI rendering.
+ */
+export function calculateClientCartPricing(
+  items: CartItemInput[],
+  couponCode?: string
+): PricingCalculationResult {
+  const calculatedItems: CalculatedItem[] = [];
+
+  for (const item of items) {
+    const fallback =
+      CATALOG_FALLBACK[item.productId] ||
+      Object.values(CATALOG_FALLBACK)[0];
+
+    const normalizedQty = normalizeQuantity(
+      item.qty || fallback.minQty,
+      fallback.minQty,
+      fallback.qtyStep
+    );
+
+    const unitPrice = resolveTierPrice(
+      normalizedQty,
+      fallback.basePrice,
+      fallback.tiers
+    );
+
+    let optionDelta = 0;
+    if (item.options) {
+      for (const val of Object.values(item.options)) {
+        if (typeof val === "string") {
+          if (val.includes("2XL") || val.includes("XXL")) optionDelta += 30;
+          if (val.includes("XL")) optionDelta += 15;
+          if (val.toLowerCase().includes("velvet") || val.toLowerCase().includes("gold")) optionDelta += 10;
+        }
+      }
+    }
+
+    const effectiveUnitPrice = unitPrice + optionDelta;
+    const lineTotal = effectiveUnitPrice * normalizedQty;
+
+    calculatedItems.push({
+      productId: item.productId,
+      optionKey: item.optionKey,
+      productName: fallback.name,
+      productSlug: fallback.slug,
+      qty: normalizedQty,
+      unitPrice: effectiveUnitPrice,
+      basePrice: fallback.basePrice,
+      mrp: fallback.mrp,
+      optionDelta,
+      lineTotal,
+      options: item.options,
+      designId: item.designId,
+      template: fallback.template,
+      isAvailable: true,
+    });
+  }
+
+  const subtotal = calculatedItems.reduce((acc, curr) => acc + curr.lineTotal, 0);
+  const couponEval = evaluateCoupon(subtotal, couponCode);
+  const discount = couponEval.discount;
+  const discountedSubtotal = Math.max(0, subtotal - discount);
+  const gst = Math.round(discountedSubtotal * STANDARD_GST_RATE);
+  const isFreeShipping = discountedSubtotal >= FREE_SHIPPING_THRESHOLD || subtotal === 0;
+  const shipping = isFreeShipping ? 0 : STANDARD_SHIPPING_FEE;
+  const amountNeededForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - discountedSubtotal);
+  const total = discountedSubtotal + gst + shipping;
+
+  return {
+    items: calculatedItems,
+    subtotal,
+    discount,
+    discountBreakdown: couponEval.breakdown,
+    gst,
+    shipping,
+    total,
+    freeShippingThreshold: FREE_SHIPPING_THRESHOLD,
+    amountNeededForFreeShipping,
+    hasUnavailableItems: false,
+  };
+}

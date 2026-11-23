@@ -60,6 +60,11 @@ import { cn } from "@/lib/utils";
       return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
+    // Close mega menu on route change
+    useEffect(() => {
+      setActiveCategory(null);
+    }, [pathname]);
+
     // Pure Admin Layout: Never render storefront header on admin routes
     if (pathname?.startsWith("/admin")) {
       return null;
@@ -68,6 +73,12 @@ import { cn } from "@/lib/utils";
     return (
       <>
         <header
+          onMouseLeave={(e) => {
+            const related = e.relatedTarget as Node | null;
+            if (!e.currentTarget.contains(related)) {
+              setActiveCategory(null);
+            }
+          }}
           className={cn(
             "sticky top-0 z-40 w-full bg-paper/95 backdrop-blur-md border-b border-ink/20 transition-transform duration-300 ease-editorial",
             isVisible ? "translate-y-0" : "-translate-y-full"

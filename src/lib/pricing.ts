@@ -1,19 +1,7 @@
 import prisma from "./prisma";
 import { findProductBySlug } from "./catalogue";
 import { IN_MEMORY_PRODUCTS } from "@/server/products/product-service";
-import {
-  toPaise,
-  toRupees,
-  roundHalfUp,
-  validateMoqAndStep,
-  resolveSlabUnitPrice,
-  DEFAULT_GST_RATE,
-  FREE_SHIPPING_THRESHOLD_PAISE,
-  STANDARD_SHIPPING_FEE_PAISE,
-  calculateGstBreakdown,
-  applyCouponDiscount,
-  CouponRule,
-} from "@/server/pricing/engine";
+import { roundHalfUp } from "@/server/pricing/engine";
 
 import {
   CartItemInput,
@@ -25,6 +13,7 @@ import {
   STANDARD_GST_RATE,
   normalizeQuantity,
   resolveTierPrice,
+  evaluateCoupon,
 } from "./pricing-client";
 
 export * from "./pricing-client";
@@ -180,53 +169,39 @@ export async function calculateCartPricing(
     | undefined = undefined;
 
   if (couponCode) {
-    const cleanCode = couponCode.trim().toUpperCase();
-    if (cleanCode === "FIRSTORDER") {
-      const couponRule: CouponRule = {
-        code: "FIRSTORDER",
-        type: "PERCENTAGE",
-        value: 12,
-        minSubtotalPaise: toPaise(1000),
-        active: true,
-      };
-      const couponResult = applyCouponDiscount(toPaise(subtotal), couponRule);
-      if (couponResult.eligible) {
-        discount = toRupees(couponResult.discountPaise);
-        discountBreakdown = {
-          code: "FIRSTORDER",
-          amount: discount,
-          description: "12% Welcome Discount applied",
-        };
+      const couponEval = evaluateCoupon(subtotal, couponCode);
+      if (couponEval.eligible) {
+        discount = couponEval.discount;
+        discountBreakdown = couponEval.breakdown;
       }
     }
+
+    const discountedSubtotal = Math.max(0, subtotal - discount);
+
+    // 6. GST Calculation
+    const gst = roundHalfUp(discountedSubtotal * STANDARD_GST_RATE);
+
+    // 7. Shipping Calculation
+    const isFreeShipping = discountedSubtotal >= FREE_SHIPPING_THRESHOLD || subtotal === 0;
+    const shipping = isFreeShipping ? 0 : STANDARD_SHIPPING_FEE;
+    const amountNeededForFreeShipping = Math.max(
+      0,
+      FREE_SHIPPING_THRESHOLD - discountedSubtotal
+    );
+
+    // 8. Grand Total
+    const total = discountedSubtotal + gst + shipping;
+
+    return {
+      items: calculatedItems,
+      subtotal,
+      discount,
+      discountBreakdown,
+      gst,
+      shipping,
+      total,
+      freeShippingThreshold: FREE_SHIPPING_THRESHOLD,
+      amountNeededForFreeShipping,
+      hasUnavailableItems: calculatedItems.some((i) => i.isAvailable === false),
+    };
   }
-
-  const discountedSubtotal = Math.max(0, subtotal - discount);
-
-  // 6. GST Calculation
-  const gst = roundHalfUp(discountedSubtotal * STANDARD_GST_RATE);
-
-  // 7. Shipping Calculation
-  const isFreeShipping = discountedSubtotal >= FREE_SHIPPING_THRESHOLD || subtotal === 0;
-  const shipping = isFreeShipping ? 0 : STANDARD_SHIPPING_FEE;
-  const amountNeededForFreeShipping = Math.max(
-    0,
-    FREE_SHIPPING_THRESHOLD - discountedSubtotal
-  );
-
-  // 8. Grand Total
-  const total = discountedSubtotal + gst + shipping;
-
-  return {
-    items: calculatedItems,
-    subtotal,
-    discount,
-    discountBreakdown,
-    gst,
-    shipping,
-    total,
-    freeShippingThreshold: FREE_SHIPPING_THRESHOLD,
-    amountNeededForFreeShipping,
-    hasUnavailableItems: calculatedItems.some((i) => i.isAvailable === false),
-  };
-}

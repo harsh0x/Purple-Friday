@@ -54,7 +54,7 @@ export default function PrivacyPage() {
               3. Payment Security & Encryption
             </h2>
             <p>
-              All online card, UPI, and net-banking transactions are processed via PCI-DSS Level 1 certified Indian payment gateways (Razorpay). Purple Friday does not store credit card numbers, CVVs, or bank account credentials on our servers.
+              All transactions and cash collections are handled with strict accounting and security standards. Purple Friday does not store credit card numbers, CVVs, or bank account credentials on our servers.
             </p>
           </section>
 

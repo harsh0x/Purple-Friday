@@ -88,7 +88,7 @@ describe("Order Service - Filtering, Search & SLA", () => {
       gst: 180,
       shipping: 0,
       total: 1180,
-      paymentMethod: "RAZORPAY",
+      paymentMethod: "COD",
       paymentStatus: "PAID",
       address: {},
       version: 1,
@@ -130,7 +130,7 @@ describe("Order Service - Bulk Assign & CSV Export", () => {
       gst: 180,
       shipping: 0,
       total: 1180,
-      paymentMethod: "RAZORPAY",
+      paymentMethod: "COD",
       paymentStatus: "PAID",
       address: {
         customerName: "+@EVIL_NAME",

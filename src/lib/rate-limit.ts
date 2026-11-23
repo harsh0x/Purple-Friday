@@ -119,6 +119,8 @@ async function checkUpstashRateLimit(
   }
 }
 
+let hasLoggedUpstashWarning = false;
+
 /**
  * Universal sliding-window rate limit entry point
  */
@@ -132,6 +134,13 @@ export async function checkRateLimit(
 
   if (upstashUrl && upstashToken && !upstashUrl.includes("sample-app")) {
     return checkUpstashRateLimit(upstashUrl, upstashToken, key, limit, windowMs);
+  }
+
+  if (process.env.NODE_ENV === "production" && !hasLoggedUpstashWarning) {
+    hasLoggedUpstashWarning = true;
+    console.warn(
+      "⚠️ [RateLimit] UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN not set in production. Falling back to in-memory rate limiting."
+    );
   }
 
   return checkMemoryRateLimit(key, limit, windowMs);

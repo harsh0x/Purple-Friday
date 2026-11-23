@@ -5,6 +5,10 @@ import { authOptions } from "@/lib/auth";
 import { createOrder } from "@/lib/orders";
 import { checkRateLimit, getClientKey } from "@/lib/rate-limit";
 import { isSameOrigin } from "@/lib/security/origin";
+import { signGuestOrderToken } from "@/lib/security/guest-order";
+import { notify } from "@/server/notifications/notify";
+
+import { ORDER_IDEMPOTENCY_MAP, CachedOrderResponse } from "@/server/orders/idempotency";
 
 const orderInputSchema = z.object({
   customerName: z.string().min(2, "Name must be at least 2 characters."),
@@ -35,17 +39,23 @@ const orderInputSchema = z.object({
       state: z.string().optional(),
     })
     .optional(),
-  paymentMethod: z.enum(["RAZORPAY", "COD", "PREPAID"]).default("RAZORPAY").optional(),
-  items: z.array(
-    z.object({
-      productId: z.string().min(1),
-      optionKey: z.string().min(1),
-      qty: z.number().int().min(1),
-      options: z.record(z.string(), z.string()).optional(),
-      designId: z.string().optional(),
-    })
-  ).min(1, "Order must contain at least one item."),
+  paymentMethod: z.string().optional(),
+  items: z
+    .array(
+      z.object({
+        productId: z.string().min(1),
+        optionKey: z.string().min(1),
+        qty: z.number().int().min(1),
+        options: z.record(z.string(), z.string()).optional(),
+        designId: z.string().optional(),
+        unitPrice: z.number().optional(), // Server recomputes, ignore
+        lineTotal: z.number().optional(), // Server recomputes, ignore
+      })
+    )
+    .min(1, "Order must contain at least one item."),
   couponCode: z.string().optional(),
+  idempotencyKey: z.string().optional(),
+  total: z.number().optional(), // Server recomputes, ignore
 });
 
 export async function POST(req: NextRequest) {
@@ -67,13 +77,52 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const session = await getServerSession(authOptions);
-  const userId = session?.user ? (session.user as { id?: string }).id : undefined;
+  let userId: string | undefined = undefined;
+  try {
+    const session = await getServerSession(authOptions);
+    userId = session?.user ? (session.user as { id?: string }).id : undefined;
+  } catch {
+    // In test or non-request context
+  }
 
   try {
     const body = await req.json();
-    const parsed = orderInputSchema.safeParse(body);
 
+    // Check optional idempotency key
+    const headerIdemp =
+      req.headers.get("x-idempotency-key") || req.headers.get("idempotency-key");
+    const idempotencyKey = (body?.idempotencyKey || headerIdemp || "").trim();
+
+    if (idempotencyKey && ORDER_IDEMPOTENCY_MAP.has(idempotencyKey)) {
+      const cached = ORDER_IDEMPOTENCY_MAP.get(idempotencyKey)!;
+      const res = NextResponse.json({
+        success: true,
+        orderId: cached.orderId,
+        orderNumber: cached.orderNumber,
+        total: cached.total,
+        paymentMethod: cached.paymentMethod,
+        paymentStatus: cached.paymentStatus,
+      });
+
+      // Maintain guest ownership cookie
+      res.cookies.set(`pf_guest_order_${cached.orderNumber}`, cached.cookieToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7,
+      });
+      res.cookies.set("pf_guest_order", cached.cookieToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7,
+      });
+      return res;
+    }
+
+    const parsed = orderInputSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
         {
@@ -84,40 +133,79 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { gstin, ...rest } = parsed.data;
+    const { gstin, items, shippingAddress, billingAddress, customerName, customerEmail, customerPhone, companyName, couponCode } = parsed.data;
 
+    // Server-side calculation ignores any client prices
     const order = await createOrder({
-      ...rest,
+      customerName,
+      customerEmail,
+      customerPhone,
+      companyName,
       gstin: gstin || undefined,
+      shippingAddress,
+      billingAddress,
+      paymentMethod: "COD",
+      items,
+      couponCode,
       userId,
     });
 
-    const isRazorpayConfigured = Boolean(
-      process.env.RAZORPAY_KEY_ID &&
-      process.env.RAZORPAY_KEY_SECRET &&
-      !process.env.RAZORPAY_KEY_ID.includes("dummy")
-    );
+    // Notify customer via transactional email & admin
+    try {
+      await notify("order_placed", order.customerEmail, {
+        orderNumber: order.orderNumber,
+        total: order.total * 100,
+        totalFormatted: `₹${order.total.toLocaleString("en-IN")}`,
+      });
+    } catch (notifErr) {
+      console.warn("[orders] Customer order_placed notification failed:", notifErr);
+    }
 
-    const chargeAmountPaise =
-      order.paymentMethod === "COD"
-        ? (order.advancePaidPaise || Math.round(order.total * 25))
-        : order.total * 100;
+    // Signed guest ownership cookie
+    const guestToken = await signGuestOrderToken(order.orderNumber);
 
-    return NextResponse.json({
+    const responsePayload: CachedOrderResponse = {
       success: true,
       orderId: order.id,
       orderNumber: order.orderNumber,
-      razorpayOrderId: order.razorpayOrderId,
-      amount: chargeAmountPaise, // Online charge amount in paise (advance for COD, full for prepaid)
-      currency: "INR",
-      paymentMethod: order.paymentMethod,
-      advancePaidPaise: order.advancePaidPaise,
-      balanceDuePaise: order.balanceDuePaise,
-      keyId: isRazorpayConfigured ? process.env.RAZORPAY_KEY_ID : "rzp_test_mock_purple_friday",
-      isMock: !isRazorpayConfigured,
-    });
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Failed to create order";
-    return NextResponse.json({ success: false, error: msg }, { status: 500 });
-  }
-}
+      total: order.total,
+      paymentMethod: order.paymentMethod || "COD",
+      paymentStatus: order.paymentStatus || "PENDING",
+      cookieToken: guestToken,
+    };
+
+      if (idempotencyKey) {
+        ORDER_IDEMPOTENCY_MAP.set(idempotencyKey, responsePayload);
+      }
+
+        const response = NextResponse.json({
+          success: true,
+          orderId: order.id,
+          orderNumber: order.orderNumber,
+          total: order.total,
+          paymentMethod: order.paymentMethod || "COD",
+          paymentStatus: order.paymentStatus || "PENDING",
+        });
+
+        // Set signed httpOnly cookie for guest ownership
+        response.cookies.set(`pf_guest_order_${order.orderNumber}`, guestToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          path: "/",
+          maxAge: 60 * 60 * 24 * 7,
+        });
+        response.cookies.set("pf_guest_order", guestToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          path: "/",
+          maxAge: 60 * 60 * 24 * 7,
+        });
+
+        return response;
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Failed to create order";
+        return NextResponse.json({ success: false, error: msg }, { status: 500 });
+      }
+    }

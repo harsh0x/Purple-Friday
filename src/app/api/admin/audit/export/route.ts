@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin/admin-session";
-import { requirePermission } from "@/lib/admin/permissions";
+import { requireAdmin } from "@/lib/admin/permissions";
 import { getAuditLogs, AuditQueryFilter } from "@/lib/admin/audit";
 import { exportAuditLogsToCsv } from "@/lib/security/csv";
 
 export async function GET(request: NextRequest) {
   const session = await getAdminSession();
   try {
-    requirePermission(session, "admin:view_audit");
+    requireAdmin(session);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Forbidden";
     return NextResponse.json({ error: msg }, { status: 403 });

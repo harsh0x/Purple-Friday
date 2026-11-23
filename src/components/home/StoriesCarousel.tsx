@@ -49,7 +49,7 @@ const STORIES: Story[] = [
   {
     slug: "corporate-swag-that-lasts",
     category: "Client Spotlights",
-    title: "How Razorpay & Zepto onboarded 1,200 team members with zero waste packaging",
+    title: "How Fintech & Zepto onboarded 1,200 team members with zero waste packaging",
     excerpt:
       "Moving away from throwaway plastic junk toward heavyweight 280 GSM fleece hoodies, dual-wall steel thermal flasks, and Smyth-sewn linen journals that people actually keep.",
     readTime: "5 min read",
@@ -117,11 +117,10 @@ export function StoriesCarousel() {
               onClick={scrollPrev}
               disabled={!prevBtnEnabled}
               aria-label="Previous story"
-              className={`h-11 w-11 rounded-full border-2 border-ink flex items-center justify-center transition-all ${
-                prevBtnEnabled
+              className={`h-11 w-11 rounded-full border-2 border-ink flex items-center justify-center transition-all ${prevBtnEnabled
                   ? "bg-white text-ink shadow-[2px_2px_0_0_#15101F] hover:translate-x-[-1px] hover:translate-y-[-1px] active:translate-x-[1px] active:translate-y-[1px]"
                   : "bg-paper text-ink/30 border-ink/30 cursor-not-allowed"
-              }`}
+                }`}
             >
               <ArrowLeft className="h-4 w-4" />
             </button>
@@ -129,11 +128,10 @@ export function StoriesCarousel() {
               onClick={scrollNext}
               disabled={!nextBtnEnabled}
               aria-label="Next story"
-              className={`h-11 w-11 rounded-full border-2 border-ink flex items-center justify-center transition-all ${
-                nextBtnEnabled
+              className={`h-11 w-11 rounded-full border-2 border-ink flex items-center justify-center transition-all ${nextBtnEnabled
                   ? "bg-violet text-white shadow-[2px_2px_0_0_#15101F] hover:translate-x-[-1px] hover:translate-y-[-1px] active:translate-x-[1px] active:translate-y-[1px]"
                   : "bg-paper text-ink/30 border-ink/30 cursor-not-allowed"
-              }`}
+                }`}
             >
               <ArrowRight className="h-4 w-4" />
             </button>

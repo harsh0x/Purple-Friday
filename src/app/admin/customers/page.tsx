@@ -1,58 +1,85 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { PageTransition } from "@/components/admin/PageTransition";
 import { formatCurrency } from "@/lib/utils";
 import {
   Search,
-  Sparkles,
   Mail,
-  MessageCircle,
-  Copy,
-  Check,
-  AlertCircle,
+  Phone,
+  Building,
+  MapPin,
+  Calendar,
   X,
-  ShieldAlert,
+  Download,
+  ExternalLink,
+  CheckCircle,
+  History,
 } from "lucide-react";
-import { CustomerRfmProfile } from "@/server/analytics/rfm";
+import { toast } from "sonner";
+import { CustomerProfile } from "@/server/customers/customer-service";
 
 export default function AdminCustomersPage() {
-  const [profiles, setProfiles] = useState<CustomerRfmProfile[]>([]);
-  const [segmentCounts, setSegmentCounts] = useState<Record<string, number>>({});
+  const [profiles, setProfiles] = useState<CustomerProfile[]>([]);
+  const [recentEvents, setRecentEvents] = useState<Array<{
+    id: string;
+    userId?: string;
+    customerEmail: string;
+    type: string;
+    summary: string;
+    createdAt: string;
+  }>>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedSegment, setSelectedSegment] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedProfile, setSelectedProfile] = useState<CustomerRfmProfile | null>(null);
-  const [copiedType, setCopiedType] = useState<"email" | "whatsapp" | null>(null);
+  const [selectedProfile, setSelectedProfile] = useState<CustomerProfile | null>(null);
 
   const fetchCustomers = useCallback(async () => {
     setLoading(true);
     try {
       const url = new URL("/api/admin/customers", window.location.origin);
-      if (selectedSegment !== "ALL") url.searchParams.set("segment", selectedSegment);
       if (searchQuery) url.searchParams.set("q", searchQuery);
 
       const res = await fetch(url.toString());
       if (res.ok) {
         const json = await res.json();
         setProfiles(json.profiles || []);
-        setSegmentCounts(json.segmentCounts || {});
+        if (json.recentEvents) {
+          setRecentEvents(json.recentEvents);
+        }
       }
     } catch {
       // silently handle
     } finally {
       setLoading(false);
     }
-  }, [selectedSegment, searchQuery]);
+  }, [searchQuery]);
 
   useEffect(() => {
     fetchCustomers();
   }, [fetchCustomers]);
 
-  const handleCopy = (text: string, type: "email" | "whatsapp") => {
-    navigator.clipboard.writeText(text);
-    setCopiedType(type);
-    setTimeout(() => setCopiedType(null), 2500);
+  const handleExportCsv = async () => {
+    toast.info("Generating customer CSV export...");
+    try {
+      const url = new URL("/api/admin/customers", window.location.origin);
+      url.searchParams.set("export", "csv");
+      if (searchQuery) url.searchParams.set("q", searchQuery);
+
+      const res = await fetch(url.toString());
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = `purple_friday_customers_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      toast.success("Customer CSV downloaded successfully");
+    } catch {
+      toast.error("Failed to export customers CSV");
+    }
   };
 
   return (
@@ -63,327 +90,293 @@ export default function AdminCustomersPage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="font-display font-black text-2xl sm:text-3xl text-[#15101F] tracking-tight">
-                Corporate Clients & RFM Segments
+                Customers
               </h1>
               <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-[#6A2CFF]/10 text-[#6A2CFF]">
-                Recency • Frequency • Monetary
+                {profiles.length} Active Accounts
               </span>
             </div>
-            <p className="mt-1 text-xs font-mono text-[#15101F]/60">
-              RFM quintile behavioral clustering, automated reorder gap tracking & personalized nudge drafts
+            <p className="mt-1 text-xs text-[#15101F]/60">
+              Customer directory, lifetime order history, and contact details
             </p>
           </div>
-        </div>
 
-        {/* Filter Pills & Search */}
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0">
-            {[
-              { id: "ALL", label: `All (${profiles.length})` },
-              { id: "VIP Corporate Buyers", label: `VIP Corporate (${segmentCounts.vip || 0})` },
-              { id: "At-Risk Repeat Clients", label: `At-Risk (${segmentCounts.atRisk || 0})` },
-              { id: "One-Time Sample Buyers", label: `Sample Buyers (${segmentCounts.sample || 0})` },
-              { id: "New Customers", label: `New (${segmentCounts.newCust || 0})` },
-              { id: "Lapsed", label: `Lapsed (${segmentCounts.lapsed || 0})` },
-            ].map((pill) => (
-              <button
-                key={pill.id}
-                onClick={() => setSelectedSegment(pill.id)}
-                className={`px-3.5 py-1.5 rounded-2xl text-xs font-mono font-bold whitespace-nowrap transition-all ${
-                  selectedSegment === pill.id
-                    ? "bg-[#15101F] text-white shadow-sm"
-                    : "bg-white text-[#15101F]/70 hover:bg-[#FAF7F2] border border-[#15101F]/10"
-                }`}
-              >
-                {pill.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="relative shrink-0 md:w-72">
-            <Search className="w-4 h-4 text-[#15101F]/40 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search client, email or city..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-2xl border border-[#15101F]/15 bg-white text-xs font-mono focus:outline-none focus:border-[#6A2CFF]"
-            />
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleExportCsv}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-2xl border border-[#15101F]/15 bg-white hover:bg-[#FAF7F2] text-[#15101F] transition-all shadow-sm"
+            >
+              <Download className="w-3.5 h-3.5 text-[#6A2CFF]" />
+              <span>Export CSV</span>
+            </button>
+            <div className="relative shrink-0 sm:w-64">
+              <Search className="w-4 h-4 text-[#15101F]/40 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search by name, email or city..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 rounded-2xl border border-[#15101F]/15 bg-white text-xs font-mono focus:outline-none focus:border-[#6A2CFF]"
+              />
+            </div>
           </div>
         </div>
 
         {/* Clients Table */}
         <div className="bg-white rounded-3xl border border-[#15101F]/10 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs font-mono">
+            <table className="w-full text-left text-xs">
               <thead className="bg-[#FAF7F2] text-[#15101F]/70 border-b border-[#15101F]/10">
                 <tr>
-                  <th className="p-4">Client / Company</th>
-                  <th className="p-4">RFM Segment</th>
-                  <th className="p-4">RFM Score</th>
-                  <th className="p-4 text-right">Total Orders</th>
-                  <th className="p-4 text-right">Lifetime Spend</th>
-                  <th className="p-4 text-center">Reorder Status</th>
-                  <th className="p-4 text-right">Action</th>
+                  <th className="p-4 font-bold">Customer</th>
+                  <th className="p-4 font-bold">Contact</th>
+                  <th className="p-4 font-bold">Location</th>
+                  <th className="p-4 font-bold text-right">Orders</th>
+                  <th className="p-4 font-bold text-right">Lifetime Spend</th>
+                  <th className="p-4 font-bold text-right">Last Order</th>
+                  <th className="p-4 font-bold text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#15101F]/10">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="p-8 text-center text-[#15101F]/50">
-                      Loading customer profiles...
+                    <td colSpan={7} className="p-8 text-center text-xs font-mono text-[#15101F]/40">
+                      Loading customer records...
                     </td>
                   </tr>
                 ) : profiles.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="p-8 text-center text-[#15101F]/50">
-                      No corporate profiles match the selected criteria.
+                    <td colSpan={7} className="p-8 text-center text-xs font-mono text-[#15101F]/40">
+                      No customer accounts matching filter.
                     </td>
                   </tr>
                 ) : (
-                  profiles.map((p) => {
-                    const isVip = p.segment === "VIP Corporate Buyers";
-                    const isAtRisk = p.segment === "At-Risk Repeat Clients";
-
-                    return (
-                      <tr key={p.customerId} className="hover:bg-[#FAF7F2]/50 transition-colors">
-                        <td className="p-4">
-                          <div className="font-sans font-bold text-sm text-[#15101F]">
-                            {p.customerName}
+                  profiles.map((p) => (
+                    <tr
+                      key={p.customerId}
+                      className="hover:bg-[#FAF7F2]/50 transition-colors group cursor-pointer"
+                      onClick={() => setSelectedProfile(p)}
+                    >
+                      <td className="p-4">
+                        <div className="font-bold text-[#15101F] text-sm group-hover:text-[#6A2CFF] transition-colors">
+                          {p.customerName}
+                        </div>
+                        {p.companyName && (
+                          <div className="text-[11px] text-[#15101F]/50 flex items-center gap-1 mt-0.5">
+                            <Building className="w-3 h-3" />
+                            <span>{p.companyName}</span>
                           </div>
-                          <div className="text-[11px] text-[#15101F]/60">
-                            {p.companyName} • {p.city}, {p.state}
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <span
-                            className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                              isVip
-                                ? "bg-[#6A2CFF]/15 text-[#6A2CFF]"
-                                : isAtRisk
-                                ? "bg-rose-100 text-rose-700"
-                                : p.segment === "One-Time Sample Buyers"
-                                ? "bg-amber-100 text-amber-800"
-                                : "bg-[#15101F]/10 text-[#15101F]"
-                            }`}
-                          >
-                            {p.segment}
+                        )}
+                      </td>
+                      <td className="p-4 font-mono text-[11px] text-[#15101F]/70">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span>{p.customerEmail}</span>
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                            <CheckCircle className="w-2.5 h-2.5 text-emerald-600" />
+                            <span>Verified</span>
                           </span>
-                        </td>
-                        <td className="p-4">
-                          <span className="font-mono font-bold px-2 py-0.5 rounded bg-[#FAF7F2] border border-[#15101F]/10">
-                            {p.rfmScore}
+                        </div>
+                        {p.customerPhone && <div className="text-[#15101F]/50 mt-0.5">{p.customerPhone}</div>}
+                      </td>
+                      <td className="p-4 text-[#15101F]/70">
+                        {p.city ? (
+                          <span className="inline-flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-[#15101F]/40" />
+                            {p.city}
                           </span>
-                        </td>
-                        <td className="p-4 text-right font-bold text-[#15101F]">
-                          {p.totalOrders}
-                        </td>
-                        <td className="p-4 text-right font-black text-emerald-700">
-                          {formatCurrency(p.totalSpendPaise)}
-                        </td>
-                        <td className="p-4 text-center">
-                          {p.isOverdueForReorder ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700">
-                              <AlertCircle className="w-3 h-3" />
-                              <span>Reorder Due (+{p.daysOverdueForReorder}d)</span>
-                            </span>
-                          ) : (
-                            <span className="text-[11px] text-[#15101F]/50">
-                              Every ~{p.averageOrderGapDays}d
-                            </span>
-                          )}
-                        </td>
-                        <td className="p-4 text-right">
-                          <button
-                            onClick={() => setSelectedProfile(p)}
-                            className="px-3 py-1.5 rounded-xl bg-white border border-[#15101F]/15 text-[#15101F] font-bold hover:bg-[#FAF7F2] transition-colors"
-                          >
-                            Profile & Nudge
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })
+                        ) : (
+                          <span className="text-[#15101F]/30">—</span>
+                        )}
+                      </td>
+                      <td className="p-4 text-right font-mono font-bold text-[#15101F]">
+                        {p.orderCount}
+                      </td>
+                      <td className="p-4 text-right font-mono font-bold text-[#15101F]">
+                        {formatCurrency(p.totalSpendPaise)}
+                      </td>
+                      <td className="p-4 text-right font-mono text-[11px] text-[#15101F]/60">
+                        {new Date(p.lastOrderDate).toLocaleDateString("en-IN", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </td>
+                      <td className="p-4 text-right">
+                        <Link
+                          href={`/admin/customers/${encodeURIComponent(p.customerId)}`}
+                          className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-[#15101F]/5 hover:bg-[#6A2CFF] hover:text-white text-[#15101F] text-xs font-mono font-bold transition-all"
+                        >
+                          <span>View</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
                 )}
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* Customer Profile & Draft Reorder Nudge Modal */}
+        {/* Recent Changes from CustomerEvent */}
+        <div className="bg-white rounded-3xl p-6 sm:p-7 border border-[#15101F]/10 shadow-sm space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-[#15101F]/10">
+            <div className="flex items-center gap-2">
+              <History className="w-5 h-5 text-[#6A2CFF]" />
+              <h2 className="font-display font-bold text-lg text-[#15101F] tracking-tight">
+                Recent Customer Changes & Activity
+              </h2>
+            </div>
+            <span className="text-xs font-mono text-zinc-500">
+              Audit log of self-serve customer profile and security updates
+            </span>
+          </div>
+
+          {recentEvents.length > 0 ? (
+            <div className="divide-y divide-zinc-100">
+              {recentEvents.map((evt) => (
+                <div key={evt.id} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold text-[#6A2CFF] uppercase text-[10px] px-2 py-0.5 rounded bg-[#6A2CFF]/10">
+                        {evt.type.replace(/_/g, " ")}
+                      </span>
+                      <span className="font-mono text-zinc-800 font-medium">{evt.customerEmail}</span>
+                    </div>
+                    <p className="text-zinc-600 font-sans">{evt.summary}</p>
+                  </div>
+                  <span className="text-[11px] font-mono text-zinc-400 shrink-0">
+                    {new Date(evt.createdAt).toLocaleString("en-IN", {
+                      timeZone: "Asia/Kolkata",
+                      day: "2-digit",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-zinc-400 font-mono italic py-4">
+              No recent customer profile changes recorded yet.
+            </p>
+          )}
+        </div>
+
+        {/* Customer Detail Drawer Modal */}
         {selectedProfile && (
-          <div className="fixed inset-0 z-50 bg-[#15101F]/40 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-2xl w-full border border-[#15101F]/15 shadow-2xl max-h-[90vh] overflow-y-auto space-y-6">
-              <div className="flex items-start justify-between pb-4 border-b border-[#15101F]/10">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="font-display font-bold text-xl text-[#15101F]">
+          <div className="fixed inset-0 z-50 flex items-center justify-end bg-[#15101F]/40 backdrop-blur-sm animate-fade-in">
+            <div className="w-full max-w-lg h-full bg-white shadow-2xl p-6 sm:p-8 flex flex-col justify-between overflow-y-auto">
+              <div className="space-y-6">
+                {/* Modal Header */}
+                <div className="flex items-start justify-between pb-4 border-b border-[#15101F]/10">
+                  <div>
+                    <h3 className="font-display font-black text-xl text-[#15101F]">
                       {selectedProfile.customerName}
-                    </h2>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#6A2CFF]/15 text-[#6A2CFF]">
-                      {selectedProfile.segment}
-                    </span>
+                    </h3>
+                    {selectedProfile.companyName && (
+                      <p className="text-xs text-[#15101F]/60 mt-0.5">{selectedProfile.companyName}</p>
+                    )}
                   </div>
-                  <p className="text-xs font-mono text-[#15101F]/60 mt-0.5">
-                    {selectedProfile.companyName} • {selectedProfile.customerEmail} • {selectedProfile.city}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setSelectedProfile(null)}
-                  className="p-1 rounded-xl text-[#15101F]/40 hover:text-[#15101F] hover:bg-[#FAF7F2]"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Account Quick Metrics */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3 rounded-2xl bg-[#FAF7F2] border border-[#15101F]/10">
-                  <span className="text-[10px] font-mono uppercase text-[#15101F]/60">Total Spend</span>
-                  <div className="font-mono text-base font-black text-emerald-700 mt-1">
-                    {formatCurrency(selectedProfile.totalSpendPaise)}
-                  </div>
+                  <button
+                    onClick={() => setSelectedProfile(null)}
+                    className="p-1.5 rounded-full hover:bg-[#FAF7F2] text-[#15101F]/50 hover:text-[#15101F]"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
 
-                <div className="p-3 rounded-2xl bg-[#FAF7F2] border border-[#15101F]/10">
-                  <span className="text-[10px] font-mono uppercase text-[#15101F]/60">AOV</span>
-                  <div className="font-mono text-base font-black text-[#15101F] mt-1">
-                    {formatCurrency(
-                      Math.round(selectedProfile.totalSpendPaise / (selectedProfile.totalOrders || 1))
+                {/* KPI Highlights */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-4 rounded-2xl bg-[#FAF7F2] border border-[#15101F]/5">
+                    <div className="text-[11px] font-mono text-[#15101F]/50">Total Orders</div>
+                    <div className="font-mono font-black text-xl text-[#15101F] mt-1">
+                      {selectedProfile.orderCount}
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-[#FAF7F2] border border-[#15101F]/5">
+                    <div className="text-[11px] font-mono text-[#15101F]/50">Lifetime Spend</div>
+                    <div className="font-mono font-black text-xl text-emerald-700 mt-1">
+                      {formatCurrency(selectedProfile.totalSpendPaise)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contact Coordinates */}
+                <div className="space-y-2.5">
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-[#15101F]/50">
+                    Contact Details
+                  </h4>
+                  <div className="space-y-2 text-xs font-mono">
+                    <a
+                      href={`mailto:${selectedProfile.customerEmail}`}
+                      className="flex items-center gap-2.5 p-3 rounded-xl bg-[#FAF7F2] border border-[#15101F]/5 hover:border-[#6A2CFF]/30 transition-colors"
+                    >
+                      <Mail className="w-4 h-4 text-[#6A2CFF]" />
+                      <span className="text-[#15101F] font-bold">{selectedProfile.customerEmail}</span>
+                    </a>
+                    {selectedProfile.customerPhone && (
+                      <a
+                        href={`tel:${selectedProfile.customerPhone}`}
+                        className="flex items-center gap-2.5 p-3 rounded-xl bg-[#FAF7F2] border border-[#15101F]/5 hover:border-[#6A2CFF]/30 transition-colors"
+                      >
+                        <Phone className="w-4 h-4 text-[#6A2CFF]" />
+                        <span className="text-[#15101F] font-bold">{selectedProfile.customerPhone}</span>
+                      </a>
+                    )}
+                    {selectedProfile.city && (
+                      <div className="flex items-center gap-2.5 p-3 rounded-xl bg-[#FAF7F2] border border-[#15101F]/5 text-[#15101F]/70">
+                        <MapPin className="w-4 h-4 text-[#15101F]/40" />
+                        <span>{selectedProfile.city}</span>
+                      </div>
                     )}
                   </div>
                 </div>
 
-                <div className="p-3 rounded-2xl bg-[#FAF7F2] border border-[#15101F]/10">
-                  <span className="text-[10px] font-mono uppercase text-[#15101F]/60">Reorder Interval</span>
-                  <div className="font-mono text-base font-black text-[#15101F] mt-1">
-                    ~{selectedProfile.averageOrderGapDays} days
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-2xl bg-[#FAF7F2] border border-[#15101F]/10">
-                  <span className="text-[10px] font-mono uppercase text-[#15101F]/60">Credit Term</span>
-                  <div className="font-mono text-base font-black text-[#6A2CFF] mt-1">
-                    NET 30
+                {/* Past Order History */}
+                <div>
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-[#15101F]/50 mb-3">
+                    Order History ({selectedProfile.orders.length})
+                  </h4>
+                  <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                    {selectedProfile.orders.map((o) => (
+                      <div
+                        key={o.id}
+                        className="p-3 rounded-xl bg-[#FAF7F2] border border-[#15101F]/10 flex items-center justify-between text-xs font-mono"
+                      >
+                        <div>
+                          <div className="font-bold text-[#15101F]">{o.orderNumber}</div>
+                          <div className="text-[10px] text-[#15101F]/50 flex items-center gap-1 mt-0.5">
+                            <Calendar className="w-3 h-3" />
+                            {new Date(o.createdAt).toLocaleDateString("en-IN", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white text-[#15101F] border border-[#15101F]/10">
+                            {o.status}
+                          </span>
+                          <span className="font-bold text-emerald-700">
+                            {formatCurrency(o.totalPaise)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
 
-              {/* 1-Click Reorder Nudge Draft Section */}
-              <div className="p-5 rounded-2xl bg-[#FAF7F2] border border-[#15101F]/10 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-[#6A2CFF]" />
-                    <h3 className="font-sans font-bold text-sm text-[#15101F]">
-                      Personalized Reorder Nudge Draft
-                    </h3>
-                  </div>
-                  {selectedProfile.isOverdueForReorder && (
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-100 text-rose-700">
-                      Reorder Due
-                    </span>
-                  )}
-                </div>
-
-                {/* Safety Guarantee Notice */}
-                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
-                  <ShieldAlert className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold">Strict Policy Guard:</span> Messages are never automatically sent without your explicit review. Copy below and send through your authenticated business WhatsApp or corporate outreach inbox.
-                  </div>
-                </div>
-
-                {/* WhatsApp Copy Card */}
-                <div className="p-3 rounded-xl bg-white border border-[#15101F]/10 space-y-2">
-                  <div className="flex items-center justify-between text-xs font-mono font-bold text-emerald-800">
-                    <span className="flex items-center gap-1.5">
-                      <MessageCircle className="w-4 h-4 text-emerald-600" />
-                      <span>WhatsApp Business Message</span>
-                    </span>
-                    <button
-                      onClick={() =>
-                        handleCopy(selectedProfile.draftNudgeMessage.whatsappText, "whatsapp")
-                      }
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
-                    >
-                      {copiedType === "whatsapp" ? (
-                        <>
-                          <Check className="w-3.5 h-3.5" />
-                          <span>Copied!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3.5 h-3.5" />
-                          <span>Copy WhatsApp Text</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                  <p className="text-xs font-mono text-[#15101F]/80 bg-[#FAF7F2] p-2.5 rounded-lg whitespace-pre-wrap">
-                    {selectedProfile.draftNudgeMessage.whatsappText}
-                  </p>
-                </div>
-
-                {/* Email Draft Card */}
-                <div className="p-3 rounded-xl bg-white border border-[#15101F]/10 space-y-2">
-                  <div className="flex items-center justify-between text-xs font-mono font-bold text-[#6A2CFF]">
-                    <span className="flex items-center gap-1.5">
-                      <Mail className="w-4 h-4 text-[#6A2CFF]" />
-                      <span>Corporate Email Subject: {selectedProfile.draftNudgeMessage.emailSubject}</span>
-                    </span>
-                    <button
-                      onClick={() =>
-                        handleCopy(selectedProfile.draftNudgeMessage.emailBody, "email")
-                      }
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-50 text-[#6A2CFF] hover:bg-purple-100 transition-colors"
-                    >
-                      {copiedType === "email" ? (
-                        <>
-                          <Check className="w-3.5 h-3.5" />
-                          <span>Copied!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3.5 h-3.5" />
-                          <span>Copy Email Body</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                  <p className="text-xs font-mono text-[#15101F]/80 bg-[#FAF7F2] p-2.5 rounded-lg whitespace-pre-wrap">
-                    {selectedProfile.draftNudgeMessage.emailBody}
-                  </p>
-                </div>
-              </div>
-
-              {/* Order History Timeline */}
-              <div>
-                <h4 className="font-sans font-bold text-sm text-[#15101F] mb-2">
-                  Past Order History ({selectedProfile.orders.length})
-                </h4>
-                <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {selectedProfile.orders.map((o) => (
-                    <div
-                      key={o.id}
-                      className="p-3 rounded-xl bg-[#FAF7F2] border border-[#15101F]/10 flex items-center justify-between text-xs font-mono"
-                    >
-                      <div>
-                        <span className="font-bold text-[#15101F]">{o.orderNumber}</span>
-                        <span className="text-[#15101F]/50 ml-2">
-                          {new Date(o.createdAt).toLocaleDateString("en-IN")}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white text-[#15101F] border border-[#15101F]/10">
-                          {o.status}
-                        </span>
-                        <span className="font-bold text-emerald-700">
-                          {formatCurrency(Math.round((o.total || 0) * 100))}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <div className="pt-6 border-t border-[#15101F]/10">
+                <button
+                  onClick={() => setSelectedProfile(null)}
+                  className="w-full py-2.5 rounded-2xl bg-[#15101F] hover:bg-[#6A2CFF] text-white text-xs font-mono font-bold transition-colors"
+                >
+                  Close
+                </button>
               </div>
             </div>
           </div>

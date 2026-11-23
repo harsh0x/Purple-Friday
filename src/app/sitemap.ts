@@ -1,10 +1,15 @@
 import { MetadataRoute } from "next";
-import { ALL_PRODUCTS, CATEGORIES_LIST } from "@/lib/catalogue";
+import { getCachedProducts, getCachedCategories } from "@/lib/catalogue";
 import { BLOG_POSTS } from "@/lib/blog-data";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://purplefriday.in";
   const now = new Date();
+
+  const [products, categories] = await Promise.all([
+    getCachedProducts(),
+    getCachedCategories(),
+  ]);
 
   // Static core routes
   const staticRoutes: MetadataRoute.Sitemap = [
@@ -78,38 +83,38 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "daily",
       priority: 0.9,
     },
-    ...CATEGORIES_LIST.map((c) => ({
-      url: `${baseUrl}/collections/${c.slug}`,
-      lastModified: now,
-      changeFrequency: "weekly" as const,
-      priority: 0.8,
-    })),
+      ...categories.map((c) => ({
+        url: `${baseUrl}/collections/${c.slug}`,
+        lastModified: now,
+        changeFrequency: "weekly" as const,
+        priority: 0.8,
+      })),
   ];
 
   // Product routes
-  const productRoutes: MetadataRoute.Sitemap = ALL_PRODUCTS.map((p) => ({
-    url: `${baseUrl}/products/${p.slug}`,
-    lastModified: now,
-    changeFrequency: "weekly" as const,
-    priority: 0.85,
-  }));
-
-  // Blog routes
-  const blogRoutes: MetadataRoute.Sitemap = [
-    {
-      url: `${baseUrl}/blog`,
+    const productRoutes: MetadataRoute.Sitemap = products.map((p) => ({
+      url: `${baseUrl}/products/${p.slug}`,
       lastModified: now,
-      changeFrequency: "weekly",
-      priority: 0.75,
-    },
-    ...BLOG_POSTS.map((post) => ({
-      url: `${baseUrl}/blog/${post.slug}`,
-      lastModified: new Date(post.publishedAt),
-      changeFrequency: "monthly" as const,
-      priority: 0.7,
-    })),
-  ];
+      changeFrequency: "weekly" as const,
+      priority: 0.85,
+    }));
 
-  return [...staticRoutes, ...collectionRoutes, ...productRoutes, ...blogRoutes];
-}
+    // Blog routes
+    const blogRoutes: MetadataRoute.Sitemap = [
+      {
+        url: `${baseUrl}/blog`,
+        lastModified: now,
+        changeFrequency: "weekly",
+        priority: 0.75,
+      },
+      ...BLOG_POSTS.map((post) => ({
+        url: `${baseUrl}/blog/${post.slug}`,
+        lastModified: new Date(post.publishedAt),
+        changeFrequency: "monthly" as const,
+        priority: 0.7,
+      })),
+    ];
+
+    return [...staticRoutes, ...collectionRoutes, ...productRoutes, ...blogRoutes];
+  }
 

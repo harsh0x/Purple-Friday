@@ -110,6 +110,7 @@ export function CartDrawer() {
                   const calculated = pricing?.items.find((i) => i.optionKey === item.optionKey);
                   const unitPrice = calculated?.unitPrice ?? item.unitPrice ?? 225;
                   const lineTotal = calculated?.lineTotal ?? unitPrice * item.qty;
+                  const isUnavailable = calculated?.isAvailable === false;
 
                   return (
                     <div
@@ -146,6 +147,14 @@ export function CartDrawer() {
                               .map(([k, v]) => `${k}: ${v}`)
                               .join(" • ")}
                           </p>
+                        )}
+
+                        {isUnavailable && (
+                          <div className="mt-1">
+                            <span className="text-[10px] font-mono font-bold text-rose-600 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded">
+                              No longer available
+                            </span>
+                          </div>
                         )}
 
                         {/* Price & Quantity Controls */}
@@ -261,14 +270,23 @@ export function CartDrawer() {
               </div>
             </div>
 
-            <Link
-              href="/checkout"
-              onClick={closeCart}
-              className="w-full flex items-center justify-center gap-2 min-h-[48px] rounded-sm bg-violet text-white font-mono text-sm font-bold uppercase shadow-stamp hover:shadow-stamp-hover active:translate-x-[2px] active:translate-y-[2px] active:shadow-stamp-active transition-all"
-            >
-              <span>{isLoading ? "Recalculating..." : `Checkout — ${formatINR(pricing.total)}`}</span>
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+            {pricing.hasUnavailableItems ? (
+              <button
+                disabled
+                className="w-full flex items-center justify-center gap-2 min-h-[48px] rounded-sm bg-rose-600 text-white font-mono text-xs font-bold uppercase opacity-75 cursor-not-allowed"
+              >
+                <span>Items unavailable — remove to checkout</span>
+              </button>
+            ) : (
+              <Link
+                href="/checkout"
+                onClick={closeCart}
+                className="w-full flex items-center justify-center gap-2 min-h-[48px] rounded-sm bg-violet text-white font-mono text-sm font-bold uppercase shadow-stamp hover:shadow-stamp-hover active:translate-x-[2px] active:translate-y-[2px] active:shadow-stamp-active transition-all"
+              >
+                <span>{isLoading ? "Recalculating..." : `Checkout — ${formatINR(pricing.total)}`}</span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            )}
           </DrawerFooter>
         )}
       </DrawerContent>

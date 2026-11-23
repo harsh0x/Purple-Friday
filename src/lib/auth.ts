@@ -1,11 +1,12 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
-import { verifyUserCredentials } from "./auth-service";
+import { verifyUserCredentials, getUserTokenVersion } from "./auth-service";
 
 interface ExtendedUser {
   id: string;
   role?: string;
+  tokenVersion?: number;
 }
 
 export const authOptions: NextAuthOptions = {
@@ -36,6 +37,7 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           role: user.role,
+          tokenVersion: user.tokenVersion || 1,
         };
       },
     }),
@@ -54,16 +56,27 @@ export const authOptions: NextAuthOptions = {
         const extUser = user as unknown as ExtendedUser;
         token.id = extUser.id;
         token.role = extUser.role || "CUSTOMER";
+        token.tokenVersion = extUser.tokenVersion || 1;
+      } else if (token.id) {
+        try {
+          const currentTokenVersion = await getUserTokenVersion(token.id as string);
+          if (token.tokenVersion && currentTokenVersion > (token.tokenVersion as number)) {
+            return {};
+          }
+        } catch {
+          // Memory fallback
+        }
       }
       return token;
     },
     async session({ session, token }) {
-      if (session.user) {
-        const extSession = session.user as unknown as ExtendedUser;
-        extSession.id = token.id as string;
-        extSession.role = (token.role as string) || "CUSTOMER";
-      }
-      return session;
+        if (session.user && token.id) {
+          const extSession = session.user as unknown as ExtendedUser;
+          extSession.id = token.id as string;
+          extSession.role = (token.role as string) || "CUSTOMER";
+          extSession.tokenVersion = (token.tokenVersion as number) || 1;
+        }
+        return session;
+      },
     },
-  },
-};
+  };

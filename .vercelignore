@@ -1,0 +1,17 @@
+node_modules
+.next
+.env*
+!.env.example
+ROUTES-AND-LOGINS.txt
+routes-and-credentials.txt
+source-photos
+docs/screenshots*
+test-results
+playwright-report
+*.log
+/storage/artwork/*
+!/storage/artwork/.gitkeep
+/storage/uploads/*
+!/storage/uploads/.gitkeep
+/storage/mockups/*
+!/storage/mockups/.gitkeep

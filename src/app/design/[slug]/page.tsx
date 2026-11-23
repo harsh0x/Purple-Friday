@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ALL_PRODUCTS } from "@/lib/catalogue";
+import { getProductBySlug } from "@/lib/catalogue";
 import { CustomizerClientWrapper } from "@/components/customizer/CustomizerClientWrapper";
 
 interface PageProps {
@@ -9,7 +9,7 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const product = ALL_PRODUCTS.find((p) => p.slug === slug);
+  const product = await getProductBySlug(slug);
 
   if (!product) {
     return {
@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function DesignPage({ params }: PageProps) {
   const { slug } = await params;
-  const product = ALL_PRODUCTS.find((p) => p.slug === slug);
+  const product = await getProductBySlug(slug);
 
   if (!product) {
     notFound();

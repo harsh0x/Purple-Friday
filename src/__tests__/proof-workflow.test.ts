@@ -17,7 +17,7 @@ describe("Proof & Approval Workflow (Step 5)", () => {
     gst: 90000,
     shipping: 0,
     total: 590000,
-    paymentMethod: "RAZORPAY",
+    paymentMethod: "COD",
     paymentStatus: "PAID",
     address: {
       customerName: "Sneha Reddy",

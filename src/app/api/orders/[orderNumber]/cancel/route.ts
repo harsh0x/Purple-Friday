@@ -2,12 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { changeOrderStatus, ORDER_STORE } from "@/server/orders/state-machine";
+import { isSameOrigin } from "@/lib/security/origin";
 
 export async function POST(
   req: NextRequest,
   props: { params: Promise<{ orderNumber: string }> }
 ) {
+  if (!isSameOrigin(req)) {
+    return NextResponse.json({ error: "Cross-origin requests forbidden." }, { status: 403 });
+  }
+
   const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { orderNumber } = await props.params;
 
   const order =
@@ -18,15 +27,23 @@ export async function POST(
     return NextResponse.json({ error: `Order ${orderNumber} not found.` }, { status: 404 });
   }
 
-  // Customer identity
-  const addr = (order.address as Record<string, unknown>) || {};
-  const customerEmail = session?.user?.email || (addr.customerEmail as string) || "customer@purplefriday.in";
+  // Security: strict ownership check
+  const userId = (session.user as { id?: string }).id;
+  const userEmail = session.user.email?.toLowerCase().trim();
+  const addr = (order.address || {}) as Record<string, string>;
+  const orderEmail = (order.customerEmail || addr.email || "").toLowerCase().trim();
+  const isAdmin = (session.user as { role?: string }).role === "ADMIN";
+
+  const isOwner = (userId && order.userId === userId) || (userEmail && orderEmail === userEmail) || isAdmin;
+  if (!isOwner) {
+    return NextResponse.json({ error: "Permission denied: You do not own this order." }, { status: 403 });
+  }
 
   try {
     const actor = {
-      email: customerEmail,
-      role: "CUSTOMER",
-      name: session?.user?.name || (addr.customerName as string) || "Customer",
+      email: userEmail || orderEmail || "customer@purplefriday.in",
+      role: isAdmin ? "ADMIN" : "CUSTOMER",
+      name: session.user.name || addr.customerName || "Customer",
     };
 
     const result = await changeOrderStatus(

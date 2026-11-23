@@ -4,11 +4,9 @@ import prisma from "@/lib/prisma";
 import { writeAudit } from "@/lib/admin/audit";
 import { createNotification } from "@/lib/admin/notifications";
 import { getStoreSettings } from "@/lib/admin/app-settings";
-import {
-  consumeBlanksForOrder,
-  releaseBlanksForOrder,
-} from "@/server/inventory/inventory-service";
 import { recordDeliveredOrder, recordRtoOrder } from "@/server/risk/rto";
+import { notify } from "@/server/notifications/notify";
+import { notifyAdmin } from "@/server/notifications/admin-dispatcher";
 
 export type OrderStatus =
   | "ORDER_PLACED"
@@ -17,21 +15,11 @@ export type OrderStatus =
   | "REVISION_REQUESTED"
   | "CUSTOMER_APPROVED"
   | "IN_PRINTING"
-  | "QC_PASSED"
   | "DISPATCHED"
   | "DELIVERED"
   | "CANCELLED"
   | "REFUNDED"
   | "RTO";
-
-export type ActorRole =
-  | "SUPER_ADMIN"
-  | "ADMIN"
-  | "GRAPHIC_DESIGNER"
-  | "FACTORY_MANAGER"
-  | "SUPPORT_AGENT"
-  | "CUSTOMER"
-  | "SYSTEM";
 
 export interface TransitionContext {
   orderCreatedAt?: Date | string | number;
@@ -41,6 +29,9 @@ export interface TransitionContext {
   cancellationWindowHours?: number; // From AppSetting (default 2)
   paymentMethod?: string;
   paymentStatus?: string;
+  isCustomer?: boolean;
+  courier?: string;
+  trackingNumber?: string;
 }
 
 export interface TransitionResult {
@@ -51,13 +42,13 @@ export interface TransitionResult {
 export interface OrderActor {
   id?: string;
   email: string;
-  role: ActorRole | string;
+  role?: string;
   name?: string;
 }
 
 /**
- * Mapping table from legacy statuses to new canonical statuses.
- * Keeps existing database records valid and readable.
+ * Mapping table from legacy/deprecated statuses to canonical statuses.
+ * QC_PASSED is migrated to IN_PRINTING.
  */
 export const LEGACY_STATUS_MAP: Record<string, OrderStatus> = {
   PENDING_PAYMENT: "ORDER_PLACED",
@@ -67,7 +58,8 @@ export const LEGACY_STATUS_MAP: Record<string, OrderStatus> = {
   CHANGES_REQUESTED: "REVISION_REQUESTED",
   APPROVED: "CUSTOMER_APPROVED",
   IN_PRODUCTION: "IN_PRINTING",
-  PACKED: "QC_PASSED",
+  PACKED: "IN_PRINTING",
+  QC_PASSED: "IN_PRINTING",
   DISPATCHED: "DISPATCHED",
   DELIVERED: "DELIVERED",
   CANCELLED: "CANCELLED",
@@ -82,7 +74,7 @@ export function normalizeOrderStatus(status: string): OrderStatus {
 
 /**
  * Pure Transition Table:
- * Maps each canonical status to its valid next statuses.
+ * IN_PRINTING moves directly to DISPATCHED (no factory/QC queue).
  */
 export const TRANSITION_TABLE: Record<OrderStatus, readonly OrderStatus[]> = {
   ORDER_PLACED: ["ARTWORK_UPLOADED", "CANCELLED"],
@@ -90,8 +82,7 @@ export const TRANSITION_TABLE: Record<OrderStatus, readonly OrderStatus[]> = {
   MOCKUP_SENT: ["CUSTOMER_APPROVED", "REVISION_REQUESTED", "CANCELLED"],
   REVISION_REQUESTED: ["MOCKUP_SENT", "CANCELLED"],
   CUSTOMER_APPROVED: ["IN_PRINTING", "CANCELLED"],
-  IN_PRINTING: ["QC_PASSED"],
-  QC_PASSED: ["DISPATCHED"],
+  IN_PRINTING: ["DISPATCHED"],
   DISPATCHED: ["DELIVERED", "RTO"],
   DELIVERED: [],
   CANCELLED: ["REFUNDED"],
@@ -108,18 +99,27 @@ const PRE_PRINTING_STATUSES: OrderStatus[] = [
 ];
 
 /**
- * Checks whether an order transition is permitted given the current status,
- * target status, actor role, and business context (cancellation gate, money paid).
+ * Checks whether an order transition is permitted.
+ * The single client admin may perform any allowed transition in the transition table.
+ * Customers are governed strictly by the 2-hour cancellation gate before IN_PRINTING.
  */
 export function canTransition(
   fromRaw: string,
   toRaw: string,
-  roleRaw: ActorRole | string,
-  context: TransitionContext = {}
+  contextOrRole?: TransitionContext | string,
+  maybeContext?: TransitionContext
 ): TransitionResult {
   const from = normalizeOrderStatus(fromRaw);
   const to = normalizeOrderStatus(toRaw);
-  const role = roleRaw.toUpperCase() as ActorRole;
+
+  const context: TransitionContext =
+    typeof contextOrRole === "object" && contextOrRole !== null
+      ? contextOrRole
+      : maybeContext || {};
+
+  const isCustomer =
+    context.isCustomer ||
+    (typeof contextOrRole === "string" && contextOrRole.toUpperCase() === "CUSTOMER");
 
   // 1. Table transition validation
   const allowedDestinations = TRANSITION_TABLE[from];
@@ -130,18 +130,16 @@ export function canTransition(
     };
   }
 
-  // 2. Cancellation Gate
+  // 2. Cancellation Gate for customer
   if (to === "CANCELLED") {
-    if (role === "CUSTOMER") {
-      // Must be before IN_PRINTING
+    if (isCustomer) {
       if (!PRE_PRINTING_STATUSES.includes(from)) {
         return {
           allowed: false,
-          reason: `Customer cancellation denied: Order has already entered production (${from}).`,
+          reason: `Customer cancellation denied: Order has already entered printing (${from}).`,
         };
       }
 
-      // Must be within cancellation window hours (default 2 hours)
       const windowHours = context.cancellationWindowHours ?? 2;
       const windowMs = windowHours * 60 * 60 * 1000;
       const orderCreatedTime = context.orderCreatedAt
@@ -153,140 +151,71 @@ export function canTransition(
       if (elapsed > windowMs) {
         return {
           allowed: false,
-          reason: `Customer cancellation window of ${windowHours} hours has expired. Please contact customer support.`,
+          reason: `Customer cancellation window of ${windowHours} hours has expired. Please contact support.`,
         };
       }
       return { allowed: true };
-    }
-
-    // Staff Cancellation
-    if (["SUPPORT_AGENT", "SUPER_ADMIN", "ADMIN"].includes(role)) {
+    } else {
       if (!context.reason || context.reason.trim().length === 0) {
         return {
           allowed: false,
-          reason: "Staff cancellation requires a written justification reason for the audit trail.",
+          reason: "Cancellation requires a written justification reason.",
         };
       }
-      return { allowed: true };
     }
-
-    return {
-      allowed: false,
-      reason: `Role ${role} is not permitted to cancel orders.`,
-    };
   }
 
-  // 3. Refund Transition Rule
+  // 3. Refund Gate
   if (to === "REFUNDED") {
-    if (from !== "CANCELLED") {
-      return {
-        allowed: false,
-        reason: "Only cancelled orders can be marked as refunded.",
-      };
-    }
     if (context.moneyPaid === false) {
       return {
         allowed: false,
-        reason: "Refund cannot be issued because no payment was captured for this order.",
+        reason: "Cannot refund order: no payment was captured.",
       };
     }
-    if (!["SUPPORT_AGENT", "SUPER_ADMIN", "ADMIN", "SYSTEM"].includes(role)) {
-      return {
-        allowed: false,
-        reason: `Role ${role} is not authorized to execute refunds.`,
-      };
-    }
-    return { allowed: true };
   }
 
-  // 3b. COD Advance Production Gate
+  // 4. Partial COD Advance Gate before IN_PRINTING
   if (to === "IN_PRINTING" && context.paymentMethod === "COD") {
     if (context.paymentStatus !== "ADVANCE_PAID" && context.paymentStatus !== "PAID") {
       return {
         allowed: false,
-        reason: "Order cannot move to production until the partial COD advance payment is verified online.",
+        reason: "Order cannot move to printing until the partial COD advance payment is verified online.",
       };
     }
   }
 
-  // 4. Role-Specific Pipeline Capabilities
-  switch (role) {
-    case "SUPER_ADMIN":
-    case "ADMIN":
-    case "SYSTEM":
-      // Super admin and internal automation can perform all transitions in the table
-      return { allowed: true };
-
-    case "GRAPHIC_DESIGNER":
-      if (
-        (from === "ARTWORK_UPLOADED" && to === "MOCKUP_SENT") ||
-        (from === "REVISION_REQUESTED" && to === "MOCKUP_SENT")
-      ) {
-        return { allowed: true };
-      }
-      return {
-        allowed: false,
-        reason: `Graphic Designers may only move artwork to MOCKUP_SENT. Cannot perform ${from} -> ${to}.`,
-      };
-
-    case "FACTORY_MANAGER":
-      if (
-        (from === "CUSTOMER_APPROVED" && to === "IN_PRINTING") ||
-        (from === "IN_PRINTING" && to === "QC_PASSED") ||
-        (from === "QC_PASSED" && to === "DISPATCHED")
-      ) {
-        return { allowed: true };
-      }
-      return {
-        allowed: false,
-        reason: `Factory Managers may only manage printing, QC, and dispatch. Cannot perform ${from} -> ${to}.`,
-      };
-
-    case "CUSTOMER":
-      if (
-        (from === "ORDER_PLACED" && to === "ARTWORK_UPLOADED") ||
-        (from === "MOCKUP_SENT" && to === "CUSTOMER_APPROVED") ||
-        (from === "MOCKUP_SENT" && to === "REVISION_REQUESTED")
-      ) {
-        return { allowed: true };
-      }
-      return {
-        allowed: false,
-        reason: `Customers may only approve, request revisions on mockups, or cancel within the 2-hour window.`,
-      };
-
-    case "SUPPORT_AGENT":
-      if (from === "DISPATCHED" && (to === "DELIVERED" || to === "RTO")) {
-        return { allowed: true };
-      }
-      return {
-        allowed: false,
-        reason: `Support Agents may only handle delivery status resolution, cancellations, or refunds.`,
-      };
-
-    default:
-      return {
-        allowed: false,
-        reason: `Unrecognized or unauthorized role: ${role}.`,
-      };
-  }
+  // Admin and system internal operations can perform all table transitions
+  return { allowed: true };
 }
 
+export type Order = StoredOrderRecord;
 export interface StoredOrderRecord {
   id: string;
   orderNumber: string;
   userId?: string | null;
   status: OrderStatus;
-  subtotal: number;
-  discount: number;
-  gst: number;
-  shipping: number;
-  total: number;
+  subtotal: number; // in integer paise
+  discount: number; // in integer paise
+  gst: number; // in integer paise
+  shipping: number; // in integer paise
+  total: number; // in integer paise
   paymentMethod: string;
   paymentStatus: string;
   address: Record<string, unknown>;
+  customerEmail?: string;
+  customerName?: string;
+  customerPhone?: string;
+  companyName?: string;
+  shippingAddress?: { line1?: string; line2?: string; city?: string; state?: string; pin?: string };
   gstin?: string | null;
   trackingNumber?: string | null;
+  courier?: string | null;
+  courierName?: string | null;
+  trackingUrl?: string | null;
+  couponCode?: string | null;
+  paymentReference?: string | null;
+  verifyError?: string | null;
   notes?: string | null;
   version: number;
   assignedDesignerId?: string | null;
@@ -297,7 +226,7 @@ export interface StoredOrderRecord {
   approvalTokenExpiresAt?: string | null;
   mockupSentAt?: string | null;
   customerApprovedAt?: string | null;
-  totalPausedDurationMs: number;
+  totalPausedDurationMs?: number;
   pausedAt?: string | null;
   slaDueAt?: string | null;
   nudgeCount: number;
@@ -317,7 +246,7 @@ export interface StoredOrderRecord {
     productId: string;
     options: Record<string, unknown>;
     qty: number;
-    unitPrice: number;
+    unitPrice: number; // in integer paise
     artworkUrl?: string | null;
     mockupUrl?: string | null;
     printMethod?: string | null;
@@ -381,9 +310,6 @@ export async function getOrderByIdOrNumber(identifier: string): Promise<StoredOr
           customerApprovedAt: order.customerApprovedAt
             ? order.customerApprovedAt.toISOString()
             : null,
-          totalPausedDurationMs: order.totalPausedDurationMs || 0,
-          pausedAt: order.pausedAt ? order.pausedAt.toISOString() : null,
-          slaDueAt: order.slaDueAt ? order.slaDueAt.toISOString() : null,
           nudgeCount: order.nudgeCount || 0,
           createdAt: order.createdAt.toISOString(),
           updatedAt: order.updatedAt.toISOString(),
@@ -423,16 +349,16 @@ export async function getOrderByIdOrNumber(identifier: string): Promise<StoredOr
 }
 
 /**
- * Sole entry point for order status mutations across the entire platform.
- * Enforces transition table, role checks, cancellation gate, optimistic locking,
- * AuditLog, OrderEvent, SLA pause/resume calculation, and notifications.
+ * Sole entry point for order status mutations across the platform.
+ * Enforces transition table, version checks, AuditLog, and OrderEvents.
  */
 export async function changeOrderStatus(
   orderId: string,
   toRaw: string,
-  actor: OrderActor,
+  actorArg?: OrderActor | string,
   reason?: string,
-  expectedVersion?: number
+  expectedVersion?: number,
+  customContext?: TransitionContext
 ): Promise<{ success: boolean; order: StoredOrderRecord; eventId: string }> {
   const order = await getOrderByIdOrNumber(orderId);
   if (!order) {
@@ -447,6 +373,17 @@ export async function changeOrderStatus(
   const from = order.status;
   const to = normalizeOrderStatus(toRaw);
 
+  const actorEmail =
+    typeof actorArg === "string"
+      ? actorArg
+      : actorArg?.email || "admin@purplefriday.in";
+  const actorName =
+    typeof actorArg === "object" && actorArg !== null ? actorArg.name : undefined;
+  const actorRole =
+    typeof actorArg === "object" && actorArg !== null
+      ? (actorArg.role || "ADMIN").toUpperCase()
+      : "ADMIN";
+
   // 2. Fetch cancellation window setting
   let cancellationWindowHours = 2;
   try {
@@ -460,13 +397,15 @@ export async function changeOrderStatus(
   }
 
   // 3. Evaluate State Machine Transition
-  const check = canTransition(from, to, actor.role, {
+  const check = canTransition(from, to, {
     orderCreatedAt: order.createdAt,
     moneyPaid: order.paymentStatus === "PAID" || order.paymentStatus === "ADVANCE_PAID" || order.total > 0,
     paymentMethod: order.paymentMethod,
     paymentStatus: order.paymentStatus,
     reason,
     cancellationWindowHours,
+    isCustomer: actorRole === "CUSTOMER",
+    ...customContext,
   });
 
   if (!check.allowed) {
@@ -476,45 +415,22 @@ export async function changeOrderStatus(
   const now = new Date();
   const nextVersion = order.version + 1;
 
-  // 4. SLA Pause / Resume Logic
-  let newPausedAt: string | null = order.pausedAt || null;
-  let newTotalPausedMs = order.totalPausedDurationMs || 0;
   let newMockupSentAt: string | null = order.mockupSentAt || null;
   let newCustomerApprovedAt: string | null = order.customerApprovedAt || null;
 
-  // Entering customer waiting state -> Pause SLA clock
-  if ((to === "MOCKUP_SENT" || to === "REVISION_REQUESTED") && !order.pausedAt) {
-    newPausedAt = now.toISOString();
-    if (to === "MOCKUP_SENT" && !order.mockupSentAt) {
-      newMockupSentAt = now.toISOString();
-    }
+  if (to === "MOCKUP_SENT" && !order.mockupSentAt) {
+    newMockupSentAt = now.toISOString();
+  }
+  if (to === "CUSTOMER_APPROVED") {
+    newCustomerApprovedAt = now.toISOString();
   }
 
-  // Exiting customer waiting state -> Resume SLA clock and extend due time
-  if (
-    (from === "MOCKUP_SENT" || from === "REVISION_REQUESTED") &&
-    to !== "REVISION_REQUESTED" &&
-    order.pausedAt
-  ) {
-    const pauseDuration = now.getTime() - new Date(order.pausedAt).getTime();
-    newTotalPausedMs += Math.max(0, pauseDuration);
-    newPausedAt = null;
-
-    if (to === "CUSTOMER_APPROVED") {
-      newCustomerApprovedAt = now.toISOString();
-    }
-  }
-
-  // Recalculate SLA due time: Order confirmed time + 48 hours + totalPausedDuration
-  const initialSlaBase = new Date(order.createdAt).getTime() + 48 * 60 * 60 * 1000;
-  const updatedSlaDue = new Date(initialSlaBase + newTotalPausedMs).toISOString();
-
-  // 5. Order Cancellation Details
+  // 4. Order Cancellation Details
   const newCancellationReason = to === "CANCELLED" ? reason || order.cancellationReason : order.cancellationReason;
-  const newCancelledBy = to === "CANCELLED" ? actor.email : order.cancelledBy;
+  const newCancelledBy = to === "CANCELLED" ? actorEmail : order.cancelledBy;
   const newCancelledAt = to === "CANCELLED" ? now.toISOString() : order.cancelledAt;
 
-  // 6. Create OrderEvent row
+  // 5. Create OrderEvent row
   const eventId = `evt_${now.getTime()}_${crypto.randomBytes(3).toString("hex")}`;
   const eventMessage = reason
     ? `Status changed from ${from} to ${to}. Reason: ${reason}`
@@ -524,8 +440,8 @@ export async function changeOrderStatus(
     id: eventId,
     type: "STATUS_CHANGE",
     status: to,
-    actor: actor.name ? `${actor.name} (${actor.email})` : actor.email,
-    actorRole: actor.role.toUpperCase(),
+    actor: actorName ? `${actorName} (${actorEmail})` : actorEmail,
+    actorRole,
     message: eventMessage,
     metadata: {
       fromStatus: from,
@@ -536,10 +452,10 @@ export async function changeOrderStatus(
     createdAt: now.toISOString(),
   };
 
-  // 7. Write Immutable AuditLog row
+  // 6. Write Immutable AuditLog row
   await writeAudit({
-    actor: actor.email,
-    actorRole: actor.role.toUpperCase(),
+    actor: actorEmail,
+    actorRole,
     action: `order.status_transition.${to.toLowerCase()}`,
     entityType: "ORDER",
     entityId: order.orderNumber,
@@ -547,57 +463,91 @@ export async function changeOrderStatus(
     after: { status: to, version: nextVersion, reason: reason || null },
   });
 
-  // 8. Generate Target In-App Notifications
+  // 7. Generate Target Notifications
+  const orderAddr = (order.address || {}) as Record<string, string>;
+  const customerEmail = (order.customerEmail || orderAddr.email || "").toLowerCase().trim();
+
   if (to === "MOCKUP_SENT") {
     await createNotification({
       userOrRole: order.userId ? order.userId : "role:CUSTOMER",
       title: `Proof Ready: Order #${order.orderNumber}`,
-      body: `Your custom merchandise mockup has been prepared by our design atelier. Please review and approve.`,
+      body: `Your custom merchandise mockup has been prepared. Please review and approve.`,
       link: `/proof/${order.approvalTokenHash || order.orderNumber}`,
     });
   } else if (to === "CUSTOMER_APPROVED") {
     await createNotification({
-      userOrRole: "role:FACTORY_MANAGER",
+      userOrRole: "role:ADMIN",
       title: `Proof Approved: Order #${order.orderNumber}`,
-      body: `Customer approved the design proof. Order is ready for printing batch allocation.`,
+      body: `Customer approved the design proof. Order is ready for printing.`,
       link: `/admin/orders`,
     });
+    try {
+      await notifyAdmin("PROOF_DECISION", {
+        orderNumber: order.orderNumber,
+        decision: "APPROVED",
+      });
+    } catch { }
   } else if (to === "REVISION_REQUESTED") {
     await createNotification({
-      userOrRole: order.assignedDesignerId ? order.assignedDesignerId : "role:GRAPHIC_DESIGNER",
+      userOrRole: "role:ADMIN",
       title: `Revision Requested: Order #${order.orderNumber}`,
-      body: `Customer requested adjustments on the digital proof. Reason: ${reason || "Check comments"}.`,
+      body: `Customer requested adjustments on the proof. Reason: ${reason || "Check comments"}.`,
       link: `/admin/orders`,
     });
+    try {
+      await notifyAdmin("PROOF_DECISION", {
+        orderNumber: order.orderNumber,
+        decision: "REVISION_REQUESTED",
+        comment: reason || "Check comments",
+      });
+    } catch { }
   } else if (to === "CANCELLED") {
     await createNotification({
-      userOrRole: "role:SUPPORT_AGENT",
+      userOrRole: "role:ADMIN",
       title: `Order Cancelled: #${order.orderNumber}`,
-      body: `Order was cancelled by ${actor.role} (${actor.email}). Reason: ${reason || "N/A"}.`,
+      body: `Order was cancelled by ${actorRole} (${actorEmail}). Reason: ${reason || "N/A"}.`,
       link: `/admin/orders`,
     });
-  }
-
-  // 8b. Inventory Automated Lifecycle: Consumption & Release
-  try {
-    if (to === "IN_PRINTING") {
-      await consumeBlanksForOrder(
-        order.id,
-        order.items.map((i) => ({ productSlug: i.productId, qty: i.qty })),
-        actor.email
-      );
-    } else if (to === "CANCELLED") {
-      await releaseBlanksForOrder(
-        order.id,
-        order.items.map((i) => ({ productSlug: i.productId, qty: i.qty })),
-        actor.email
-      );
+    if (customerEmail) {
+      try {
+        await notify("cancelled_or_refunded", customerEmail, {
+          orderNumber: order.orderNumber,
+          reason: reason || "Order cancelled.",
+        });
+      } catch { }
     }
-  } catch {
-    // Non-blocking inventory synchronization
+    try {
+      await notifyAdmin("ORDER_CANCELLED", {
+        orderNumber: order.orderNumber,
+        customerName: actorName || orderAddr.customerName || "Customer",
+        customerEmail,
+        reason: reason || "Order cancelled.",
+      });
+    } catch { }
+  } else if (to === "DISPATCHED") {
+    const courier = customContext?.courier || order.courier || "Delhivery";
+    const trackingNumber = customContext?.trackingNumber || order.trackingNumber || "DEL12345678IN";
+    if (customerEmail) {
+      try {
+        await notify("shipped", customerEmail, {
+          orderNumber: order.orderNumber,
+          courier,
+          trackingNumber,
+          trackingUrl: trackingNumber ? `https://track.delhivery.com/p/${trackingNumber}` : undefined,
+        });
+      } catch { }
+    }
+  } else if (to === "DELIVERED") {
+    if (customerEmail) {
+      try {
+        await notify("delivered", customerEmail, {
+          orderNumber: order.orderNumber,
+        });
+      } catch { }
+    }
   }
 
-  // 8c. PinStats & RTO History Tracking
+  // 8. PinStats & RTO History Tracking
   try {
     if (to === "DELIVERED" || to === "RTO") {
       const addr = (order.address as Record<string, unknown>) || {};
@@ -629,9 +579,6 @@ export async function changeOrderStatus(
           cancelledAt: newCancelledAt ? new Date(newCancelledAt) : null,
           mockupSentAt: newMockupSentAt ? new Date(newMockupSentAt) : null,
           customerApprovedAt: newCustomerApprovedAt ? new Date(newCustomerApprovedAt) : null,
-          totalPausedDurationMs: newTotalPausedMs,
-          pausedAt: newPausedAt ? new Date(newPausedAt) : null,
-          slaDueAt: new Date(updatedSlaDue),
           events: {
             create: {
               id: orderEvent.id,
@@ -655,74 +602,17 @@ export async function changeOrderStatus(
   const updatedOrder: StoredOrderRecord = {
     ...order,
     status: to,
+    courier: customContext?.courier || order.courier,
+    trackingNumber: customContext?.trackingNumber || order.trackingNumber,
     version: nextVersion,
     cancellationReason: newCancellationReason,
     cancelledBy: newCancelledBy,
     cancelledAt: newCancelledAt,
     mockupSentAt: newMockupSentAt,
     customerApprovedAt: newCustomerApprovedAt,
-    totalPausedDurationMs: newTotalPausedMs,
-    pausedAt: newPausedAt,
-    slaDueAt: updatedSlaDue,
+    pausedAt: to === "MOCKUP_SENT" ? now.toISOString() : (to === "CUSTOMER_APPROVED" ? null : (order.pausedAt ?? null)),
     updatedAt: now.toISOString(),
     events: [orderEvent, ...(order.events || [])],
-  };
-
-  ORDER_STORE.set(order.id, updatedOrder);
-  ORDER_STORE.set(order.orderNumber, updatedOrder);
-
-  return { success: true, order: updatedOrder, eventId };
-}
-
-/**
- * Records a QC failure rework event on IN_PRINTING without altering the status.
- */
-export async function recordQcRework(
-  orderId: string,
-  actor: OrderActor,
-  reworkNotes: string,
-  expectedVersion?: number
-): Promise<{ success: boolean; order: StoredOrderRecord; eventId: string }> {
-  const order = await getOrderByIdOrNumber(orderId);
-  if (!order) throw new Error(`Order "${orderId}" not found.`);
-
-  if (expectedVersion !== undefined && order.version !== expectedVersion) {
-    throw new Error("Someone else changed this order, refresh.");
-  }
-
-  if (order.status !== "IN_PRINTING") {
-    throw new Error(`QC rework can only be registered on orders currently IN_PRINTING (found: ${order.status}).`);
-  }
-
-  const now = new Date();
-  const nextVersion = order.version + 1;
-  const eventId = `evt_qc_${now.getTime()}_${crypto.randomBytes(3).toString("hex")}`;
-
-  const event = {
-    id: eventId,
-    type: "QC_REWORK",
-    status: "IN_PRINTING",
-    actor: actor.name ? `${actor.name} (${actor.email})` : actor.email,
-    actorRole: actor.role.toUpperCase(),
-    message: `Quality Control rework flagged: ${reworkNotes}`,
-    metadata: { reworkNotes, flaggedAt: now.toISOString(), version: nextVersion },
-    createdAt: now.toISOString(),
-  };
-
-  await writeAudit({
-    actor: actor.email,
-    actorRole: actor.role.toUpperCase(),
-    action: "order.qc_rework_flagged",
-    entityType: "ORDER",
-    entityId: order.orderNumber,
-    after: { reworkNotes, version: nextVersion },
-  });
-
-  const updatedOrder: StoredOrderRecord = {
-    ...order,
-    version: nextVersion,
-    updatedAt: now.toISOString(),
-    events: [event, ...(order.events || [])],
   };
 
   ORDER_STORE.set(order.id, updatedOrder);

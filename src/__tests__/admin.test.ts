@@ -141,3 +141,25 @@ describe("Admin Role Guard Authorization", () => {
   });
 });
 
+describe("Admin Currency & Single Admin Invariant", () => {
+  it("formats integer paise accurately without 100x magnification (4450000 paise -> ₹44,500)", async () => {
+    const { formatCurrency } = await import("@/lib/utils");
+    const formatted = formatCurrency(4450000);
+    // Should format to ₹44,500 (not ₹44,50,000)
+    expect(formatted.replace(/\s/g, "")).toMatch(/44,500/);
+  });
+
+  it("enforces single admin invariant: rejects creating a second active admin", async () => {
+    const { createUser } = await import("@/lib/auth-service");
+    await expect(
+      createUser({
+        email: "second_admin@purplefriday.in",
+        password: "AnotherSecurePassword123!",
+        name: "Second Admin Attempt",
+        role: "ADMIN",
+      })
+    ).rejects.toThrow("Only one active administrator account is permitted.");
+  });
+});
+
+

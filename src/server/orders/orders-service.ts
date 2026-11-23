@@ -5,9 +5,12 @@ import {
   OrderStatus,
   canTransition,
   normalizeOrderStatus,
+  changeOrderStatus,
+  getOrderByIdOrNumber,
 } from "./state-machine";
 import { safeCsvCell } from "@/lib/security/csv";
 import { writeAudit } from "@/lib/admin/audit";
+import { ORDER_ISSUES } from "@/server/customers/account-service";
 
 export interface OrderListParams {
   page?: number;
@@ -15,8 +18,13 @@ export interface OrderListParams {
   search?: string;
   status?: string;
   paymentStatus?: string;
+  paymentMethod?: string;
   product?: string;
   customer?: string;
+  cityOrPin?: string;
+  coupon?: string;
+  minAmount?: number;
+  maxAmount?: number;
   overdueOnly?: boolean;
   designerId?: string;
   dateFrom?: string;
@@ -40,6 +48,10 @@ export interface MaskedOrderSummary {
   paymentMethod?: string;
   advancePaidPaise?: number;
   balanceDuePaise?: number;
+  courierName?: string | null;
+  trackingNumber?: string | null;
+  trackingUrl?: string | null;
+  couponCode?: string | null;
   rtoRiskScore?: number | null;
   rtoRiskReasons?: string[];
   assignedDesignerId?: string | null;
@@ -99,7 +111,7 @@ function seedInitialOrders() {
       gst: 729000,
       shipping: 0,
       total: 4779000,
-      paymentMethod: "RAZORPAY",
+      paymentMethod: "COD",
       paymentStatus: "PAID",
       address: {
         customerName: "Aarav Sharma",
@@ -138,7 +150,7 @@ function seedInitialOrders() {
           status: "ORDER_PLACED",
           actor: "Customer (aarav.sharma@nexastech.in)",
           actorRole: "CUSTOMER",
-          message: "Order placed and full payment authorized via Razorpay.",
+          message: "Order placed via Cash on Delivery / Pay Later.",
           createdAt: new Date(now - 1.5 * hour).toISOString(),
         },
       ],
@@ -153,7 +165,7 @@ function seedInitialOrders() {
       gst: 333000,
       shipping: 0,
       total: 2183000,
-      paymentMethod: "RAZORPAY",
+      paymentMethod: "COD",
       paymentStatus: "PAID",
       address: {
         customerName: "Pooja Hegde",
@@ -215,7 +227,7 @@ function seedInitialOrders() {
       gst: 1080000,
       shipping: 0,
       total: 7080000,
-      paymentMethod: "RAZORPAY",
+      paymentMethod: "COD",
       paymentStatus: "PAID",
       address: {
         customerName: "Rohan Varma",
@@ -273,7 +285,7 @@ function seedInitialOrders() {
       gst: 576000,
       shipping: 0,
       total: 3776000,
-      paymentMethod: "RAZORPAY",
+      paymentMethod: "COD",
       paymentStatus: "PAID",
       address: {
         customerName: "Kavita Reddy",
@@ -330,7 +342,7 @@ function seedInitialOrders() {
       gst: 972000,
       shipping: 0,
       total: 6372000,
-      paymentMethod: "RAZORPAY",
+      paymentMethod: "COD",
       paymentStatus: "PAID",
       address: {
         customerName: "Vikramaditya Roy",
@@ -378,13 +390,13 @@ function seedInitialOrders() {
       id: "ord_pf_1006",
       orderNumber: "PF-2611-40896",
       userId: "usr_cust_06",
-      status: "QC_PASSED",
+      status: "IN_PRINTING",
       subtotal: 7800000,
       discount: 300000,
       gst: 1350000,
       shipping: 0,
       total: 8850000,
-      paymentMethod: "RAZORPAY",
+      paymentMethod: "COD",
       paymentStatus: "PAID",
       address: {
         customerName: "Meera Nair",
@@ -418,7 +430,7 @@ function seedInitialOrders() {
         {
           id: "evt_1006_1",
           type: "STATUS_CHANGE",
-          status: "QC_PASSED",
+          status: "IN_PRINTING",
           actor: "Vikram Singhania (factory@purplefriday.com)",
           actorRole: "FACTORY_MANAGER",
           message: "All 200 garments inspected. Print adhesion, wash test sample and folding checked.",
@@ -436,7 +448,7 @@ function seedInitialOrders() {
       gst: 378000,
       shipping: 0,
       total: 2478000,
-      paymentMethod: "RAZORPAY",
+      paymentMethod: "COD",
       paymentStatus: "PAID",
       address: {
         customerName: "Arjun Rampal",
@@ -488,7 +500,7 @@ function seedInitialOrders() {
       gst: 1566000,
       shipping: 0,
       total: 10266000,
-      paymentMethod: "RAZORPAY",
+      paymentMethod: "COD",
       paymentStatus: "PAID",
       address: {
         customerName: "Sameer Joshi",
@@ -540,7 +552,7 @@ function seedInitialOrders() {
       gst: 225000,
       shipping: 0,
       total: 1475000,
-      paymentMethod: "RAZORPAY",
+      paymentMethod: "COD",
       paymentStatus: "PAID",
       address: {
         customerName: "Sneha Nair",
@@ -594,7 +606,7 @@ function seedInitialOrders() {
       gst: 630000,
       shipping: 0,
       total: 4130000,
-      paymentMethod: "RAZORPAY",
+      paymentMethod: "COD",
       paymentStatus: "PAID",
       address: {
         customerName: "Tarun Kapoor",
@@ -717,7 +729,21 @@ export async function listAdminOrders(
   const filtered = allOrders.filter((order) => {
     // 1. Status filter
     if (params.status && params.status !== "ALL") {
-      if (order.status !== normalizeOrderStatus(params.status)) return false;
+      if (params.status === "AWAITING_APPROVAL") {
+        if (!["ARTWORK_UPLOADED", "MOCKUP_SENT"].includes(order.status)) {
+          return false;
+        }
+      } else if (params.status === "ISSUE_REPORTED") {
+        const hasIssue =
+          order.status === "REVISION_REQUESTED" ||
+          Array.from(ORDER_ISSUES.values()).some((i) => i.orderNumber === order.orderNumber) ||
+          Boolean(order.events?.some((e) => e.type === "PROBLEM_REPORTED"));
+        if (!hasIssue) {
+          return false;
+        }
+      } else if (order.status !== normalizeOrderStatus(params.status)) {
+        return false;
+      }
     }
 
     // 2. Payment status
@@ -725,15 +751,23 @@ export async function listAdminOrders(
       if ((order.paymentStatus || "PAID") !== params.paymentStatus) return false;
     }
 
-    // 3. Search filter
+    // 2b. Payment method
+    if (params.paymentMethod && params.paymentMethod !== "ALL") {
+      if ((order.paymentMethod || "").toUpperCase() !== params.paymentMethod.toUpperCase()) return false;
+    }
+
+    // 3. Search filter (order #, customer name, email, phone, tracking #, PIN)
     if (params.search && params.search.trim().length > 0) {
       const q = params.search.toLowerCase().trim();
-      const addr = order.address as Record<string, string>;
+      const addr = (order.address || {}) as Record<string, string>;
       const matchNum = order.orderNumber.toLowerCase().includes(q);
-      const matchName = (addr.customerName || "").toLowerCase().includes(q);
-      const matchEmail = (addr.email || "").toLowerCase().includes(q);
-      const matchPhone = (addr.phone || "").toLowerCase().includes(q);
-      if (!matchNum && !matchName && !matchEmail && !matchPhone) return false;
+      const matchName = (addr.customerName || order.customerName || "").toLowerCase().includes(q);
+      const matchEmail = (addr.email || order.customerEmail || "").toLowerCase().includes(q);
+      const matchPhone = (addr.phone || order.customerPhone || "").toLowerCase().includes(q);
+      const matchTracking = (order.trackingNumber || "").toLowerCase().includes(q);
+      const matchCity = (addr.city || "").toLowerCase().includes(q);
+      const matchPin = (addr.pin || "").toLowerCase().includes(q);
+      if (!matchNum && !matchName && !matchEmail && !matchPhone && !matchTracking && !matchCity && !matchPin) return false;
     }
 
     // 4. Overdue filter
@@ -753,8 +787,62 @@ export async function listAdminOrders(
       if (!hasProd) return false;
     }
 
+    // 7. Date range filter
+    if (params.dateFrom) {
+      const fromTime = new Date(params.dateFrom).getTime();
+      if (!isNaN(fromTime) && new Date(order.createdAt).getTime() < fromTime) return false;
+    }
+    if (params.dateTo) {
+      const toTime = new Date(params.dateTo).getTime();
+      if (!isNaN(toTime) && new Date(order.createdAt).getTime() > toTime) return false;
+    }
+
+    // 8. Amount range filter (handles input in Rupees or Paise)
+    if (params.minAmount !== undefined) {
+      const minPaise = params.minAmount > 1000 ? params.minAmount : params.minAmount * 100;
+      if (order.total < minPaise) return false;
+    }
+    if (params.maxAmount !== undefined) {
+      const maxPaise = params.maxAmount > 1000 ? params.maxAmount : params.maxAmount * 100;
+      if (order.total > maxPaise) return false;
+    }
+
+    // 9. City or PIN filter
+    if (params.cityOrPin) {
+      const q = params.cityOrPin.toLowerCase().trim();
+      const addr = (order.address || {}) as Record<string, string>;
+      const matchCity = (addr.city || "").toLowerCase().includes(q);
+      const matchPin = (addr.pin || "").toLowerCase().includes(q);
+      if (!matchCity && !matchPin) return false;
+    }
+
+    // 10. Coupon filter
+    if (params.coupon) {
+      const q = params.coupon.toLowerCase().trim();
+      const matchCoupon = (order.couponCode || "").toLowerCase().includes(q);
+      const hasDiscount = q === "any" && (order.discount || 0) > 0;
+      if (!matchCoupon && !hasDiscount) return false;
+    }
+
     return true;
   });
+
+  // Sorting
+  if (params.sortBy === "total") {
+    filtered.sort((a, b) => (params.sortOrder === "asc" ? a.total - b.total : b.total - a.total));
+  } else if (params.sortBy === "slaDueAt") {
+    filtered.sort((a, b) => {
+      const aTime = a.slaDueAt ? new Date(a.slaDueAt).getTime() : 0;
+      const bTime = b.slaDueAt ? new Date(b.slaDueAt).getTime() : 0;
+      return params.sortOrder === "asc" ? aTime - bTime : bTime - aTime;
+    });
+  } else {
+    filtered.sort((a, b) => {
+      const aTime = new Date(a.createdAt).getTime();
+      const bTime = new Date(b.createdAt).getTime();
+      return params.sortOrder === "asc" ? aTime - bTime : bTime - aTime;
+    });
+  }
 
   // Calculate high-level stats
   const pendingProof = allOrders.filter(
@@ -795,6 +883,10 @@ export async function listAdminOrders(
       paymentMethod: order.paymentMethod,
       advancePaidPaise: order.advancePaidPaise,
       balanceDuePaise: order.balanceDuePaise,
+      courierName: order.courierName || null,
+      trackingNumber: order.trackingNumber || null,
+      trackingUrl: order.trackingUrl || null,
+      couponCode: order.couponCode || null,
       rtoRiskScore: order.rtoRiskScore ?? 0,
       rtoRiskReasons: order.rtoRiskReasons ?? [],
       assignedDesignerId: order.assignedDesignerId,
@@ -840,14 +932,13 @@ export async function getAdminOrderDetail(
   const isFinancialMasked = ["GRAPHIC_DESIGNER", "FACTORY_MANAGER"].includes(viewerRole.toUpperCase());
   const addr = (order.address || {}) as Record<string, string>;
 
-  // Compute allowed transitions for this role
+  // Compute allowed transitions for admin
   const possibleTargets: Array<{ target: OrderStatus; label: string; requiresReason: boolean }> = [
     { target: "ARTWORK_UPLOADED", label: "Upload Artwork", requiresReason: false },
     { target: "MOCKUP_SENT", label: "Send Mockup Proof", requiresReason: false },
     { target: "CUSTOMER_APPROVED", label: "Approve Proof", requiresReason: false },
     { target: "REVISION_REQUESTED", label: "Request Revision", requiresReason: true },
     { target: "IN_PRINTING", label: "Start Printing", requiresReason: false },
-    { target: "QC_PASSED", label: "Mark QC Passed", requiresReason: false },
     { target: "DISPATCHED", label: "Mark Dispatched", requiresReason: false },
     { target: "DELIVERED", label: "Mark Delivered", requiresReason: false },
     { target: "RTO", label: "Mark Return to Origin (RTO)", requiresReason: true },
@@ -856,7 +947,7 @@ export async function getAdminOrderDetail(
   ];
 
   const allowedTransitions = possibleTargets.filter((t) => {
-    const check = canTransition(order.status, t.target, viewerRole, {
+    const check = canTransition(order.status, t.target, {
       orderCreatedAt: order.createdAt,
       moneyPaid: order.paymentStatus === "PAID" || order.total > 0,
       reason: "Check preview",
@@ -997,20 +1088,22 @@ export async function exportOrdersCsv(
   params: OrderListParams,
   viewerRole: string
 ): Promise<string> {
-  const result = await listAdminOrders({ ...params, pageSize: 1000 }, viewerRole);
+  const result = await listAdminOrders({ ...params, pageSize: 5000 }, viewerRole);
   const isFinancialMasked = ["GRAPHIC_DESIGNER", "FACTORY_MANAGER"].includes(viewerRole.toUpperCase());
 
   const headers = [
     "Order Number",
-    "Date (UTC)",
-    "Status",
+    "Date (IST)",
     "Customer Name",
     "Customer Email",
+    "Customer Phone",
+    "Status",
     "Items Count",
     "Products",
-    ...(isFinancialMasked ? [] : ["Total (INR)", "Payment Status"]),
-    "Assigned Designer",
-    "SLA Due (UTC)",
+    ...(isFinancialMasked ? [] : ["Total (INR)", "Payment Status", "Payment Method"]),
+    "Courier",
+    "Tracking Number",
+    "SLA Due (IST)",
     "Is Overdue",
   ];
 
@@ -1018,18 +1111,21 @@ export async function exportOrdersCsv(
     const row = [
       safeCsvCell(o.orderNumber),
       safeCsvCell(o.createdAt),
-      safeCsvCell(o.status),
       safeCsvCell(o.customerName),
       safeCsvCell(o.customerEmail),
+      safeCsvCell(o.customerPhone || ""),
+      safeCsvCell(o.status),
       safeCsvCell(String(o.itemCount)),
       safeCsvCell(o.productNames.join(", ")),
       ...(isFinancialMasked
         ? []
         : [
-            safeCsvCell(((o.totalPaise || 0) / 100).toFixed(2)),
-            safeCsvCell(o.paymentStatus || "PAID"),
-          ]),
-      safeCsvCell(o.assignedDesignerName || "Unassigned"),
+          safeCsvCell(((o.totalPaise || 0) / 100).toFixed(2)),
+          safeCsvCell(o.paymentStatus || "PAID"),
+          safeCsvCell(o.paymentMethod || "COD"),
+        ]),
+      safeCsvCell(o.courierName || ""),
+      safeCsvCell(o.trackingNumber || ""),
       safeCsvCell(o.slaDueAt || "N/A"),
       safeCsvCell(o.isOverdue ? "YES" : "NO"),
     ];
@@ -1037,4 +1133,189 @@ export async function exportOrdersCsv(
   });
 
   return [headers.join(","), ...rows].join("\r\n");
+}
+
+/**
+ * Updates shipping address for an order (allowed only before dispatch).
+ */
+export async function updateOrderAddress(
+  orderNumber: string,
+  newAddress: {
+    line1: string;
+    line2?: string;
+    city: string;
+    state: string;
+    pin: string;
+    phone?: string;
+    customerName?: string;
+  },
+  actor: { email: string; role: string; name?: string },
+  expectedVersion?: number
+): Promise<{ success: boolean; order: StoredOrderRecord }> {
+  seedInitialOrders();
+  const order = await getOrderByIdOrNumber(orderNumber);
+  if (!order) throw new Error(`Order ${orderNumber} not found.`);
+
+  const lockedStatuses = ["DISPATCHED", "DELIVERED", "CANCELLED", "REFUNDED", "RTO"];
+  if (lockedStatuses.includes(order.status)) {
+    throw new Error(`Address cannot be modified after dispatch (${order.status}).`);
+  }
+
+  if (expectedVersion !== undefined && order.version !== expectedVersion) {
+    throw new Error("Someone else changed this order, refresh.");
+  }
+
+  const prevAddr = { ...order.address };
+  order.address = {
+    ...order.address,
+    ...newAddress,
+  };
+  order.shippingAddress = {
+    line1: newAddress.line1,
+    line2: newAddress.line2,
+    city: newAddress.city,
+    state: newAddress.state,
+    pin: newAddress.pin,
+  };
+  if (newAddress.phone) order.customerPhone = newAddress.phone;
+  if (newAddress.customerName) order.customerName = newAddress.customerName;
+
+  order.version += 1;
+  order.updatedAt = new Date().toISOString();
+
+  const event = {
+    id: `evt_addr_${Date.now()}_${crypto.randomBytes(2).toString("hex")}`,
+    type: "ADDRESS_UPDATED",
+    status: order.status,
+    actor: actor.name ? `${actor.name} (${actor.email})` : actor.email,
+    actorRole: actor.role.toUpperCase(),
+    message: `Delivery address updated to ${newAddress.line1}, ${newAddress.city} - ${newAddress.pin}.`,
+    createdAt: new Date().toISOString(),
+  };
+  order.events = [event, ...(order.events || [])];
+
+  ORDER_STORE.set(order.id, order);
+  ORDER_STORE.set(order.orderNumber, order);
+
+  await writeAudit({
+    actor: actor.email,
+    actorRole: actor.role.toUpperCase(),
+    action: "order.address_updated",
+    entityType: "ORDER",
+    entityId: order.orderNumber,
+    before: { address: prevAddr, version: order.version - 1 },
+    after: { address: order.address, version: order.version },
+  });
+
+  return { success: true, order };
+}
+
+/**
+ * Marks order shipped with mandatory courier name and tracking number.
+ */
+export async function markOrderShipped(
+  orderNumber: string,
+  shippingData: { courierName: string; trackingNumber: string; trackingUrl?: string },
+  actor: { email: string; role: string; name?: string },
+  expectedVersion?: number
+) {
+  if (!shippingData.courierName?.trim()) {
+    throw new Error("Courier name is required to mark order as shipped.");
+  }
+  if (!shippingData.trackingNumber?.trim()) {
+    throw new Error("Tracking number is required to mark order as shipped.");
+  }
+  const order = await getOrderByIdOrNumber(orderNumber);
+  if (!order) throw new Error(`Order ${orderNumber} not found.`);
+
+  order.courierName = shippingData.courierName.trim();
+  order.trackingNumber = shippingData.trackingNumber.trim();
+  order.trackingUrl = shippingData.trackingUrl?.trim() || null;
+
+  return changeOrderStatus(
+    orderNumber,
+    "DISPATCHED",
+    actor,
+    `Shipped via ${order.courierName} (${order.trackingNumber})`,
+    expectedVersion
+  );
+}
+
+/**
+ * Marks order delivered.
+ */
+export async function markOrderDelivered(
+  orderNumber: string,
+  actor: { email: string; role: string; name?: string },
+  expectedVersion?: number
+) {
+  return changeOrderStatus(orderNumber, "DELIVERED", actor, "Delivered to customer", expectedVersion);
+}
+
+/**
+ * Cancels order with required reason.
+ */
+export async function cancelOrderWithReason(
+  orderNumber: string,
+  reason: string,
+  actor: { email: string; role: string; name?: string },
+  expectedVersion?: number
+) {
+  if (!reason || reason.trim().length === 0) {
+    throw new Error("Cancellation requires a written justification reason.");
+  }
+  return changeOrderStatus(orderNumber, "CANCELLED", actor, reason.trim(), expectedVersion);
+}
+
+/**
+ * Bulk order status mutation (Dispatched, Delivered, Cancelled).
+ */
+export async function bulkChangeOrderStatus(
+  orderNumbers: string[],
+  targetStatus: "DISPATCHED" | "DELIVERED" | "CANCELLED",
+  actor: { email: string; role: string; name?: string },
+  details?: { reason?: string; courierName?: string; trackingNumber?: string; trackingUrl?: string }
+): Promise<{
+  successCount: number;
+  failureCount: number;
+  results: Array<{ orderNumber: string; success: boolean; error?: string }>;
+}> {
+  seedInitialOrders();
+  const results: Array<{ orderNumber: string; success: boolean; error?: string }> = [];
+  let successCount = 0;
+  let failureCount = 0;
+
+  for (const num of orderNumbers) {
+    try {
+      if (targetStatus === "DISPATCHED") {
+        if (!details?.courierName || !details?.trackingNumber) {
+          throw new Error("Courier name and tracking number are required for bulk dispatch.");
+        }
+        await markOrderShipped(
+          num,
+          {
+            courierName: details.courierName,
+            trackingNumber: details.trackingNumber,
+            trackingUrl: details.trackingUrl,
+          },
+          actor
+        );
+      } else if (targetStatus === "DELIVERED") {
+        await markOrderDelivered(num, actor);
+      } else if (targetStatus === "CANCELLED") {
+        if (!details?.reason || !details.reason.trim()) {
+          throw new Error("Cancellation reason is required.");
+        }
+        await cancelOrderWithReason(num, details.reason, actor);
+      }
+      results.push({ orderNumber: num, success: true });
+      successCount++;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed";
+      results.push({ orderNumber: num, success: false, error: msg });
+      failureCount++;
+    }
+  }
+
+  return { successCount, failureCount, results };
 }

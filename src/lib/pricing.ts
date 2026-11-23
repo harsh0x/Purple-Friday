@@ -1,5 +1,6 @@
 import prisma from "./prisma";
 import { findProductBySlug } from "./catalogue";
+import { IN_MEMORY_PRODUCTS } from "@/server/products/product-service";
 import {
   toPaise,
   toRupees,
@@ -39,6 +40,8 @@ export interface CalculatedItem {
   options?: Record<string, string>;
   designId?: string;
   template: string;
+  isAvailable?: boolean;
+  unavailabilityReason?: string;
 }
 
 export interface PricingCalculationResult {
@@ -55,6 +58,7 @@ export interface PricingCalculationResult {
   total: number;
   freeShippingThreshold: number;
   amountNeededForFreeShipping: number;
+  hasUnavailableItems?: boolean;
 }
 
 // Fallback product catalog for when the database is offline or not yet connected
@@ -302,6 +306,19 @@ export async function calculateCartPricing(
       const effectiveUnitPrice = tierUnitPrice + optionDelta;
       const lineTotal = effectiveUnitPrice * normalizedQty;
 
+      const inMem = IN_MEMORY_PRODUCTS.get(item.productId) || IN_MEMORY_PRODUCTS.get(productData.slug);
+      let isAvailable = true;
+      let unavailabilityReason: string | undefined = undefined;
+      if (inMem) {
+        if (inMem.archived || inMem.status !== "ACTIVE" || inMem.active === false) {
+          isAvailable = false;
+          unavailabilityReason = "No longer available";
+        } else if (inMem.stock !== null && inMem.stock <= 0) {
+          isAvailable = false;
+          unavailabilityReason = "Out of stock";
+        }
+      }
+
       calculatedItems.push({
         productId: item.productId,
         optionKey: item.optionKey,
@@ -316,6 +333,8 @@ export async function calculateCartPricing(
         options: item.options,
         designId: item.designId,
         template: productData.template,
+        isAvailable,
+        unavailabilityReason,
       });
     }
 
@@ -376,5 +395,6 @@ export async function calculateCartPricing(
         total,
         freeShippingThreshold: FREE_SHIPPING_THRESHOLD,
         amountNeededForFreeShipping,
+        hasUnavailableItems: calculatedItems.some((i) => i.isAvailable === false),
       };
     }

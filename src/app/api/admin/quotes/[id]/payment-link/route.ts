@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { hasPermission } from "@/lib/admin/permissions";
-import { createRazorpayPaymentLink } from "@/server/quotes/quotes-service";
+import { createCorporatePaymentLink } from "@/server/quotes/quotes-service";
 
 export async function POST(
   _req: NextRequest,
@@ -20,7 +20,7 @@ export async function POST(
   }
 
   const { id } = await params;
-  const result = await createRazorpayPaymentLink(id);
+  const result = await createCorporatePaymentLink(id);
 
   return NextResponse.json({ success: true, ...result });
 }

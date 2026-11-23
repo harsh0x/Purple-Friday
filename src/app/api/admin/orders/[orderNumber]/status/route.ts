@@ -44,7 +44,7 @@ async function handleStatusUpdate(
       order.status = status;
     }
     if (trackingNumber) {
-      order.razorpayPaymentId = trackingNumber; // Stored reference
+      order.trackingNumber = trackingNumber; // Stored reference
     }
     order.updatedAt = new Date().toISOString();
 

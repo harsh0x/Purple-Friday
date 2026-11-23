@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { checkRateLimit, getClientKey } from "@/lib/rate-limit";
 import { validatePasswordStrength } from "@/lib/security/auth-policy";
-import { createUser } from "@/lib/auth-service";
+import { createUser, findUserByEmail } from "@/lib/auth-service";
 import { isSameOrigin } from "@/lib/security/origin";
+import { sendEmailOtp } from "@/server/otp/email-otp";
 
 const registerSchema = z.object({
   email: z.string().email("Please provide a valid email address."),
   name: z.string().min(2, "Name must be at least 2 characters."),
-  password: z.string().min(10, "Password must be at least 10 characters."),
+  phone: z.string().min(10, "Phone number must be at least 10 digits."),
+  password: z.string().min(8, "Password must be at least 8 characters."),
 });
 
 export async function POST(req: NextRequest) {
@@ -39,7 +41,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { email, name, password } = parsed.data;
+    const { email, name, phone, password } = parsed.data;
 
     // Strict Password Policy Validation
     const strength = validatePasswordStrength(password);
@@ -50,24 +52,36 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const user = await createUser({
-      email,
-      name,
-      password,
-      role: "CUSTOMER",
-    });
+      const normEmail = email.toLowerCase().trim();
+      const existing = await findUserByEmail(normEmail);
 
-    return NextResponse.json({
-      success: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-      },
-    });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Registration failed.";
-    return NextResponse.json({ success: false, error: message }, { status: 400 });
+      if(!existing) {
+        // Create user in inactive status until email OTP is verified
+        await createUser({
+          email: normEmail,
+          name,
+          phone,
+          password,
+          role: "CUSTOMER",
+          active: false,
+        });
+      }
+
+    // Send 6-digit OTP to the registered email
+    await sendEmailOtp({
+        target: normEmail,
+        purpose: "REGISTER_EMAIL",
+        ipAddress: req.headers.get("x-forwarded-for") || undefined,
+        isUnauthenticated: true,
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: "Verification code sent to your email. Please verify to activate your account.",
+        email: normEmail,
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Registration failed.";
+      return NextResponse.json({ success: false, error: msg }, { status: 400 });
+    }
   }
-}
-

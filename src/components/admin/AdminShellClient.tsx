@@ -22,6 +22,7 @@ interface AdminShellClientProps {
 
     return (
       <div
+        data-admin-root="true"
         className={`relative min-h-screen flex flex-col md:flex-row antialiased transition-colors duration-200 overflow-x-hidden ${
           isDark ? "bg-[#0F0D15] text-[#F4F3F8]" : "bg-[#110D1A] text-[#15101F]"
         }`}

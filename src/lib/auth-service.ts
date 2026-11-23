@@ -3,7 +3,7 @@ import { UserRole } from "@prisma/client";
 import prisma from "./prisma";
 import { checkAccountLockout, recordFailedAttempt } from "./security/auth-policy";
 
-export type AdminRole = "SUPER_ADMIN" | "GRAPHIC_DESIGNER" | "FACTORY_MANAGER" | "SUPPORT_AGENT" | "ADMIN";
+export type AdminRole = "ADMIN" | "SUPER_ADMIN";
 export type AllRole = "CUSTOMER" | AdminRole;
 
 export interface SafeUser {
@@ -16,6 +16,7 @@ export interface SafeUser {
   lastLogin?: Date | null;
   mustChangePassword?: boolean;
   version?: number;
+  tokenVersion?: number;
 }
 
 export interface StoredMockUser {
@@ -31,30 +32,32 @@ export interface StoredMockUser {
   lockedUntil: Date | null;
   mustChangePassword: boolean;
   version: number;
+  tokenVersion: number;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const MOCK_USERS = new Map<string, StoredMockUser>();
 
-// Seed default initial Super Admin user (idempotent)
+// Seed default initial Admin user
 const adminEmail = (process.env.ADMIN_EMAIL || "admin@purplefriday.in").toLowerCase();
 const adminPass = process.env.ADMIN_INITIAL_PASSWORD || "ChangeThisPasswordInProduction123!";
 const initialAdminHash = bcrypt.hashSync(adminPass, 12);
 
 MOCK_USERS.set(adminEmail, {
-  id: "usr_superadmin_seed",
+  id: "usr_admin_seed",
   email: adminEmail,
   passwordHash: initialAdminHash,
-  name: "Purple Friday Superadmin",
+  name: "Admin",
   phone: "+919876543210",
-  role: "SUPER_ADMIN",
+  role: "ADMIN",
   active: true,
   lastLogin: null,
   failedAttempts: 0,
   lockedUntil: null,
-  mustChangePassword: true, // Force password change on first login
+  mustChangePassword: process.env.NODE_ENV === "production",
   version: 1,
+  tokenVersion: 1,
   createdAt: new Date(),
   updatedAt: new Date(),
 });
@@ -74,13 +77,14 @@ export async function findUserByEmail(email: string): Promise<StoredMockUser | n
           passwordHash: user.passwordHash,
           name: user.name || "",
           phone: user.phone || undefined,
-          role: user.role as AllRole,
+          role: (user.role === "SUPER_ADMIN" ? "ADMIN" : user.role) as AllRole,
           active: user.active,
           lastLogin: user.lastLogin,
           failedAttempts: user.failedAttempts,
           lockedUntil: user.lockedUntil,
           mustChangePassword: user.mustChangePassword,
           version: user.version,
+          tokenVersion: (user as { tokenVersion?: number }).tokenVersion || 1,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
         };
@@ -106,13 +110,14 @@ export async function findUserById(id: string): Promise<StoredMockUser | null> {
           passwordHash: user.passwordHash,
           name: user.name || "",
           phone: user.phone || undefined,
-          role: user.role as AllRole,
+          role: (user.role === "SUPER_ADMIN" ? "ADMIN" : user.role) as AllRole,
           active: user.active,
           lastLogin: user.lastLogin,
           failedAttempts: user.failedAttempts,
           lockedUntil: user.lockedUntil,
           mustChangePassword: user.mustChangePassword,
           version: user.version,
+          tokenVersion: (user as { tokenVersion?: number }).tokenVersion || 1,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
         };
@@ -128,12 +133,57 @@ export async function findUserById(id: string): Promise<StoredMockUser | null> {
   return null;
 }
 
+/**
+ * Returns the currently active single administrator account.
+ */
+export async function getActiveAdmin(): Promise<StoredMockUser | null> {
+  try {
+    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
+      const admin = await prisma.user.findFirst({
+        where: {
+          role: { in: ["ADMIN", "SUPER_ADMIN"] },
+          active: true,
+        },
+      });
+      if (admin) {
+        return {
+          id: admin.id,
+          email: admin.email,
+          passwordHash: admin.passwordHash,
+          name: admin.name || "",
+          phone: admin.phone || undefined,
+          role: "ADMIN",
+          active: admin.active,
+          lastLogin: admin.lastLogin,
+          failedAttempts: admin.failedAttempts,
+          lockedUntil: admin.lockedUntil,
+          mustChangePassword: admin.mustChangePassword,
+          version: admin.version,
+          tokenVersion: (admin as { tokenVersion?: number }).tokenVersion || 1,
+          createdAt: admin.createdAt,
+          updatedAt: admin.updatedAt,
+        };
+      }
+    }
+  } catch {
+    // Fallback
+  }
+
+  for (const u of MOCK_USERS.values()) {
+    if ((u.role === "ADMIN" || u.role === "SUPER_ADMIN") && u.active) {
+      return u;
+    }
+  }
+  return null;
+}
+
 export async function createUser(data: {
   email: string;
   password: string;
   name: string;
   role?: AllRole;
   phone?: string;
+  active?: boolean;
   mustChangePassword?: boolean;
 }): Promise<SafeUser> {
   const normEmail = data.email.toLowerCase().trim();
@@ -142,9 +192,18 @@ export async function createUser(data: {
     throw new Error("An account with this email address already exists.");
   }
 
+  const role = data.role || "CUSTOMER";
+
+  // Single Admin Invariant: Exactly one active ADMIN account is permitted
+  if (role === "ADMIN" || role === "SUPER_ADMIN") {
+    const currentAdmin = await getActiveAdmin();
+    if (currentAdmin) {
+      throw new Error("Only one active administrator account is permitted.");
+    }
+  }
+
   // Hash password with bcrypt cost 12
   const passwordHash = await bcrypt.hash(data.password, 12);
-  const role = data.role || "CUSTOMER";
   const now = new Date();
 
   try {
@@ -156,7 +215,7 @@ export async function createUser(data: {
           name: data.name,
           role: role as UserRole,
           phone: data.phone,
-          active: true,
+          active: data.active !== undefined ? data.active : true,
           mustChangePassword: data.mustChangePassword || false,
           version: 1,
         },
@@ -165,11 +224,12 @@ export async function createUser(data: {
         id: created.id,
         email: created.email,
         name: created.name || "",
-        role: created.role as AllRole,
+        role: (created.role === "SUPER_ADMIN" ? "ADMIN" : created.role) as AllRole,
         phone: created.phone || undefined,
         active: created.active,
         mustChangePassword: created.mustChangePassword,
         version: created.version,
+        tokenVersion: 1,
       };
     }
   } catch {
@@ -182,13 +242,14 @@ export async function createUser(data: {
     passwordHash,
     name: data.name,
     phone: data.phone,
-    role,
-    active: true,
+    role: role === "SUPER_ADMIN" ? "ADMIN" : role,
+    active: data.active !== undefined ? data.active : true,
     lastLogin: null,
     failedAttempts: 0,
     lockedUntil: null,
     mustChangePassword: data.mustChangePassword || false,
     version: 1,
+    tokenVersion: 1,
     createdAt: now,
     updatedAt: now,
   };
@@ -203,6 +264,7 @@ export async function createUser(data: {
     active: mockUser.active,
     mustChangePassword: mockUser.mustChangePassword,
     version: mockUser.version,
+    tokenVersion: mockUser.tokenVersion,
   };
 }
 
@@ -217,7 +279,7 @@ export async function verifyUserCredentials(
 
   // 1. Check account active status
   if (user.active === false) {
-    throw new Error("This account has been deactivated. Please contact an administrator.");
+    throw new Error("Account inactive. Please verify your email before logging in.");
   }
 
   // 2. Check account lockout
@@ -300,207 +362,141 @@ export async function verifyUserCredentials(
     active: user.active,
     mustChangePassword: user.mustChangePassword,
     version: user.version,
+    tokenVersion: user.tokenVersion || 1,
   };
 }
 
 /**
- * List all staff members (non-CUSTOMER users)
+ * Updates administrator's own profile (name, email, password).
+ * Current password verification is strictly required.
  */
-export async function getStaffMembers(): Promise<SafeUser[]> {
+export async function updateAdminProfile(data: {
+  currentEmail: string;
+  name?: string;
+  newEmail?: string;
+  currentPassword: string;
+  newPassword?: string;
+}): Promise<SafeUser> {
+  const user = await findUserByEmail(data.currentEmail);
+  if (!user) throw new Error("Admin user not found.");
+
+  // Current password check
+  const isMatch = await bcrypt.compare(data.currentPassword, user.passwordHash);
+  if (!isMatch) {
+    throw new Error("Current password is incorrect.");
+  }
+
+  const updatedData: {
+    name?: string;
+    email?: string;
+    passwordHash?: string;
+    version: number;
+    updatedAt: Date;
+  } = {
+    version: user.version + 1,
+    updatedAt: new Date(),
+  };
+
+  if (data.name && data.name.trim()) {
+    updatedData.name = data.name.trim();
+  }
+
+  if (data.newEmail && data.newEmail.toLowerCase().trim() !== user.email) {
+    const targetEmail = data.newEmail.toLowerCase().trim();
+    const existing = await findUserByEmail(targetEmail);
+    if (existing && existing.id !== user.id) {
+      throw new Error("An account with this email address already exists.");
+    }
+    updatedData.email = targetEmail;
+  }
+
+  if (data.newPassword && data.newPassword.trim()) {
+    if (data.newPassword.length < 8) {
+      throw new Error("New password must be at least 8 characters long.");
+    }
+    updatedData.passwordHash = await bcrypt.hash(data.newPassword, 12);
+  }
+
   try {
     if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
-      const users = await prisma.user.findMany({
+      const updated = await prisma.user.update({
+        where: { id: user.id },
+        data: updatedData,
+      });
+      return {
+        id: updated.id,
+        email: updated.email,
+        name: updated.name || "",
+        role: "ADMIN",
+        active: updated.active,
+        mustChangePassword: updated.mustChangePassword,
+        version: updated.version,
+      };
+    }
+  } catch {
+    // Memory fallback
+  }
+
+  // Update in-memory user
+  if (updatedData.email && updatedData.email !== user.email) {
+    MOCK_USERS.delete(user.email);
+    user.email = updatedData.email;
+  }
+  if (updatedData.name !== undefined) user.name = updatedData.name;
+  if (updatedData.passwordHash) user.passwordHash = updatedData.passwordHash;
+  user.version = updatedData.version;
+  user.updatedAt = updatedData.updatedAt;
+  MOCK_USERS.set(user.email, user);
+
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    active: user.active,
+    mustChangePassword: user.mustChangePassword,
+    version: user.version,
+  };
+}
+
+/**
+ * Migration helper: deactivates legacy staff accounts (does not delete them, keeping AuditLog intact).
+ */
+export async function deactivateLegacyStaffAccounts(): Promise<number> {
+  const legacyRoles = ["GRAPHIC_DESIGNER", "FACTORY_MANAGER", "SUPPORT_AGENT"];
+  let count = 0;
+
+  try {
+    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
+      const res = await prisma.user.updateMany({
         where: {
-          role: { in: ["SUPER_ADMIN", "GRAPHIC_DESIGNER", "FACTORY_MANAGER", "SUPPORT_AGENT", "ADMIN"] },
+          role: { in: legacyRoles as UserRole[] },
+          active: true,
         },
-        orderBy: { createdAt: "desc" },
+        data: { active: false },
       });
-
-      return users.map((u) => ({
-        id: u.id,
-        email: u.email,
-        name: u.name || "",
-        role: u.role as AllRole,
-        phone: u.phone || undefined,
-        active: u.active,
-        lastLogin: u.lastLogin,
-        mustChangePassword: u.mustChangePassword,
-        version: u.version,
-      }));
+      count = res.count;
     }
   } catch {
-    // Fallback to memory
+    // Memory fallback
   }
 
-  const staff: SafeUser[] = [];
   for (const u of MOCK_USERS.values()) {
-    if (u.role !== "CUSTOMER") {
-      staff.push({
-        id: u.id,
-        email: u.email,
-        name: u.name,
-        role: u.role,
-        phone: u.phone,
-        active: u.active,
-        lastLogin: u.lastLogin,
-        mustChangePassword: u.mustChangePassword,
-        version: u.version,
-      });
+    if (legacyRoles.includes(u.role as string) && u.active) {
+      u.active = false;
+      count++;
     }
   }
-  return staff;
+
+  return count;
 }
 
 /**
- * Updates a staff member's role with optimistic concurrency check
- */
-export async function updateStaffRole(userId: string, newRole: AdminRole, expectedVersion: number): Promise<SafeUser> {
-  const user = await findUserById(userId);
-  if (!user) throw new Error("Staff member not found.");
-  if (user.version !== expectedVersion) {
-    throw new Error("Someone else changed this record. Please refresh and try again.");
-  }
-
-  const nextVersion = user.version + 1;
-  try {
-    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
-      const updated = await prisma.user.update({
-        where: { id: userId },
-        data: {
-          role: newRole as UserRole,
-          version: nextVersion,
-        },
-      });
-      return {
-        id: updated.id,
-        email: updated.email,
-        name: updated.name || "",
-        role: updated.role as AllRole,
-        active: updated.active,
-        mustChangePassword: updated.mustChangePassword,
-        version: updated.version,
-      };
-    }
-  } catch {
-    // Memory fallback
-  }
-
-  user.role = newRole;
-  user.version = nextVersion;
-  user.updatedAt = new Date();
-  return {
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role,
-    active: user.active,
-    mustChangePassword: user.mustChangePassword,
-    version: user.version,
-  };
-}
-
-/**
- * Deactivates or activates a staff user with optimistic concurrency check
- */
-export async function toggleStaffActive(userId: string, active: boolean, expectedVersion: number): Promise<SafeUser> {
-  const user = await findUserById(userId);
-  if (!user) throw new Error("Staff member not found.");
-  if (user.version !== expectedVersion) {
-    throw new Error("Someone else changed this record. Please refresh and try again.");
-  }
-
-  const nextVersion = user.version + 1;
-  try {
-    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
-      const updated = await prisma.user.update({
-        where: { id: userId },
-        data: {
-          active,
-          version: nextVersion,
-        },
-      });
-      return {
-        id: updated.id,
-        email: updated.email,
-        name: updated.name || "",
-        role: updated.role as AllRole,
-        active: updated.active,
-        mustChangePassword: updated.mustChangePassword,
-        version: updated.version,
-      };
-    }
-  } catch {
-    // Memory fallback
-  }
-
-  user.active = active;
-  user.version = nextVersion;
-  user.updatedAt = new Date();
-  return {
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role,
-    active: user.active,
-    mustChangePassword: user.mustChangePassword,
-    version: user.version,
-  };
-}
-
-/**
- * Forces a staff password reset on next login with optimistic concurrency check
- */
-export async function forceStaffPasswordReset(userId: string, expectedVersion: number): Promise<SafeUser> {
-  const user = await findUserById(userId);
-  if (!user) throw new Error("Staff member not found.");
-  if (user.version !== expectedVersion) {
-    throw new Error("Someone else changed this record. Please refresh and try again.");
-  }
-
-  const nextVersion = user.version + 1;
-  try {
-    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
-      const updated = await prisma.user.update({
-        where: { id: userId },
-        data: {
-          mustChangePassword: true,
-          version: nextVersion,
-        },
-      });
-      return {
-        id: updated.id,
-        email: updated.email,
-        name: updated.name || "",
-        role: updated.role as AllRole,
-        active: updated.active,
-        mustChangePassword: updated.mustChangePassword,
-        version: updated.version,
-      };
-    }
-  } catch {
-    // Memory fallback
-  }
-
-  user.mustChangePassword = true;
-  user.version = nextVersion;
-  user.updatedAt = new Date();
-  return {
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role,
-    active: user.active,
-    mustChangePassword: user.mustChangePassword,
-    version: user.version,
-  };
-}
-
-/**
- * Updates staff user password and clears mustChangePassword flag
+ * Updates user password and clears mustChangePassword flag
  */
 export async function updateStaffPassword(userId: string, newPasswordPlain: string): Promise<void> {
   const user = await findUserById(userId);
-  if (!user) throw new Error("Staff member not found.");
+  if (!user) throw new Error("User not found.");
 
   const passwordHash = await bcrypt.hash(newPasswordPlain, 12);
   const nextVersion = user.version + 1;
@@ -525,4 +521,207 @@ export async function updateStaffPassword(userId: string, newPasswordPlain: stri
   user.mustChangePassword = false;
   user.version = nextVersion;
   user.updatedAt = new Date();
+}
+
+/**
+ * Activates a customer account upon successful email OTP verification.
+ */
+export async function activateUser(identifier: string): Promise<SafeUser> {
+  const normEmail = identifier.toLowerCase().trim();
+  const user = (await findUserByEmail(normEmail)) || (await findUserById(identifier));
+  if (!user) throw new Error("User not found.");
+
+  user.active = true;
+  user.updatedAt = new Date();
+
+  try {
+    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { active: true },
+      });
+    }
+  } catch {
+    // Memory fallback
+  }
+
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    phone: user.phone,
+    active: true,
+    version: user.version,
+    tokenVersion: user.tokenVersion || 1,
+  };
+}
+
+/**
+ * Bumps tokenVersion on user. Automatically revokes/ends all other active sessions.
+ */
+export async function bumpTokenVersion(userIdOrEmail: string): Promise<number> {
+  let user = await findUserById(userIdOrEmail);
+  if (!user) user = await findUserByEmail(userIdOrEmail);
+  if (!user) throw new Error("User not found.");
+
+  const nextTokenVersion = (user.tokenVersion || 1) + 1;
+  user.tokenVersion = nextTokenVersion;
+  user.updatedAt = new Date();
+
+  return nextTokenVersion;
+}
+
+/**
+ * Retrieves current tokenVersion for a user.
+ */
+export async function getUserTokenVersion(userId: string): Promise<number> {
+  const user = await findUserById(userId);
+  return user?.tokenVersion || 1;
+}
+
+/**
+ * Changes user email address. Bumps tokenVersion to sign out everywhere.
+ */
+export async function changeUserEmail(userId: string, newEmail: string): Promise<SafeUser> {
+  const normNewEmail = newEmail.toLowerCase().trim();
+  const existing = await findUserByEmail(normNewEmail);
+  if (existing && existing.id !== userId) {
+    throw new Error("This email address is already in use.");
+  }
+
+  const user = await findUserById(userId);
+  if (!user) throw new Error("User not found.");
+
+  const oldEmail = user.email;
+  user.email = normNewEmail;
+  user.tokenVersion = (user.tokenVersion || 1) + 1;
+  user.version += 1;
+  user.updatedAt = new Date();
+
+  MOCK_USERS.delete(oldEmail);
+  MOCK_USERS.set(normNewEmail, user);
+
+  try {
+    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          email: normNewEmail,
+          version: user.version,
+        },
+      });
+    }
+  } catch {
+    // Memory fallback
+  }
+
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    phone: user.phone,
+    active: user.active,
+    version: user.version,
+    tokenVersion: user.tokenVersion,
+  };
+}
+
+/**
+ * Changes customer password. Bumps tokenVersion and resets failed attempts.
+ */
+export async function changeUserPassword(userIdOrEmail: string, newPlainPassword: string): Promise<void> {
+  let user = await findUserById(userIdOrEmail);
+  if (!user) user = await findUserByEmail(userIdOrEmail);
+  if (!user) throw new Error("User not found.");
+
+  const passwordHash = await bcrypt.hash(newPlainPassword, 12);
+  user.passwordHash = passwordHash;
+  user.failedAttempts = 0;
+  user.lockedUntil = null;
+  user.tokenVersion = (user.tokenVersion || 1) + 1;
+  user.version += 1;
+  user.updatedAt = new Date();
+
+  try {
+    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          passwordHash,
+          failedAttempts: 0,
+          lockedUntil: null,
+          version: user.version,
+        },
+      });
+    }
+  } catch {
+    // Memory fallback
+  }
+}
+
+/**
+ * Updates customer phone number.
+ */
+export async function changeUserPhone(userIdOrEmail: string, newPhone: string): Promise<void> {
+  let user = await findUserById(userIdOrEmail);
+  if (!user) user = await findUserByEmail(userIdOrEmail);
+  if (!user) throw new Error("User not found.");
+
+  user.phone = newPhone.trim();
+  user.version += 1;
+  user.updatedAt = new Date();
+
+  try {
+    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { phone: user.phone, version: user.version },
+      });
+    }
+  } catch {
+    // Memory fallback
+  }
+}
+
+/**
+ * Anonymizes customer personal details on account deletion.
+ * Orders and invoices are preserved for tax compliance.
+ */
+export async function anonymizeUserAccount(userIdOrEmail: string): Promise<void> {
+  let user = await findUserById(userIdOrEmail);
+  if (!user) user = await findUserByEmail(userIdOrEmail);
+  if (!user) throw new Error("User not found.");
+
+  const oldEmail = user.email;
+  const anonymizedEmail = `deleted_${user.id.slice(0, 8)}_${Date.now()}@anonymized.purplefriday.in`;
+
+  user.name = "Anonymized Customer";
+  user.email = anonymizedEmail;
+  user.phone = undefined;
+  user.active = false;
+  user.tokenVersion = (user.tokenVersion || 1) + 10;
+  user.version += 1;
+  user.updatedAt = new Date();
+
+  MOCK_USERS.delete(oldEmail);
+  MOCK_USERS.set(anonymizedEmail, user);
+
+  try {
+    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          name: user.name,
+          email: user.email,
+          phone: null,
+          active: false,
+          version: user.version,
+        },
+      });
+    }
+  } catch {
+    // Memory fallback
+  }
 }

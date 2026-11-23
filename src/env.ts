@@ -3,6 +3,7 @@ import { z } from "zod";
 const envSchema = z.object({
   // Database
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  DIRECT_URL: z.string().optional(),
 
   // Authentication
   NEXTAUTH_SECRET: z.string().min(1).default("dev-secret-at-least-32-chars-long-placeholder"),
@@ -15,11 +16,6 @@ const envSchema = z.object({
   CLOUDINARY_CLOUD_NAME: z.string().optional(),
   CLOUDINARY_API_KEY: z.string().optional(),
   CLOUDINARY_API_SECRET: z.string().optional(),
-
-  // Razorpay (Optional fallback)
-  RAZORPAY_KEY_ID: z.string().optional(),
-  RAZORPAY_KEY_SECRET: z.string().optional(),
-  RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
 
   // Resend (Optional fallback)
   RESEND_API_KEY: z.string().optional(),

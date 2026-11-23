@@ -1,140 +1,105 @@
-# Purple Friday Admin Dashboard — Client Launch Checklist & Staff Handbook
+# Purple Friday Admin Launch & Operations Checklist
 
-> Project: Purple Friday (Custom-Print & Corporate Gifting Platform for India)  
-> Scope: Pre-Launch Operational Runbook & Role Guides  
-> Document: `docs/ADMIN-LAUNCH-CHECKLIST.md`  
+> Production hand-off and operation manual for the sole administrator of **Purple Friday Atelier**.
 
 ---
 
-## Part I: Pre-Launch Technical Checklist
+## 1. Single Admin Account & First Login
 
-Complete these 7 steps before announcing the platform or turning on public marketing campaigns:
+Purple Friday strictly enforces a **single active administrator** invariant. There are no sub-roles, no staff tiers, and no factory manager logins.
 
-### 1. Rotate Initial Admin Password
-- [ ] Navigate to `/admin/login` and sign in with default credentials (`admin@purplefriday.in`).
-- [ ] Immediately open **Settings** (`/admin/settings`) -> **Change Password**.
-- [ ] Choose a strong, unique password (minimum 12 characters, including uppercase, lowercase, numbers, and symbols).
+1. **Access URL**: `https://yourdomain.com/admin/login`
+2. **Initial Administrator Identity**:
+   - **Email**: Defined in `ADMIN_EMAIL` (default: `admin@purplefriday.in`)
+   - **Role**: `ADMIN` (Sole administrator)
+3. **Password Reset Script**:
+   If you ever lose access to your password, run the idempotent admin password reset CLI script from the server console:
+   ```bash
+   npm run tsx scripts/reset-admin-password.ts "admin@purplefriday.in" "NewSecurePassword2026!"
+   ```
+4. **Login Lockout Protection**:
+   - Failed attempts are rate-limited to 10 tries per 15-minute window.
+   - Repeated invalid credentials trigger a temporary account lockout.
 
-### 2. Create Staff Accounts for Each Role
-- [ ] Open **Team & Roles** (`/admin/team`).
-- [ ] Create at least one dedicated account for each department:
-  - **Graphic Designer**: for handling logo pre-flight and mockup generation.
-  - **Factory Manager**: for viewing print queues, printing jobsheets, and marking dispatch.
-  - **Support Agent**: for resolving tickets, customer inquiries, and reviews.
-- [ ] Never share the Super Admin login across team members.
+---
 
-### 3. Enter Business & GST Tax Configuration
-- [ ] Open **Settings** (`/admin/settings`) -> **Tax & GST Profile**.
-- [ ] Enter your company's official 15-digit **GSTIN** (e.g. `29AAAAA0000A1Z5`).
-- [ ] Enter the registered **Legal Entity Name** and **State of Supply** (e.g. Karnataka - Code 29).
-- [ ] Confirm product GST rates (default 18% on customized merchandise).
+## 2. Environment Variables Checklist
 
-### 4. Configure COD Rules & Dispatch SLA Limits
-- [ ] Open **Settings** (`/admin/settings`) -> **COD & Risk Settings**:
-  - Set **COD Enabled**: ON.
-  - Set **Advance Payment Percentage**: 25% (allowed 20% to 30%).
-  - Set **Maximum COD Order Value**: ₹15,000 (orders above this require full prepaid).
-  - Set **Cancellation Window**: 2 hours (blocks cancellations after 2h or once production begins).
-  - Set **Dispatch SLA**: 48 hours.
+Ensure the following variables are configured in your production deployment environment:
 
-### 5. Execute Full End-to-End Test Order
-- [ ] Place a test order on the storefront (`/design/classic-crewneck-tshirt`) choosing **Partial COD**.
-- [ ] Verify Razorpay test payment captures the 25% advance.
-- [ ] In Admin -> **Design Approvals** (`/admin/designs`), upload artwork and generate 3D mockup.
-- [ ] Send proof to your test email / WhatsApp.
-- [ ] Open the customer proof link (`/proof/[token]`) on mobile and click **Approve Design Proof**.
-- [ ] In Admin -> **Production** (`/admin/production`), download the PDF Job Sheet and mark **IN_PRINTING**, then **QC_PASSED**.
-- [ ] In Admin -> **Dispatch** (`/admin/dispatch`), manifest test shipment and verify the 4x6" thermal label displays **COLLECT ₹X ON DELIVERY**.
+| Key | Description | Status / Default |
+| :--- | :--- | :--- |
+| `DATABASE_URL` | PostgreSQL connection pool URL | Required |
+| `NEXTAUTH_SECRET` | 32+ char cryptographic secret for session HMAC | Required (`openssl rand -base64 32`) |
+| `ADMIN_EMAIL` | Sole administrator email address | `admin@purplefriday.in` |
+| `OTP_SECRET` | Secret key for customer email OTP hashing | Required |
+| `DEV_OTP_LOG` | Terminal OTP logger (MUST be false or absent in prod) | False in production |
+| `RESEND_API_KEY` | Resend API key for transactional emails | Required for live customer emails |
+| `EMAIL_FROM` | Verified sender address | `Purple Friday <orders@purplefriday.in>` |
+| `NEXT_PUBLIC_SITE_URL` | Canonical website domain | `https://purplefriday.in` |
+| `CRON_SECRET` | Bearer token for automated 10-minute cron | Required for `/api/cron/tick` |
+| `RAZORPAY_KEY_ID` | Razorpay Merchant Key ID | Required for online payments |
+| `RAZORPAY_KEY_SECRET` | Razorpay Merchant Key Secret | Required for signature verification |
+| `RAZORPAY_WEBHOOK_SECRET` | Webhook verification secret | Required for capture callbacks |
+| `SHIPROCKET_API_USER` | Shiprocket account email | Required for automated courier tracking |
+| `SHIPROCKET_PASSWORD` | Shiprocket account password | Required |
 
-### 6. Connect Razorpay LIVE Keys
-- [ ] Only after the test order succeeds, log in to your live Razorpay Dashboard.
-- [ ] Generate **LIVE** Key ID and Key Secret.
-- [ ] Update hosting environment variables:
-  ```env
-  RAZORPAY_KEY_ID="rzp_live_..."
-  RAZORPAY_KEY_SECRET="..."
-  RAZORPAY_WEBHOOK_SECRET="..."
+---
+
+## 3. Database Migrations & Single Source of Truth
+
+The admin dashboard is the **exclusive source of truth** for all products, categories, colors, pricing tiers, and storefront content.
+
+- Apply database migrations:
+  ```bash
+  npm run db:migrate
   ```
-- [ ] Configure live webhook URL: `https://yourdomain.com/api/webhooks/razorpay`.
-
-### 7. Enable Automated Database Backups
-- [ ] Log in to Neon Console -> Your Database Project -> **Settings** -> **Backups**.
-- [ ] Ensure **Point-in-Time Recovery (PITR)** is active with at least 7 days retention.
-
----
-
-## Part II: Plain-Language Staff Guide (1 Page Per Role)
+- Generate route and credential documentation:
+  ```bash
+  npm run routes:txt
+  ```
 
 ---
 
-### Guide 1: Super Admin (Store Owner / Executive)
+## 4. No-Code Storefront CMS & Version Control
 
-**Your Responsibility**: Oversee business health, margins, pricing, storefront content, and system permissions.
+All storefront modifications occur through `/admin/cms`, `/admin/pages`, `/admin/blog`, and `/admin/media`:
 
-#### Key Daily Workflows:
-1. **Morning Health Check (`/admin`)**:
-   - Check the **Funnel Strip**: Are any orders overdue (>48h) or stuck in pending approval?
-   - Check the **Needs Attention** alert cards.
-2. **True Net Margin Tracking (`/admin/margin`)**:
-   - Review profit after GST, raw blanks, print cost, courier fees, and RTO losses.
-   - Investigate any orders flagged with **Low Margin (<15%)** or **Negative Margin**.
-   - Record monthly marketing ad spend to view true EBITDA net profit.
-3. **Storefront No-Code CMS Studio (`/admin/cms`)**:
-   - Update homepage headlines, announcement bar banners, and FAQ answers without editing code.
-   - Always click **Preview Live** to check your draft before clicking **Publish to Storefront**.
-   - If an error is published, use **Version History** to rollback with 1-click.
-
----
-
-### Guide 2: Graphic Designer (Prepress & Proofing Atelier)
-
-**Your Responsibility**: Check customer artwork quality, position logos accurately, and send 3D proof approvals to clients.
-
-#### Key Daily Workflows:
-1. **Design Approvals Queue (`/admin/designs`)**:
-   - Oldest pending orders appear at the top.
-   - Click an order item to inspect the customer's uploaded logo.
-2. **Pre-Flight Inspection**:
-   - Check the **Effective DPI**: Green (>=300 DPI) is print-ready; Yellow (150-299 DPI) needs vectorization; Red (<150 DPI) requires customer contact.
-   - Confirm Pantone PMS colour codes match brand guidelines.
-3. **Mockup Atelier Placement**:
-   - Use the canvas controls to position and scale the logo within the bounded print zone.
-   - Select print method: **DTF**, **Sublimation**, **Embroidery**, or **Laser Engraving**.
-   - Click **Save Mockup & Send Proof**. This automatically generates a mobile approval link for the customer.
+1. **Hero & Home Sections**:
+   - Reorder sections using **Move Up** and **Move Down** buttons.
+   - Toggle visibility on/off for any section without code changes.
+2. **Announcements**:
+   - Schedule banner messages with optional start and end dates.
+3. **Drafts & Previews**:
+   - Click **Save Draft** to preview changes securely using HMAC preview links without affecting public visitors.
+   - Click **Publish Live** to instantly revalidate cached storefront tags (`revalidateTag("cms")`).
+4. **1-Click Rollback**:
+   - The CMS retains the last 10 published versions.
+   - Click **History** in the Publish Bar to inspect previous releases and restore with one click.
+5. **Zero-Crash Fallback**:
+   - If CMS database records are empty, the storefront renders built-in defaults automatically.
 
 ---
 
-### Guide 3: Factory & Fulfillment Manager
+## 5. Security & Hardening Verification
 
-**Your Responsibility**: Organize print batches, ensure quality control (QC), print thermal labels, and dispatch on time.
-
-#### Key Daily Workflows:
-1. **Production Queue (`/admin/production`)**:
-   - Orders are grouped by print method for batch press runs.
-   - Click **Download Job Sheet** to print the physical PDF with apparel sizes and operator checkboxes.
-   - Move orders from **Customer Approved** to **IN_PRINTING**.
-2. **Quality Control (QC)**:
-   - Verify print alignment, fabric tension, and Pantone colour matching against daylight standard.
-   - If defective, click **QC Rework** and log failure reason.
-   - When verified, click **Mark QC Passed**.
-3. **Dispatch & Multi-Address Split (`/admin/dispatch`)**:
-   - For single shipments, select courier (Bluedart, Delhivery, etc.) and enter AWB.
-   - For corporate bulk orders shipping to employees' homes, upload the client's destination CSV. The system checks all PIN codes and manifests shipments automatically.
-   - Print 4x6" thermal shipping labels.
+- **Access Guard**: Every admin route and server action enforces `requireAdmin()`.
+- **CSRF & Zod**: Every mutation requires matching Origin headers and passes Zod schema validation.
+- **Production Headers**: Strict CSP, HSTS, `X-Content-Type-Options: nosniff`, `Permissions-Policy`, and `frame-ancestors 'none'`.
+- **Cache & Indexing**: Admin responses enforce `Cache-Control: no-store` and `X-Robots-Tag: noindex, nofollow`.
+- **Media Uploads**: Checked against magic bytes, 5MB limit, and verified unused before deletion.
 
 ---
 
-### Guide 4: Customer Support Agent
+## 6. Background Automation (`/api/cron/tick`)
 
-**Your Responsibility**: Resolve customer inquiries, assist with order tracking, moderate reviews, and issue partial refunds within policy limits.
-
-#### Key Daily Workflows:
-1. **Support Tickets Desk (`/admin/support`)**:
-   - Review open tickets. Note: 1-star to 3-star customer reviews automatically spawn a private support ticket for proactive resolution.
-   - Reply to clients directly through the ticket conversation thread.
-2. **Customer Reviews Moderation (`/admin/reviews`)**:
-   - 4-star and 5-star verified customer reviews are auto-approved to appear on the storefront.
-   - Quarantined reviews can be inspected and approved once customer issues are addressed.
-3. **Cancellations & Partial Refunds (`/admin/orders`)**:
-   - Customers may cancel within 2 hours of ordering (if printing has not started).
-   - Support Agents can authorize refunds up to ₹5,000. Larger refunds require Super Admin authorization.
+Configure an external cron scheduler (e.g., Vercel Cron, GitHub Actions, or cron-job.org) to trigger `/api/cron/tick` every 10 minutes:
+```bash
+curl -X POST https://yourdomain.com/api/cron/tick \
+  -H "Authorization: Bearer <CRON_SECRET>"
+```
+Tasks handled automatically:
+- Sends proof approval reminders.
+- Tracks dispatch SLA timers.
+- Mines frequently-bought-together suggestions.
+- Processes transactional notification retries.

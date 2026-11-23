@@ -5,7 +5,7 @@
  * - Turns requests into formal quotes with negotiated unit prices
  * - Negotiated prices below slab price strictly require an audited reason
  * - Status: DRAFT, SENT, ACCEPTED, EXPIRED, DECLINED
- * - Razorpay payment link generation behind safe adapter: disabled/"Not configured" if keys missing
+ * - Corporate payment link generation behind safe adapter: disabled in COD mode
  * - Timing-safe HMAC signature verification for payment webhooks
  * - Idempotent order creation upon quote payment
  */
@@ -59,8 +59,9 @@ export interface QuoteData {
   status: QuoteStatus;
   notes?: string;
   negotiatedReason?: string;
-  razorpayPaymentLinkId?: string;
-  razorpayPaymentLinkUrl?: string | null;
+  paymentLinkId?: string;
+  paymentLinkUrl?: string | null;
+  [key: string]: unknown;
   orderId?: string;
   version: number;
   createdAt: string;
@@ -318,9 +319,9 @@ export async function buildQuote(
 }
 
 /**
- * Razorpay Payment Link Adapter with Environment Verification & Safe Degradation
+ * Corporate Payment Link Adapter with Safe Degradation
  */
-export async function createRazorpayPaymentLink(quoteIdOrNumber: string): Promise<{
+export async function createCorporatePaymentLink(quoteIdOrNumber: string): Promise<{
   configured: boolean;
   paymentUrl: string | null;
   paymentLinkId: string | null;
@@ -330,76 +331,22 @@ export async function createRazorpayPaymentLink(quoteIdOrNumber: string): Promis
   const quote = QUOTE_STORE.get(quoteIdOrNumber);
   if (!quote) throw new Error(`Quote "${quoteIdOrNumber}" not found.`);
 
-  const keyId = process.env.RAZORPAY_KEY_ID;
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
-
-  // Strict check: if keys are missing or sample/dummy, degrade gracefully
-  if (
-    !keyId ||
-    !keySecret ||
-    keyId.includes("rzp_test_dummy") ||
-    keyId.includes("sample") ||
-    keySecret.includes("dummy")
-  ) {
-    return {
-      configured: false,
-      paymentUrl: null,
-      paymentLinkId: null,
-      message: "Razorpay payment integration is not configured. Missing valid API keys in environment.",
-    };
-  }
-
-  try {
-    const Razorpay = (await import("razorpay")).default;
-    const rzp = new Razorpay({ key_id: keyId, key_secret: keySecret });
-
-    const link = await rzp.paymentLink.create({
-      amount: quote.advancePaise > 0 ? quote.advancePaise : quote.totalPaise,
-      currency: "INR",
-      accept_partial: false,
-      description: `Advance Payment for Corporate Quote #${quote.quoteNumber}`,
-      customer: {
-        name: quote.customerName,
-        email: quote.email,
-        contact: quote.phone,
-      },
-      notify: { sms: true, email: true },
-      reminder_enable: true,
-      notes: { quoteNumber: quote.quoteNumber, quoteId: quote.id },
-    });
-
-    quote.razorpayPaymentLinkId = link.id;
-    quote.razorpayPaymentLinkUrl = link.short_url;
-    quote.status = "SENT";
-    quote.updatedAt = new Date().toISOString();
-    QUOTE_STORE.set(quote.id, quote);
-    QUOTE_STORE.set(quote.quoteNumber, quote);
-
-    return {
-      configured: true,
-      paymentUrl: link.short_url,
-      paymentLinkId: link.id,
-      message: "Razorpay payment link generated successfully.",
-    };
-  } catch (error: unknown) {
-    const err = error instanceof Error ? error.message : "Razorpay link creation failed";
-    return {
-      configured: false,
-      paymentUrl: null,
-      paymentLinkId: null,
-      message: `Payment gateway error: ${err}`,
-    };
-  }
+  return {
+    configured: false,
+    paymentUrl: null,
+    paymentLinkId: null,
+    message: "Corporate online payment links disabled in offline order mode.",
+  };
 }
 
 /**
  * Webhook: Timing-Safe HMAC-SHA256 Signature Verification
  */
-export function verifyRazorpayWebhookSignature(
-  rawBody: string,
-  signatureHeader: string,
-  secret: string
-): boolean {
+  export function verifyPaymentWebhookSignature(
+    rawBody: string,
+    signatureHeader: string,
+    secret: string
+  ): boolean {
   if (!rawBody || !signatureHeader || !secret) return false;
 
   const expectedSignature = crypto
@@ -420,15 +367,15 @@ const PROCESSED_WEBHOOK_EVENTS = new Set<string>();
 /**
  * Idempotent Webhook Processing: marks quote ACCEPTED and creates paid order.
  */
-export async function processRazorpayPaymentWebhook(
-  eventId: string,
-  payload: {
-    paymentId: string;
-    orderId?: string;
-    quoteNumber?: string;
-    amount: number;
-  }
-): Promise<{ success: boolean; duplicate: boolean; orderNumber?: string }> {
+  export async function processPaymentWebhook(
+    eventId: string,
+    payload: {
+      paymentId: string;
+      orderId?: string;
+      quoteNumber?: string;
+      amount: number;
+    }
+  ): Promise<{ success: boolean; duplicate: boolean; orderNumber?: string }> {
   initializeDefaultQuotes();
 
   // Idempotency check: Reject duplicate webhooks
@@ -476,7 +423,7 @@ export async function processRazorpayPaymentWebhook(
   QUOTE_STORE.set(quote.quoteNumber, quote);
 
   await writeAudit({
-    actor: "Razorpay Webhook Handler",
+    actor: "Payment Webhook Handler",
     actorRole: "SYSTEM",
     action: "webhook:quote_payment_accepted",
     entityType: "Quote",

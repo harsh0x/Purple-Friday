@@ -160,4 +160,56 @@ describe("Part 6: No-Code Storefront CMS & Version Control", () => {
     const history = await getCmsVersionHistory();
     expect(history.length).toBeLessThanOrEqual(10);
   });
+
+  it("manages section order and visibility toggle", async () => {
+    const doc = {
+      ...DEFAULT_CMS_DOCUMENT,
+      sections: DEFAULT_CMS_DOCUMENT.sections.map((sec) =>
+        sec.id === "hero" ? { ...sec, visible: false, sortOrder: 99 } : sec
+      ),
+    };
+    await publishCms(doc, mockSuperAdmin, "Hide hero section");
+    const live = await getPublishedCms();
+    const heroSec = live.sections.find((s) => s.id === "hero");
+    expect(heroSec?.visible).toBe(false);
+    expect(heroSec?.sortOrder).toBe(99);
+  });
+
+  it("handles custom pages, blog posts, nav links, and footer contacts", async () => {
+    const customPage = {
+      id: "page-custom-lookbook",
+      slug: "lookbook-2026",
+      title: "Lookbook 2026",
+      contentMarkdown: "# Spring Collection\nExquisite custom prints for corporate teams.",
+      published: true,
+      seoTitle: "Lookbook 2026 | Purple Friday",
+      seoDescription: "Browse our 2026 merchandise catalog.",
+      showInFooter: true,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const doc = {
+      ...DEFAULT_CMS_DOCUMENT,
+      navigation: {
+        links: [
+          ...DEFAULT_CMS_DOCUMENT.navigation.links,
+          { id: "nav-lookbook", label: "Lookbook", url: "/pages/lookbook-2026", sortOrder: 9 },
+        ],
+      },
+      footer: {
+        ...DEFAULT_CMS_DOCUMENT.footer,
+        contactPhone: "+91 98765 43210",
+      },
+      customPages: [customPage],
+    };
+
+    await publishCms(doc, mockSuperAdmin, "Add Lookbook Page");
+    const live = await getPublishedCms();
+
+    expect(live.footer.contactPhone).toBe("+91 98765 43210");
+    expect(live.navigation.links.some((l) => l.label === "Lookbook")).toBe(true);
+    expect(live.customPages.length).toBe(1);
+    expect(live.customPages[0].slug).toBe("lookbook-2026");
+    expect(live.customPages[0].published).toBe(true);
+  });
 });

@@ -2,7 +2,6 @@ import crypto from "crypto";
 import prisma from "@/lib/prisma";
 import { getSupportRefundSettings } from "@/lib/admin/app-settings";
 import { ORDER_STORE } from "@/server/orders/state-machine";
-import { releaseBlanksForOrder } from "@/server/inventory/inventory-service";
 import { writeAudit } from "@/lib/admin/audit";
 import { toRupees, toPaise, roundHalfUp } from "@/server/pricing/engine";
 
@@ -13,7 +12,7 @@ export interface StoredRefund {
   refundNumber: string;
   amountPaise: number;
   reason: string;
-  type: "RAZORPAY" | "MANUAL";
+  type: "MANUAL";
   reference?: string | null;
   status: "PROCESSED" | "FAILED";
   processedBy: string;
@@ -27,7 +26,7 @@ export const REFUND_STORE = new Map<string, StoredRefund>();
 export const REFUND_IDEMPOTENCY_MAP = new Map<string, StoredRefund>();
 
 /**
- * Process order refund with strict role limits, Razorpay adapter, and idempotency.
+ * Process order refund as recorded refund with role limits and idempotency.
  */
 export async function processOrderRefund(params: {
   orderNumber: string;
@@ -36,7 +35,7 @@ export async function processOrderRefund(params: {
   idempotencyKey: string;
   actor: string;
   actorRole: string;
-  type?: "RAZORPAY" | "MANUAL";
+  type?: string;
   reference?: string;
 }): Promise<StoredRefund> {
   const cleanIdemp = params.idempotencyKey?.trim();
@@ -58,10 +57,20 @@ export async function processOrderRefund(params: {
     throw new Error(`Order ${params.orderNumber} not found.`);
   }
 
+  if (order.paymentStatus === "PENDING") {
+    throw new Error("Cannot refund an order with no recorded payment.");
+  }
+
+  const rawTotal = order.total || 0;
+  const totalOrderPaise =
+    order.balanceDuePaise !== undefined || rawTotal >= 100000
+      ? rawTotal
+      : toPaise(rawTotal);
+
   const totalPaidPaise =
     order.paymentStatus === "ADVANCE_PAID"
-      ? order.advancePaidPaise || roundHalfUp((order.total * 25) / 100) * 100
-      : toPaise(order.total);
+      ?(order.advancePaidPaise || roundHalfUp((totalOrderPaise * 25) / 100))
+      : totalOrderPaise;
 
   const existingRefunds = getRefundsForOrder(order.orderNumber);
   const alreadyRefundedPaise = existingRefunds.reduce((sum, r) => sum + r.amountPaise, 0);
@@ -90,49 +99,9 @@ export async function processOrderRefund(params: {
     }
   }
 
-  // 2. Gateway execution or manual refund reference
-  const isRazorpayConfigured = Boolean(
-    process.env.RAZORPAY_KEY_ID &&
-    process.env.RAZORPAY_KEY_SECRET &&
-    !process.env.RAZORPAY_KEY_ID.includes("dummy")
-  );
-
-  let refundType: "RAZORPAY" | "MANUAL" = params.type || (isRazorpayConfigured ? "RAZORPAY" : "MANUAL");
-  let referenceId = params.reference || `REF-${Date.now()}`;
-
-  const razorpayPaymentId = (order as unknown as { razorpayPaymentId?: string }).razorpayPaymentId;
-  if (refundType === "RAZORPAY" && isRazorpayConfigured && razorpayPaymentId) {
-    try {
-      const authHeader = Buffer.from(
-        `${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`
-      ).toString("base64");
-
-      const rzpRes = await fetch(
-        `https://api.razorpay.com/v1/payments/${razorpayPaymentId}/refund`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Basic ${authHeader}`,
-          },
-          body: JSON.stringify({
-            amount: targetRefundPaise,
-            notes: { orderNumber: order.orderNumber, reason: params.reason },
-          }),
-        }
-      );
-
-      if (rzpRes.ok) {
-        const rzpData = await rzpRes.json();
-        referenceId = rzpData.id;
-      } else {
-        // Fallback to recording as manual refund
-        refundType = "MANUAL";
-      }
-    } catch {
-      refundType = "MANUAL";
-    }
-  }
+  // 2. Manual recorded refund reference
+  const refundType = "MANUAL" as const;
+  const referenceId = params.reference || `REF-${Date.now()}`;
 
   const refundNumber = `REF-${Date.now().toString().slice(-6)}-${crypto.randomInt(100, 999)}`;
   const now = new Date().toISOString();
@@ -172,19 +141,6 @@ export async function processOrderRefund(params: {
     message: `Refund of Rs ${toRupees(targetRefundPaise)} processed via ${refundType} (${referenceId}). Reason: ${params.reason}.`,
     createdAt: now,
   });
-
-  // Release inventory if cancelled order is refunded
-  try {
-    if (order.status === "CANCELLED") {
-      await releaseBlanksForOrder(
-        order.id,
-        order.items.map((i) => ({ productSlug: i.productId, qty: i.qty })),
-        params.actor
-      );
-    }
-  } catch {
-    // Non-blocking inventory release
-  }
 
   // DB Sync if live
   try {

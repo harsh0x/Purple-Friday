@@ -175,6 +175,7 @@ export default function CartPage() {
                 const resolvedItem = pricing?.items.find((i) => i.optionKey === item.optionKey);
                 const currentUnitPrice = resolvedItem ? resolvedItem.unitPrice : item.unitPrice || 0;
                 const currentLineTotal = resolvedItem ? resolvedItem.lineTotal : item.qty * currentUnitPrice;
+                const isUnavailable = resolvedItem?.isAvailable === false;
 
                 return (
                   <article
@@ -213,6 +214,13 @@ export default function CartPage() {
                           </strong>{" "}
                           / piece
                         </div>
+                        {isUnavailable && (
+                          <div className="pt-1">
+                            <span className="font-mono text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5">
+                              No longer available
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -381,14 +389,29 @@ export default function CartPage() {
               </dl>
 
               {/* Primary Stamp Checkout CTA */}
-              <button
-                type="button"
-                onClick={() => toast.info("Checkout payment gateway opens in Part 3.")}
-                className="w-full inline-flex items-center justify-center gap-3 border-2 border-pf-ink bg-pf-violet text-white font-mono text-sm font-bold uppercase tracking-wider py-4 shadow-[4px_4px_0_0_#15101F] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_#15101F] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all"
-              >
-                <span>Proceed to Secure Checkout</span>
-                <ArrowRight className="h-4 w-4" />
-              </button>
+              {pricing?.hasUnavailableItems ? (
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full inline-flex items-center justify-center gap-3 border-2 border-pf-ink bg-rose-600 text-white font-mono text-sm font-bold uppercase tracking-wider py-4 opacity-75 cursor-not-allowed"
+                  >
+                    <span>Items unavailable — remove to checkout</span>
+                  </button>
+                  <p className="text-[11px] font-mono text-rose-600 text-center font-bold">
+                    One or more items in your cart are no longer available. Please remove them to proceed.
+                  </p>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => toast.info("Checkout payment gateway opens in Part 3.")}
+                  className="w-full inline-flex items-center justify-center gap-3 border-2 border-pf-ink bg-pf-violet text-white font-mono text-sm font-bold uppercase tracking-wider py-4 shadow-[4px_4px_0_0_#15101F] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_#15101F] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all"
+                >
+                  <span>Proceed to Secure Checkout</span>
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              )}
 
               <p className="text-[11px] font-mono text-pf-ink/60 text-center">
                 Official Indian 18% GST invoice provided upon order confirmation.

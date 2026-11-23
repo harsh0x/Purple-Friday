@@ -12,7 +12,7 @@ describe("Mockup Print-Zone Placement & Clamping (Step 4)", () => {
     gst: 18000,
     shipping: 0,
     total: 118000,
-    paymentMethod: "RAZORPAY",
+    paymentMethod: "COD",
     paymentStatus: "PAID",
     address: { customerName: "Design Test" },
     version: 2,

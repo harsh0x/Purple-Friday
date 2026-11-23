@@ -241,6 +241,7 @@ export async function publishCms(
 
   // Next.js cache revalidation
   try {
+    revalidateTag("cms");
     revalidateTag("cms-content");
     revalidatePath("/");
   } catch {

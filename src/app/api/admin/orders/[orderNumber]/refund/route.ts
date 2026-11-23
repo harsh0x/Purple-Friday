@@ -8,7 +8,7 @@ const refundSchema = z.object({
   amountPaise: z.number().int().positive().optional(),
   reason: z.string().min(5, "A descriptive reason (min 5 chars) is required for refunds."),
   idempotencyKey: z.string().min(1, "Idempotency key is required."),
-  type: z.enum(["RAZORPAY", "MANUAL"]).optional(),
+  type: z.literal("MANUAL").default("MANUAL").optional(),
   reference: z.string().optional(),
 });
 

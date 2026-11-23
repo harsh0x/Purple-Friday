@@ -129,7 +129,7 @@ Attendees at multi-day summits can clip their badges on and off in one second wi
   },
   {
     slug: "corporate-swag-that-lasts",
-    title: "How Razorpay & Zepto onboarded 1,200 team members with zero waste packaging",
+    title: "How Fintech & Zepto onboarded 1,200 team members with zero waste packaging",
     category: "Client Spotlights",
     excerpt:
       "Moving away from throwaway plastic junk toward heavyweight 280 GSM fleece hoodies, dual-wall steel thermal flasks, and Smyth-sewn linen journals that people actually keep.",

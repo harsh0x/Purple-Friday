@@ -5,12 +5,11 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https://res.cloudinary.com",
       "font-src 'self' data:",
-      "connect-src 'self' https://api.razorpay.com https://lumberjack.razorpay.com",
-      "frame-src https://api.razorpay.com",
+      "connect-src 'self'",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
@@ -51,10 +50,22 @@ const adminHeaders = [
     key: "Expires",
     value: "0",
   },
+  {
+    key: "X-Robots-Tag",
+    value: "noindex, nofollow, noarchive",
+  },
 ];
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  webpack: (config, { dev }) => {
+    if (dev) {
+      config.cache = {
+        type: "memory",
+      };
+    }
+    return config;
+  },
   async headers() {
     return [
       {
@@ -68,6 +79,15 @@ const nextConfig: NextConfig = {
       {
         source: "/api/admin/:path*",
         headers: adminHeaders,
+      },
+      {
+        source: "/api/:path*",
+        headers: [
+          {
+            key: "X-Robots-Tag",
+            value: "noindex, nofollow, noarchive",
+          },
+        ],
       },
     ];
   },

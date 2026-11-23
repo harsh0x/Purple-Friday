@@ -181,7 +181,7 @@ export default function AdminQuotesPage() {
             </h1>
           </div>
           <p className="text-xs font-mono text-ink/60 mt-1">
-            Corporate volume quotes, negotiated price authorization, Razorpay payment links, and GST tax invoice PDFs
+            Corporate volume quotes, negotiated price authorization, payment links, and GST tax invoice PDFs
           </p>
         </div>
 
@@ -388,7 +388,7 @@ export default function AdminQuotesPage() {
                 <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-bold">Razorpay Payment Link Active</p>
+                    <p className="font-bold">Payment Link Active</p>
                     <p className="text-[11px] mt-0.5">
                       Customer receives SMS & Email notification with secure checkout link.
                     </p>
@@ -420,8 +420,7 @@ export default function AdminQuotesPage() {
                 </div>
 
                 <p className="text-[11px] text-ink/60">
-                  Real Razorpay payment link requires active external keys:{" "}
-                  <code className="text-violet font-bold">Razorpay API credentials</code>. The UI safely degrades and disables payment links until configured.
+                  Online payment links are disabled while checkout operates on Cash on Delivery / Pay Later mode.
                 </p>
 
                 <button

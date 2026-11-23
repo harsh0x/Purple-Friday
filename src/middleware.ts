@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { verifyAdminSessionToken, touchAdminSession, applyAdminSessionCookie, ADMIN_COOKIE_NAME } from "@/lib/admin/admin-session";
-import { hasPermission, getRoleHomeScreen, isStaffRole, Permission } from "@/lib/admin/permissions";
+import { isStaffRole } from "@/lib/admin/permissions";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -9,14 +9,13 @@ export async function middleware(request: NextRequest) {
   // 1. Dedicated Admin Route Protection
   if (pathname.startsWith("/admin")) {
     const adminCookie = request.cookies.get(ADMIN_COOKIE_NAME)?.value;
-    const sessionResult = verifyAdminSessionToken(adminCookie);
+    const sessionResult = await verifyAdminSessionToken(adminCookie);
 
     // Allow access to login page
     if (pathname === "/admin/login") {
       if (sessionResult.valid && sessionResult.session) {
-        // Already authenticated staff -> redirect to role home
-        const homeUrl = new URL(getRoleHomeScreen(sessionResult.session.role), request.url);
-        return NextResponse.redirect(homeUrl);
+        // Already authenticated admin -> redirect to /admin
+        return NextResponse.redirect(new URL("/admin", request.url));
       }
       return NextResponse.next();
     }
@@ -37,7 +36,7 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    // If no valid staff session exists
+    // If no valid admin session exists
     if (!effectiveRole || !isStaffRole(effectiveRole)) {
       const loginUrl = new URL("/admin/login", request.url);
       loginUrl.searchParams.set("callbackUrl", pathname);
@@ -47,28 +46,11 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
-    // Role-specific permission enforcement
-    const requiredPermissionMap: Record<string, Permission> = {
-      "/admin/team": "admin:manage_team",
-      "/admin/audit": "admin:view_audit",
-      "/admin/settings": "admin:manage_settings",
-    };
-
-    const matchedPrefix = Object.keys(requiredPermissionMap).find((prefix) => pathname.startsWith(prefix));
-    if (matchedPrefix) {
-      const perm = requiredPermissionMap[matchedPrefix];
-      if (!hasPermission(effectiveRole, perm)) {
-        const homeUrl = new URL(getRoleHomeScreen(effectiveRole), request.url);
-        homeUrl.searchParams.set("error", "Unauthorized");
-        return NextResponse.redirect(homeUrl);
-      }
-    }
-
     const response = NextResponse.next();
 
     // Touch idle session timestamp if valid session cookie present
     if (effectiveSession) {
-      const touchedToken = touchAdminSession(effectiveSession);
+      const touchedToken = await touchAdminSession(effectiveSession);
       applyAdminSessionCookie(response, touchedToken);
     }
 
@@ -98,16 +80,18 @@ export async function middleware(request: NextRequest) {
   // Content-Security-Policy in ENFORCING mode for production security
   const cspHeader = [
     `default-src 'self'`,
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://checkout.razorpay.com https://challenges.cloudflare.com`,
-    `frame-src 'self' https://api.razorpay.com https://challenges.cloudflare.com`,
-    `connect-src 'self' https://api.razorpay.com https://lumberjack.razorpay.com https://res.cloudinary.com https://challenges.cloudflare.com https://generativelanguage.googleapis.com`,
-    `img-src 'self' data: blob: https://res.cloudinary.com`,
-    `style-src 'self' 'unsafe-inline'`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' ${process.env.NODE_ENV !== "production" ? "'unsafe-eval'" : ""}`.trim(),
+    `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
+    `img-src 'self' blob: data: https://images.unsplash.com https://res.cloudinary.com`,
+    `font-src 'self' data: https://fonts.gstatic.com`,
+    `frame-src 'none'`,
+    `connect-src 'self' https://api.resend.com`,
     `object-src 'none'`,
     `base-uri 'self'`,
     `form-action 'self'`,
     `frame-ancestors 'none'`,
-    `report-uri /api/csp-report`,
+    `block-all-mixed-content`,
+    `upgrade-insecure-requests`,
   ].join("; ");
 
   const requestHeaders = new Headers(request.headers);
@@ -120,27 +104,18 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  // Set Enforcing Security Headers
+  // Strict Production HTTP Security Headers
   response.headers.set("Content-Security-Policy", cspHeader);
-  response.headers.set("x-nonce", nonce);
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-
-  // Camera scoped only to /design route for logo live capture
-  const isDesignRoute = pathname.startsWith("/design");
-  const cameraPolicy = isDesignRoute ? "camera=(self)" : "camera=()";
   response.headers.set(
     "Permissions-Policy",
-    `${cameraPolicy}, microphone=(), geolocation=(), payment=(self "https://checkout.razorpay.com")`
+    "camera=(), microphone=(), geolocation=(), browsing-topics=(), payment=()"
   );
-  response.headers.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
 
   if (process.env.NODE_ENV === "production") {
-    response.headers.set(
-      "Strict-Transport-Security",
-      "max-age=63072000; includeSubDomains; preload"
-    );
+    response.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
   }
 
   return response;
@@ -148,19 +123,8 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico, sitemap.xml, robots.txt
-     */
-    {
-      source:
-        "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
-      missing: [
-        { type: "header", key: "next-router-prefetch" },
-        { type: "header", key: "purpose", value: "prefetch" },
-      ],
-    },
+    "/admin/:path*",
+    "/account/:path*",
+    "/((?!api/|_next/static|_next/image|favicon.ico|manifest.json|robots.txt|sitemap.xml|assets/).*)",
   ],
 };

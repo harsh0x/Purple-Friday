@@ -20,7 +20,7 @@ describe("Order Pipeline Complete Lifecycle (Step 7 Verification)", () => {
       gst: 90000,
       shipping: 0,
       total: 590000,
-      paymentMethod: "RAZORPAY",
+      paymentMethod: "COD",
       paymentStatus: "PAID",
       address: {
         customerName: "Radhika Iyer",
@@ -111,41 +111,30 @@ describe("Order Pipeline Complete Lifecycle (Step 7 Verification)", () => {
     );
     expect(stepE.order.status).toBe("IN_PRINTING");
 
-    // Step F: Factory Manager runs QC inspection -> moves to QC_PASSED
+    // Step F: Admin dispatches consignment -> moves directly to DISPATCHED (no QC_PASSED)
     const stepF = await changeOrderStatus(
-      orderNumber,
-      "QC_PASSED",
-      factoryActor,
-      "Print adhesion and registration verified 100%",
-      stepE.order.version
-    );
-    expect(stepF.order.status).toBe("QC_PASSED");
-
-    // Step G: Factory Manager dispatches consignment -> moves to DISPATCHED
-    const stepG = await changeOrderStatus(
       orderNumber,
       "DISPATCHED",
       factoryActor,
       "Dispatched via Bluedart Express AWB 9928172910",
-      stepF.order.version
+      stepE.order.version
     );
-    expect(stepG.order.status).toBe("DISPATCHED");
+    expect(stepF.order.status).toBe("DISPATCHED");
 
-    // Step H: Support Agent / Admin confirms delivery -> moves to DELIVERED
+    // Step G: Admin confirms delivery -> moves to DELIVERED
     const supportActor = {
       email: "support@purplefriday.com",
-      role: "SUPPORT_AGENT",
       name: "Support Desk",
     };
 
-    const stepH = await changeOrderStatus(
+    const stepG = await changeOrderStatus(
       orderNumber,
       "DELIVERED",
       supportActor,
       "Delivered and signed by consignee at reception desk",
-      stepG.order.version
+      stepF.order.version
     );
-    expect(stepH.order.status).toBe("DELIVERED");
-    expect(stepH.order.version).toBe(9);
+    expect(stepG.order.status).toBe("DELIVERED");
+    expect(stepG.order.version).toBe(8);
   });
 });

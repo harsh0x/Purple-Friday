@@ -12,7 +12,15 @@
     "contrast-check": "tsx scripts/contrast-check.ts",
     "test:e2e": "playwright test",
     "db:migrate": "tsx scripts/db-migrate.ts",
-    "seed:analytics": "tsx scripts/seed-analytics-demo.ts"
+    "seed:dev-customer": "tsx scripts/seed-dev-customer.ts",
+    "seed:prod-admin": "tsx scripts/seed-prod-admin.ts",
+    "routes:txt": "tsx scripts/generate-routes-and-logins.ts",
+    "check:case": "tsx scripts/check-import-case.ts",
+    "postinstall": "prisma generate",
+    "vercel-build": "prisma migrate deploy && next build"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -49,7 +57,6 @@
     "node-vibrant": "^4.0.4",
     "pdf-lib": "^1.17.1",
     "pino": "^10.4.0",
-    "razorpay": "^2.9.8",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.91.0",
@@ -59,6 +66,7 @@
     "sharp": "^0.35.5",
     "sonner": "^2.0.8",
     "tailwind-merge": "^3.7.0",
+    "web-push": "^4.0.0",
     "zod": "^4.6.7",
     "zustand": "^5.0.16"
   },
@@ -69,6 +77,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/web-push": "^3.6.4",
     "eslint": "^9",
     "eslint-config-next": "15.1.7",
     "pino-pretty": "^13.2.0",

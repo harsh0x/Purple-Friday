@@ -57,29 +57,29 @@ export async function POST(request: NextRequest) {
   await updateStaffPassword(user.id, newPassword);
 
   // 4. Update session token with mustChangePassword = false
-  const updatedToken = createAdminSessionToken({
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role,
-    phone: user.phone,
-    mustChangePassword: false,
-  });
+    const updatedToken = await createAdminSessionToken({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      phone: user.phone,
+      mustChangePassword: false,
+    });
 
-  const clientIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "127.0.0.1";
-  await writeAudit({
-    actor: session.email,
-    actorRole: session.role,
-    action: "auth.password_changed",
-    entityType: "STAFF_USER",
-    entityId: session.userId,
-    ipAddress: clientIp,
-  });
+    const clientIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "127.0.0.1";
+    await writeAudit({
+      actor: session.email,
+      actorRole: session.role,
+      action: "auth.password_changed",
+      entityType: "STAFF_USER",
+      entityId: session.userId,
+      ipAddress: clientIp,
+    });
 
-  const response = NextResponse.json({
-    success: true,
-    message: "Password changed successfully.",
-  });
-  applyAdminSessionCookie(response, updatedToken);
+    const response = NextResponse.json({
+      success: true,
+      message: "Password changed successfully.",
+    });
+    applyAdminSessionCookie(response, updatedToken);
   return response;
-}
+  }

@@ -1,20 +1,74 @@
 "use client";
 
-import React, { useState, Suspense } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { BookOpen, Clock, Tag, ArrowRight } from "lucide-react";
 import { BLOG_POSTS } from "@/lib/blog-data";
 import { SectionSkeleton } from "@/components/ui/skeleton";
+import { CmsBlogPost } from "@/server/cms/schema";
 
 function BlogListContent() {
   const [selectedTag, setSelectedTag] = useState<string>("All");
+  const [posts, setPosts] = useState(BLOG_POSTS);
 
-  const allTags = ["All", ...Array.from(new Set(BLOG_POSTS.flatMap((p) => p.tags)))];
+  useEffect(() => {
+    async function loadCmsPosts() {
+      try {
+        const res = await fetch("/api/cms");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.cms?.blogPosts && Array.isArray(data.cms.blogPosts)) {
+            const cmsItems = data.cms.blogPosts
+              .filter((p: { published?: boolean }) => p.published !== false)
+              .map((p: CmsBlogPost) => ({
+                slug: p.slug,
+                title: p.title,
+                category: p.tags?.[0] || "Print Atelier",
+                excerpt: p.excerpt,
+                content: p.contentMarkdown,
+                readTime: `${p.readingTimeMinutes || 4} min read`,
+                publishedAt: new Date(p.publishedAt).toLocaleDateString("en-IN", {
+                  timeZone: "Asia/Kolkata",
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                }),
+                author: {
+                  name: p.authorName || "Purple Friday Atelier",
+                  role: "Head of Pre-Press & Typography",
+                  avatarInitials: (p.authorName || "PF")
+                    .split(" ")
+                    .map((n: string) => n[0])
+                    .join("")
+                    .slice(0, 2)
+                    .toUpperCase(),
+                },
+                tags: p.tags || ["Dispatch"],
+              }));
+
+            // Merge with existing fallback posts (avoid duplicate slugs)
+            const combined = [...cmsItems];
+            for (const fallback of BLOG_POSTS) {
+              if (!combined.some((c) => c.slug === fallback.slug)) {
+                combined.push(fallback);
+              }
+            }
+            setPosts(combined);
+          }
+        }
+      } catch {
+        // fallback
+      }
+    }
+    loadCmsPosts();
+  }, []);
+
+  const allTags = ["All", ...Array.from(new Set(posts.flatMap((p) => p.tags)))];
 
   const filteredPosts =
     selectedTag === "All"
-      ? BLOG_POSTS
-      : BLOG_POSTS.filter((p) => p.tags.includes(selectedTag));
+      ?posts
+  : posts.filter((p) => p.tags.includes(selectedTag));
 
   return (
     <div className="min-h-screen bg-pf-paper pb-24">
@@ -44,11 +98,10 @@ function BlogListContent() {
                 <button
                   key={tag}
                   onClick={() => setSelectedTag(tag)}
-                  className={`font-mono text-xs px-3 py-1 border transition-all ${
-                    isActive
+                  className={`font-mono text-xs px-3 py-1 border transition-all ${isActive
                       ? "border-pf-ink bg-pf-violet text-white font-bold shadow-[2px_2px_0_0_#15101F]"
                       : "border-pf-ink/20 bg-white text-pf-ink hover:border-pf-ink"
-                  }`}
+                    }`}
                 >
                   {tag}
                 </button>

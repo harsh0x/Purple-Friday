@@ -958,6 +958,12 @@ async function main() {
     "Heavyweight 320 GSM hoodies are plush, warm, and the Tajima embroidery on the chest is dense with zero loose threads. Absolute five-star service.",
   ];
 
+  // Demo reviews are strictly forbidden in production
+  if (process.env.NODE_ENV === "production") {
+    console.log("[seed] Production environment detected: skipping demo reviews.");
+    return;
+  }
+
   // Fetch all created products to distribute reviews
   const allProducts = await prisma.product.findMany();
   await prisma.review.deleteMany(); // Reset reviews
@@ -996,7 +1002,7 @@ async function main() {
     },
     {
       question: "Do you offer Cash on Delivery (COD) for bulk merchandise orders?",
-      answer: "Because all products are customized and permanently printed with your unique corporate or personal artwork, we do not support Cash on Delivery. We accept 100% secure payments via Razorpay (UPI, Credit/Debit Cards, Net Banking) and NEFT/RTGS bank transfers for large enterprise invoices.",
+      answer: "We offer Cash on Delivery / Pay Later for all custom orders so you can review your digital proof first and pay when the delivery reaches your door.",
       category: "Payments",
       sortOrder: 2,
     },

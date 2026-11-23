@@ -21,7 +21,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `node node_modules/next/dist/bin/next start -H 127.0.0.1 -p ${PORT}`,
+    command: `npm run start -- -H 127.0.0.1 -p ${PORT}`,
     url: `http://127.0.0.1:${PORT}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,

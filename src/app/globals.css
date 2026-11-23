@@ -30,12 +30,20 @@
     overflow-x: hidden;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-bricolage), sans-serif;
     letter-spacing: -0.03em;
   }
 
-  code, pre, .font-mono, [data-mono] {
+  code,
+  pre,
+  .font-mono,
+  [data-mono] {
     font-family: var(--font-dm-mono), monospace;
   }
 }
@@ -97,16 +105,30 @@
 
 /* Prefers reduced motion overrides */
 @keyframes marquee {
-  0% { transform: translateX(0%); }
-  100% { transform: translateX(-50%); }
+  0% {
+    transform: translateX(0%);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
 }
+
 @keyframes marquee-reverse {
-  0% { transform: translateX(-50%); }
-  100% { transform: translateX(0%); }
+  0% {
+    transform: translateX(-50%);
+  }
+
+  100% {
+    transform: translateX(0%);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, ::before, ::after {
+
+  *,
+  ::before,
+  ::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -119,13 +141,14 @@
    ADMIN DASHBOARD MODERN TYPOGRAPHY & THEME SYSTEM (LIGHT & DARK MODE)
    ============================================================================== */
 
-/* 1. Crisp Modern Sans-Serif Typography Stack for Admin Portal */
+/* 1. Typography Stack for Admin Portal */
 [data-admin-root],
 .admin-portal {
-  font-family: var(--font-instrument), "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-instrument), "Instrument Sans", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  font-size: 14px;
 }
 
 [data-admin-root] h1,
@@ -135,212 +158,215 @@
 [data-admin-root] h5,
 [data-admin-root] h6,
 [data-admin-root] .font-display {
-  font-family: var(--font-instrument), "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
   letter-spacing: -0.02em;
 }
 
-/* Remap pixelated monospace to crisp modern sans on body, labels, subtitles, tables, and cards */
-[data-admin-root] .font-mono:not([data-mono-strict]):not(.font-mono-code):not(code):not(pre) {
-  font-family: var(--font-instrument), "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  letter-spacing: normal;
-}
 
-/* Monospace is reserved strictly for Order IDs, SKU codes, hashes, and timestamps */
-[data-admin-root] [data-mono-strict],
-[data-admin-root] .font-mono-code,
-[data-admin-root] code,
-[data-admin-root] pre,
-[data-admin-root] [data-order-id],
-[data-admin-root] [data-sku] {
-  font-family: var(--font-dm-mono), monospace !important;
-  letter-spacing: -0.01em;
-}
+  /* Remap monospace so DM Mono is used strictly for numbers, codes, and chips */
+  [data-admin-root] .font-mono:not([data-mono-strict]):not(.font-mono-code):not(code):not(pre):not([data-number]):not([data-chip]) {
+    font-family: var(--font-instrument), "Instrument Sans", sans-serif;
+    letter-spacing: normal;
+  }
 
-/* 2. Dark Theme Palette (Obsidian / Slate / Purple Friday Electric Violet & Lime) */
-[data-admin-root].admin-dark,
-[data-admin-root][data-theme="dark"],
-.admin-dark {
-  --admin-canvas: #0F0D15;
-  --admin-surface: #13111C;
-  --admin-card: #1A1726;
-  --admin-border: #2A253B;
-  --admin-text-primary: #F4F3F8;
-  --admin-text-secondary: #9E98B3;
-  --admin-text-muted: #736C8D;
-  --admin-accent-violet: #7C3AED;
-  --admin-accent-lime: #D9F99D;
-  background-color: #0F0D15;
-  color: #F4F3F8;
-}
+  /* Monospace reserved strictly for KPI numbers, Order IDs, SKU codes, timestamps, and chips */
+  [data-admin-root] [data-mono-strict],
+  [data-admin-root] .font-mono-code,
+  [data-admin-root] code,
+  [data-admin-root] pre,
+  [data-admin-root] [data-order-id],
 
-/* Content Surface (Main Container) */
-.admin-dark main,
-[data-theme="dark"] main {
-  background-color: #13111C !important;
-  border-color: #2A253B !important;
-  color: #F4F3F8 !important;
-}
+    [data-admin-root] [data-sku],
+    [data-admin-root] [data-number],
+    [data-admin-root] [data-chip] {
+      font-family: var(--font-dm-mono), "DM Mono", monospace !important;
+      font-feature-settings: "tnum" 1;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.01em;
+    }
 
-/* Cards & Surfaces */
-.admin-dark .bg-white,
-[data-theme="dark"] .bg-white {
-  background-color: #1A1726 !important;
-  border-color: #2A253B !important;
-  color: #F4F3F8 !important;
-}
+    /* 2. Dark Theme Palette (Obsidian / Slate / Purple Friday Electric Violet & Lime) */
+    [data-admin-root].admin-dark,
+    [data-admin-root][data-theme="dark"],
+    .admin-dark {
+      --admin-canvas: #0F0D15;
+      --admin-surface: #13111C;
+      --admin-card: #1A1726;
+      --admin-border: #2A253B;
+      --admin-text-primary: #F4F3F8;
+      --admin-text-secondary: #9E98B3;
+      --admin-text-muted: #736C8D;
+      --admin-accent-violet: #7C3AED;
+      --admin-accent-lime: #D9F99D;
+      background-color: #0F0D15;
+      color: #F4F3F8;
+    }
 
-.admin-dark .bg-\[\#FAF7F2\],
-.admin-dark .bg-\[\#F5F0E8\],
-[data-theme="dark"] .bg-\[\#FAF7F2\],
-[data-theme="dark"] .bg-\[\#F5F0E8\] {
-  background-color: #151220 !important;
-  border-color: #2A253B !important;
-  color: #F4F3F8 !important;
-}
+    /* Content Surface (Main Container) */
+    .admin-dark main,
+    [data-theme="dark"] main {
+      background-color: #13111C !important;
+      border-color: #2A253B !important;
+      color: #F4F3F8 !important;
+    }
 
-/* Borders */
-.admin-dark .border-\[\#15101F\]\/10,
-.admin-dark .border-\[\#15101F\]\/15,
-.admin-dark .border-\[\#15101F\]\/20,
-.admin-dark .border-\[\#15101F\]\/5,
-[data-theme="dark"] .border-\[\#15101F\]\/10,
-[data-theme="dark"] .border-\[\#15101F\]\/15,
-[data-theme="dark"] .border-\[\#15101F\]\/20,
-[data-theme="dark"] .border-\[\#15101F\]\/5 {
-  border-color: #2A253B !important;
-}
+    /* Cards & Surfaces */
+    .admin-dark .bg-white,
+    [data-theme="dark"] .bg-white {
+      background-color: #1A1726 !important;
+      border-color: #2A253B !important;
+      color: #F4F3F8 !important;
+    }
 
-/* Typography Colors */
-.admin-dark .text-\[\#15101F\],
-[data-theme="dark"] .text-\[\#15101F\] {
-  color: #F4F3F8 !important;
-}
+    .admin-dark .bg-\[\#FAF7F2\],
+    .admin-dark .bg-\[\#F5F0E8\],
+    [data-theme="dark"] .bg-\[\#FAF7F2\],
+    [data-theme="dark"] .bg-\[\#F5F0E8\] {
+      background-color: #151220 !important;
+      border-color: #2A253B !important;
+      color: #F4F3F8 !important;
+    }
 
-.admin-dark .text-\[\#15101F\]\/60,
-.admin-dark .text-\[\#15101F\]\/65,
-.admin-dark .text-\[\#15101F\]\/70,
-.admin-dark .text-\[\#15101F\]\/80,
-[data-theme="dark"] .text-\[\#15101F\]\/60,
-[data-theme="dark"] .text-\[\#15101F\]\/65,
-[data-theme="dark"] .text-\[\#15101F\]\/70,
-[data-theme="dark"] .text-\[\#15101F\]\/80 {
-  color: #9E98B3 !important;
-}
+    /* Borders */
+    .admin-dark .border-\[\#15101F\]\/10,
+    .admin-dark .border-\[\#15101F\]\/15,
+    .admin-dark .border-\[\#15101F\]\/20,
+    .admin-dark .border-\[\#15101F\]\/5,
+    [data-theme="dark"] .border-\[\#15101F\]\/10,
+    [data-theme="dark"] .border-\[\#15101F\]\/15,
+    [data-theme="dark"] .border-\[\#15101F\]\/20,
+    [data-theme="dark"] .border-\[\#15101F\]\/5 {
+      border-color: #2A253B !important;
+    }
 
-.admin-dark .text-\[\#15101F\]\/40,
-.admin-dark .text-\[\#15101F\]\/50,
-[data-theme="dark"] .text-\[\#15101F\]\/40,
-[data-theme="dark"] .text-\[\#15101F\]\/50 {
-  color: #736C8D !important;
-}
+    /* Typography Colors */
+    .admin-dark .text-\[\#15101F\],
+    [data-theme="dark"] .text-\[\#15101F\] {
+      color: #F4F3F8 !important;
+    }
 
-/* Dark Mode Table Styling */
-.admin-dark table thead tr,
-[data-theme="dark"] table thead tr {
-  background-color: #151220 !important;
-  color: #9E98B3 !important;
-  border-color: #2A253B !important;
-}
+    .admin-dark .text-\[\#15101F\]\/60,
+    .admin-dark .text-\[\#15101F\]\/65,
+    .admin-dark .text-\[\#15101F\]\/70,
+    .admin-dark .text-\[\#15101F\]\/80,
+    [data-theme="dark"] .text-\[\#15101F\]\/60,
+    [data-theme="dark"] .text-\[\#15101F\]\/65,
+    [data-theme="dark"] .text-\[\#15101F\]\/70,
+    [data-theme="dark"] .text-\[\#15101F\]\/80 {
+      color: #9E98B3 !important;
+    }
 
-.admin-dark table tbody tr,
-[data-theme="dark"] table tbody tr {
-  border-color: #2A253B !important;
-  color: #F4F3F8 !important;
-}
+    .admin-dark .text-\[\#15101F\]\/40,
+    .admin-dark .text-\[\#15101F\]\/50,
+    [data-theme="dark"] .text-\[\#15101F\]\/40,
+    [data-theme="dark"] .text-\[\#15101F\]\/50 {
+      color: #736C8D !important;
+    }
 
-.admin-dark table tbody tr:hover,
-[data-theme="dark"] table tbody tr:hover {
-  background-color: #211D32 !important;
-}
+    /* Dark Mode Table Styling */
+    .admin-dark table thead tr,
+    [data-theme="dark"] table thead tr {
+      background-color: #151220 !important;
+      color: #9E98B3 !important;
+      border-color: #2A253B !important;
+    }
 
-/* Status Badges in Dark Mode */
-.admin-dark .bg-rose-100,
-[data-theme="dark"] .bg-rose-100 {
-  background-color: rgba(225, 29, 72, 0.2) !important;
-  color: #FDA4AF !important;
-  border-color: rgba(225, 29, 72, 0.4) !important;
-}
+    .admin-dark table tbody tr,
+    [data-theme="dark"] table tbody tr {
+      border-color: #2A253B !important;
+      color: #F4F3F8 !important;
+    }
 
-.admin-dark .bg-amber-100,
-[data-theme="dark"] .bg-amber-100 {
-  background-color: rgba(245, 158, 11, 0.2) !important;
-  color: #FCD34D !important;
-  border-color: rgba(245, 158, 11, 0.4) !important;
-}
+    .admin-dark table tbody tr:hover,
+    [data-theme="dark"] table tbody tr:hover {
+      background-color: #211D32 !important;
+    }
 
-.admin-dark .bg-emerald-100,
-[data-theme="dark"] .bg-emerald-100 {
-  background-color: rgba(16, 185, 129, 0.2) !important;
-  color: #6EE7B7 !important;
-  border-color: rgba(16, 185, 129, 0.4) !important;
-}
+    /* Status Badges in Dark Mode */
+    .admin-dark .bg-rose-100,
+    [data-theme="dark"] .bg-rose-100 {
+      background-color: rgba(225, 29, 72, 0.2) !important;
+      color: #FDA4AF !important;
+      border-color: rgba(225, 29, 72, 0.4) !important;
+    }
 
-.admin-dark .bg-purple-100,
-[data-theme="dark"] .bg-purple-100 {
-  background-color: rgba(124, 58, 237, 0.2) !important;
-  color: #C4B5FD !important;
-  border-color: rgba(124, 58, 237, 0.4) !important;
-}
+    .admin-dark .bg-amber-100,
+    [data-theme="dark"] .bg-amber-100 {
+      background-color: rgba(245, 158, 11, 0.2) !important;
+      color: #FCD34D !important;
+      border-color: rgba(245, 158, 11, 0.4) !important;
+    }
 
-/* 3. Custom Ultra-Thin Dark Purple Scrollbar for Admin Sidebar */
-.admin-sidebar-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(124, 58, 237, 0.45) transparent;
-}
+    .admin-dark .bg-emerald-100,
+    [data-theme="dark"] .bg-emerald-100 {
+      background-color: rgba(16, 185, 129, 0.2) !important;
+      color: #6EE7B7 !important;
+      border-color: rgba(16, 185, 129, 0.4) !important;
+    }
 
-.admin-sidebar-scroll::-webkit-scrollbar {
-  width: 4px;
-}
+    .admin-dark .bg-purple-100,
+    [data-theme="dark"] .bg-purple-100 {
+      background-color: rgba(124, 58, 237, 0.2) !important;
+      color: #C4B5FD !important;
+      border-color: rgba(124, 58, 237, 0.4) !important;
+    }
 
-.admin-sidebar-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
+    /* 3. Custom Ultra-Thin Dark Purple Scrollbar for Admin Sidebar */
+    .admin-sidebar-scroll {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(124, 58, 237, 0.45) transparent;
+    }
 
-.admin-sidebar-scroll::-webkit-scrollbar-thumb {
-  background: rgba(124, 58, 237, 0.35);
-  border-radius: 9999px;
-  transition: background-color 0.2s ease;
-}
+    .admin-sidebar-scroll::-webkit-scrollbar {
+      width: 4px;
+    }
 
-.admin-sidebar-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 92, 246, 0.75);
-}
+    .admin-sidebar-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
 
-/* 4. Pure Admin Layout: Body Canvas Invariant (Zero Flash of Paper Canvas) */
-body:has([data-admin-root]) {
-  background-color: #0F0D15;
-}
+    .admin-sidebar-scroll::-webkit-scrollbar-thumb {
+      background: rgba(124, 58, 237, 0.35);
+      border-radius: 9999px;
+      transition: background-color 0.2s ease;
+    }
 
-body:has([data-admin-root][data-theme="light"]) {
-  background-color: #110D1A;
-}
+    .admin-sidebar-scroll::-webkit-scrollbar-thumb:hover {
+      background: rgba(139, 92, 246, 0.75);
+    }
 
-/* ==============================================================================
+    /* 4. Pure Admin Layout: Body Canvas Invariant (Zero Flash of Paper Canvas) */
+    body:has([data-admin-root]) {
+      background-color: #0F0D15;
+    }
+
+    body:has([data-admin-root][data-theme="light"]) {
+      background-color: #110D1A;
+    }
+
+    /* ==============================================================================
    5. LIQUID GLASS SIDEBAR SYSTEM (Controlled by pf_admin_transparent_sidebar)
    ============================================================================== */
 
-/* Solid Opaque Sidebar Mode (pf_admin_transparent_sidebar = OFF) */
-.admin-sidebar-solid {
-  background-color: #110E1B !important;
-  border: 1px solid #2A253B !important;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5) !important;
-}
+    /* Solid Opaque Sidebar Mode (pf_admin_transparent_sidebar = OFF) */
+    .admin-sidebar-solid {
+      background-color: #110E1B !important;
+      border: 1px solid #2A253B !important;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5) !important;
+    }
 
-/* Liquid Glass Sidebar Mode (pf_admin_transparent_sidebar = ON) */
-.admin-sidebar-liquid-glass {
-  background: linear-gradient(
-    145deg,
-    rgba(26, 20, 42, 0.62) 0%,
-    rgba(17, 14, 27, 0.42) 55%,
-    rgba(34, 23, 56, 0.58) 100%
-  ) !important;
-  -webkit-backdrop-filter: blur(22px) saturate(165%) !important;
-  backdrop-filter: blur(22px) saturate(165%) !important;
-  border: 1px solid rgba(205, 184, 255, 0.16) !important;
-  box-shadow: 
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.14),
-    inset 0 -1px 2px 0 rgba(124, 58, 237, 0.28),
-    0 16px 38px 0 rgba(0, 0, 0, 0.45),
-    0 0 24px 0 rgba(124, 58, 237, 0.12) !important;
-}
-
+    /* Liquid Glass Sidebar Mode (pf_admin_transparent_sidebar = ON) */
+    .admin-sidebar-liquid-glass {
+      background: linear-gradient(145deg,
+          rgba(26, 20, 42, 0.62) 0%,
+          rgba(17, 14, 27, 0.42) 55%,
+          rgba(34, 23, 56, 0.58) 100%) !important;
+      -webkit-backdrop-filter: blur(22px) saturate(165%) !important;
+      backdrop-filter: blur(22px) saturate(165%) !important;
+      border: 1px solid rgba(205, 184, 255, 0.16) !important;
+      box-shadow:
+        inset 0 1px 1px 0 rgba(255, 255, 255, 0.14),
+        inset 0 -1px 2px 0 rgba(124, 58, 237, 0.28),
+        0 16px 38px 0 rgba(0, 0, 0, 0.45),
+        0 0 24px 0 rgba(124, 58, 237, 0.12) !important;
+    }

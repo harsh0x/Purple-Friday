@@ -11,6 +11,7 @@ import {
   REVIEW_STORE,
   REVIEW_TOKEN_MAP,
 } from "@/server/reviews/review-service";
+import { notifyAdmin } from "@/server/notifications/admin-dispatcher";
 
 const reviewSchema = z.object({
   productId: z.string().min(1),
@@ -104,6 +105,18 @@ export async function POST(req: NextRequest) {
     });
 
     try {
+      await notifyAdmin("NEW_REVIEW", {
+        orderNumber,
+        customerName: authorName,
+        rating,
+        comment: reviewBody,
+        productId,
+      });
+    } catch (err) {
+      console.warn("[reviews] notifyAdmin NEW_REVIEW error:", err);
+    }
+
+    try {
       if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
         await prisma.review.create({
           data: {
@@ -117,7 +130,6 @@ export async function POST(req: NextRequest) {
             status: result.review.status,
             authorName,
             orderNumber,
-            supportTicketId: result.supportTicket?.id,
           },
         });
       }
@@ -129,13 +141,10 @@ export async function POST(req: NextRequest) {
       success: true,
       verified: isVerifiedBuyer,
       review: result.review,
-      ticketCreated: Boolean(result.supportTicket),
       message:
         result.review.status === "APPROVED"
           ? "Thank you! Your verified review is published."
-          : result.review.status === "PENDING"
-            ? "Thank you! Your review is in moderation queue."
-            : "Thank you for your candid feedback. Our executive customer support team has opened an expedited ticket to resolve your merchandise experience.",
+          : "Thank you! Your review is in moderation queue.",
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Error creating review";

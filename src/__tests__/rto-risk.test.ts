@@ -168,7 +168,7 @@ describe("RTO Risk Scoring Engine (Pure Tested Module)", () => {
     it("does not flag prepaid orders with state mismatches", () => {
       const prepaidOrder: RiskOrderInput = {
         ...baseOrder,
-        paymentMethod: "RAZORPAY",
+        paymentMethod: "PREPAID",
         shippingAddress: {
           ...baseOrder.shippingAddress,
           state: "Maharashtra",

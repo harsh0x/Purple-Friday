@@ -1,29 +1,14 @@
 import { ORDER_STORE } from "@/server/orders/state-machine";
-import { computeOrderSla } from "@/server/orders/orders-service";
-import { SUPPORT_TICKET_STORE } from "@/server/reviews/review-service";
-import { BLANK_SKU_STORE } from "@/server/inventory/inventory-service";
-import { calculateOrderMargin } from "@/server/analytics/margin-engine";
-import { computeSampleToBulkConversion } from "@/server/analytics/cohorts";
+import { REVIEW_STORE } from "@/server/reviews/review-service";
+import { getAllQuotes } from "@/server/quotes/quotes-service";
 import { formatCurrency, formatShortDate } from "@/lib/utils";
-
-export interface FunnelItem {
-  id: string;
-  label: string;
-  count: number;
-  href: string;
-  color: string;
-  isOverdueAlert?: boolean;
-}
 
 export interface KpiTile {
   id: string;
   label: string;
   value: string;
   numericValue: number;
-  change?: string;
-  trend?: "up" | "down" | "neutral";
   subtitle: string;
-  isFinancial?: boolean;
 }
 
 export interface AttentionItem {
@@ -36,20 +21,13 @@ export interface AttentionItem {
 }
 
 export interface OverviewDashboardData {
-  role: string;
-  greetingTime: string;
-  totalAttentionNeeded: number;
-  attentionCounts: {
-    pendingApprovals: number;
-    overdueJobs: number;
-    lowStock: number;
-    openTickets: number;
-  };
-  funnel: FunnelItem[];
+  adminName: string;
+  greetingText: string;
+  kpiTiles: KpiTile[];
   timeSeries: {
-    days7: { dates: string[]; netRevenue: number[]; netMargin: number[] };
-    days30: { dates: string[]; netRevenue: number[]; netMargin: number[] };
-    days90: { dates: string[]; netRevenue: number[]; netMargin: number[] };
+    days7: { dates: string[]; netRevenue: number[] };
+    days30: { dates: string[]; netRevenue: number[] };
+    days90: { dates: string[]; netRevenue: number[] };
   };
   categoryDonut: Array<{
     category: string;
@@ -57,7 +35,6 @@ export interface OverviewDashboardData {
     percentage: number;
     color: string;
   }>;
-  kpiTiles: KpiTile[];
   attentionItems: AttentionItem[];
   recentActivity: Array<{
     id: string;
@@ -68,163 +45,147 @@ export interface OverviewDashboardData {
   }>;
 }
 
-/**
- * Returns India standard greeting ("Good morning", "Good afternoon", "Good evening").
- */
 export function getIndiaGreeting(): string {
   const now = new Date();
-  // IST is UTC + 5:30
   const istHours = (now.getUTCHours() + 5 + Math.floor((now.getUTCMinutes() + 30) / 60)) % 24;
   if (istHours < 12) return "Good morning";
   if (istHours < 17) return "Good afternoon";
   return "Good evening";
 }
 
-/**
- * Computes live operational and executive metrics for the Admin Overview Dashboard.
- * Role-based filtering strictly enforced on server:
- * Super admin sees financial numbers; other roles see only operational and role-specific KPIs.
- */
-export async function getOverviewDashboardData(userRole: string = "SUPER_ADMIN"): Promise<OverviewDashboardData> {
-  const orders = Array.from(ORDER_STORE.values());
-  const now = Date.now();
-  const currentMonthStart = new Date();
-  currentMonthStart.setDate(1);
-  currentMonthStart.setHours(0, 0, 0, 0);
+export async function getOverviewDashboardData(adminName: string = "Admin"): Promise<OverviewDashboardData> {
+  const orders = Array.from(new Set(ORDER_STORE.values()));
+  const now = new Date();
+  const greeting = getIndiaGreeting();
 
-  // 1. Attention counts
-  let pendingApprovals = 0;
-  let inProduction = 0;
-  let inProductionOverdue = 0;
-  let readyToDispatch = 0;
-  let inTransit = 0;
-  let rtoThisMonth = 0;
+  // India Date string
+  const istDateStr = new Intl.DateTimeFormat("en-IN", {
+    timeZone: "Asia/Kolkata",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(now);
 
+  const greetingText = `${greeting}, ${adminName} • ${istDateStr}`;
+
+  // 1. Orders Today (India Time)
+  const todayIstStr = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+  }).format(now); // "YYYY-MM-DD"
+
+  let ordersTodayCount = 0;
   for (const o of orders) {
-    if (o.status === "MOCKUP_SENT" || o.status === "ARTWORK_UPLOADED" || o.status === "REVISION_REQUESTED") {
-      pendingApprovals++;
-    }
-    if (o.status === "IN_PRINTING" || o.status === "CUSTOMER_APPROVED") {
-      inProduction++;
-      const sla = computeOrderSla(o);
-      if (sla.isOverdue) {
-        inProductionOverdue++;
-      }
-    }
-    if (o.status === "QC_PASSED") {
-      readyToDispatch++;
-    }
-    if (o.status === "DISPATCHED") {
-      inTransit++;
-    }
-    if (o.status === "RTO") {
-      const orderDate = new Date(o.createdAt).getTime();
-      if (orderDate >= currentMonthStart.getTime()) {
-        rtoThisMonth++;
-      }
+    const oDate = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+    }).format(new Date(o.createdAt));
+    if (oDate === todayIstStr) {
+      ordersTodayCount++;
     }
   }
 
-  // Inventory low stock count
-  let lowStockCount = 0;
-  for (const item of BLANK_SKU_STORE.values()) {
-    if (item.stockOnHand <= item.reorderLevel) {
-      lowStockCount++;
+  // 2. Revenue This Month (India Time)
+  const currentMonthPrefix = todayIstStr.slice(0, 7); // "YYYY-MM"
+  let revenueThisMonthPaise = 0;
+  for (const o of orders) {
+    if (o.status === "CANCELLED") continue;
+    const oDate = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+    }).format(new Date(o.createdAt));
+    if (oDate.startsWith(currentMonthPrefix)) {
+      revenueThisMonthPaise += Math.max(0, o.subtotal - (o.discount || 0));
     }
   }
 
-  // Open support tickets count
-  let openTicketsCount = 0;
-  for (const ticket of SUPPORT_TICKET_STORE.values()) {
-    if (ticket.status === "OPEN" || ticket.status === "PENDING_CUSTOMER") {
-      openTicketsCount++;
+  // 3. Orders Needing Action
+  const actionStatuses = new Set([
+    "ORDER_PLACED",
+    "ARTWORK_UPLOADED",
+    "MOCKUP_SENT",
+    "REVISION_REQUESTED",
+    "CUSTOMER_APPROVED",
+  ]);
+  const ordersNeedingAction = orders.filter((o) => actionStatuses.has(o.status)).length;
+
+  // 4. Reviews Waiting
+  let reviewsWaitingCount = 0;
+  for (const rev of REVIEW_STORE.values()) {
+    if (rev.status === "PENDING") {
+      reviewsWaitingCount++;
     }
   }
 
-  const totalAttentionNeeded =
-    pendingApprovals + inProductionOverdue + (lowStockCount > 0 ? 1 : 0) + openTicketsCount;
+  // 5. Open Quotes
+  const allQuotes = await getAllQuotes();
+  const openQuotesCount = allQuotes.filter(
+    (q) => q.status === "DRAFT" || q.status === "SENT"
+  ).length;
 
-  // 2. Operational Funnel
-  const funnel: FunnelItem[] = [
+  // 5 KPI Tiles
+  const kpiTiles: KpiTile[] = [
     {
-      id: "approvals",
-      label: "Pending Approvals",
-      count: pendingApprovals,
-      href: "/admin/designs",
-      color: "#6A2CFF",
+      id: "orders_today",
+      label: "Orders today",
+      value: ordersTodayCount.toLocaleString("en-IN"),
+      numericValue: ordersTodayCount,
+      subtitle: "New orders received today",
     },
     {
-      id: "production",
-      label: "In Production",
-      count: inProduction,
-      href: "/admin/production",
-      color: "#8E51FF",
+      id: "revenue_month",
+      label: "Revenue this month",
+      value: formatCurrency(revenueThisMonthPaise),
+      numericValue: Math.round(revenueThisMonthPaise / 100),
+      subtitle: "Excluding GST & discounts",
     },
     {
-      id: "overdue",
-      label: "Overdue (>48h)",
-      count: inProductionOverdue,
-      href: "/admin/orders?status=IN_PRINTING",
-      color: "#E11D48",
-      isOverdueAlert: inProductionOverdue > 0,
+      id: "orders_action",
+      label: "Orders needing action",
+      value: ordersNeedingAction.toLocaleString("en-IN"),
+      numericValue: ordersNeedingAction,
+      subtitle: "Awaiting review or printing",
     },
     {
-      id: "ready",
-      label: "Ready to Dispatch",
-      count: readyToDispatch,
-      href: "/admin/dispatch",
-      color: "#059669",
+      id: "reviews_waiting",
+      label: "Reviews waiting",
+      value: reviewsWaitingCount.toLocaleString("en-IN"),
+      numericValue: reviewsWaitingCount,
+      subtitle: "Customer reviews to moderate",
     },
     {
-      id: "transit",
-      label: "In Transit",
-      count: inTransit,
-      href: "/admin/shipments",
-      color: "#2563EB",
-    },
-    {
-      id: "rto",
-      label: "RTO This Month",
-      count: rtoThisMonth,
-      href: "/admin/orders?status=RTO",
-      color: "#DC2626",
+      id: "open_quotes",
+      label: "Open quotes",
+      value: openQuotesCount.toLocaleString("en-IN"),
+      numericValue: openQuotesCount,
+      subtitle: "Active RFQ quotes pending",
     },
   ];
 
-  // 3. Time Series Data for Revenue & Net Margin (7d, 30d, 90d)
-  const buildTimeSeries = (days: number) => {
+  // 6. Revenue Chart Time Series (7, 30, 90 days in rupees)
+  const buildTimeSeries = (numDays: number) => {
     const dates: string[] = [];
+    const netRevenue: number[] = [];
 
-    // Bucket by day
-    const dayMap = new Map<string, { rev: number; margin: number }>();
-    for (let i = days - 1; i >= 0; i--) {
-      const d = new Date(now - i * 86400000);
-      const key = d.toISOString().slice(0, 10);
-      dayMap.set(key, { rev: 0, margin: 0 });
+    for (let i = numDays - 1; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 24 * 3600 * 1000);
+      const dStr = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Kolkata",
+      }).format(d);
       dates.push(formatShortDate(d));
-    }
 
-    for (const o of orders) {
-      if (o.status === "CANCELLED") continue;
-      const key = new Date(o.createdAt).toISOString().slice(0, 10);
-      if (dayMap.has(key)) {
-        const bucket = dayMap.get(key)!;
-        const marginCalc = calculateOrderMargin(o);
-        bucket.rev += Math.round(marginCalc.netRevenuePaise / 100);
-        bucket.margin += Math.round(marginCalc.netMarginPaise / 100);
+      let dailyPaise = 0;
+      for (const o of orders) {
+        if (o.status === "CANCELLED") continue;
+        const oDate = new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Asia/Kolkata",
+        }).format(new Date(o.createdAt));
+        if (oDate === dStr) {
+          dailyPaise += Math.max(0, o.subtotal - (o.discount || 0));
+        }
       }
+      netRevenue.push(Math.round(dailyPaise / 100)); // In Rupees
     }
 
-    const sortedKeys = Array.from(dayMap.keys()).sort();
-    const revArr: number[] = [];
-    const marginArr: number[] = [];
-    for (const k of sortedKeys) {
-      const b = dayMap.get(k)!;
-      revArr.push(b.rev);
-      marginArr.push(b.margin);
-    }
-
-    return { dates, netRevenue: revArr, netMargin: marginArr };
+    return { dates, netRevenue };
   };
 
   const timeSeries = {
@@ -233,7 +194,7 @@ export async function getOverviewDashboardData(userRole: string = "SUPER_ADMIN")
     days90: buildTimeSeries(90),
   };
 
-  // 4. Product Category Donut
+  // 7. Category Donut
   const categoryCounts = new Map<string, number>();
   let totalItemsCount = 0;
   for (const o of orders) {
@@ -257,324 +218,84 @@ export async function getOverviewDashboardData(userRole: string = "SUPER_ADMIN")
       color: categoryColors[idx % categoryColors.length],
     }));
 
-  // 5. Aggregate KPIs
-  const nonCancelledOrders = orders.filter((o) => o.status !== "CANCELLED");
-  const totalOrdersCount = nonCancelledOrders.length;
-  let totalNetRevenuePaise = 0;
-  let onTimeDispatches = 0;
-  let totalDispatched = 0;
-
-  for (const o of nonCancelledOrders) {
-    const m = calculateOrderMargin(o);
-    totalNetRevenuePaise += m.netRevenuePaise;
-
-    if (o.status === "DELIVERED" || o.status === "DISPATCHED") {
-      totalDispatched++;
-      const sla = computeOrderSla(o);
-      if (!sla.isOverdue) onTimeDispatches++;
-    }
-  }
-
-  const aovPaise = totalOrdersCount > 0 ? Math.round(totalNetRevenuePaise / totalOrdersCount) : 0;
-  const onTimeDispatchRate =
-    totalDispatched > 0 ? Math.round((onTimeDispatches / totalDispatched) * 100) : 98;
-
-  // Repeat corporate percentage
-  const customerOrders = new Map<string, number>();
-  for (const o of nonCancelledOrders) {
-    const custKey = o.userId || ((o.address as Record<string, unknown>)?.email as string) || "guest";
-    customerOrders.set(custKey, (customerOrders.get(custKey) || 0) + 1);
-  }
-  let repeatCustomers = 0;
-  for (const count of customerOrders.values()) {
-    if (count > 1) repeatCustomers++;
-  }
-  const repeatCorporatePct =
-    customerOrders.size > 0 ? Math.round((repeatCustomers / customerOrders.size) * 100) : 0;
-
-  // Sample to bulk conversion rate
-  const sampleToBulk = computeSampleToBulkConversion(orders);
-
-  // 6. Role-Based KPI Selection
-  const isSuperAdmin = userRole === "SUPER_ADMIN";
-  const isDesigner = userRole === "GRAPHIC_DESIGNER";
-  const isFactory = userRole === "FACTORY_MANAGER";
-
-  let kpiTiles: KpiTile[] = [];
-
-  if (isSuperAdmin) {
-    kpiTiles = [
-      {
-        id: "orders",
-        label: "Total Orders",
-        value: totalOrdersCount.toLocaleString("en-IN"),
-        numericValue: totalOrdersCount,
-        change: "+18% vs prev",
-        trend: "up",
-        subtitle: "Valid orders processed",
-      },
-      {
-        id: "revenue",
-        label: "Net Revenue (Excl GST)",
-        value: formatCurrency(totalNetRevenuePaise),
-        numericValue: Math.round(totalNetRevenuePaise / 100),
-        change: "+24% QoQ",
-        trend: "up",
-        subtitle: "Gross invoice minus GST",
-        isFinancial: true,
-      },
-      {
-        id: "aov",
-        label: "Average Order Value",
-        value: formatCurrency(aovPaise),
-        numericValue: Math.round(aovPaise / 100),
-        change: "+8% YoY",
-        trend: "up",
-        subtitle: "High B2B order concentration",
-        isFinancial: true,
-      },
-      {
-        id: "repeat",
-        label: "Repeat Corporate %",
-        value: `${repeatCorporatePct}%`,
-        numericValue: repeatCorporatePct,
-        change: "+5.2% target",
-        trend: "up",
-        subtitle: "Corporate client retention",
-      },
-      {
-        id: "sample_bulk",
-        label: "Sample-to-Bulk Conv.",
-        value: `${sampleToBulk.conversionRatePercent}%`,
-        numericValue: sampleToBulk.conversionRatePercent,
-        change: `Avg ${sampleToBulk.avgDaysToConvert} days`,
-        trend: "up",
-        subtitle: `₹${(sampleToBulk.totalConvertedRevenuePaise / 10000000).toFixed(1)}L bulk realized`,
-      },
-      {
-        id: "ontime",
-        label: "On-Time Dispatch",
-        value: `${onTimeDispatchRate}%`,
-        numericValue: onTimeDispatchRate,
-        change: "Target >= 95%",
-        trend: onTimeDispatchRate >= 95 ? "up" : "down",
-        subtitle: "48h atelier SLA compliance",
-      },
-    ];
-  } else if (isDesigner) {
-    kpiTiles = [
-      {
-        id: "pending_proofs",
-        label: "Pending Proofs Queue",
-        value: pendingApprovals.toString(),
-        numericValue: pendingApprovals,
-        subtitle: "Awaiting designer action or approval",
-      },
-      {
-        id: "revision_rate",
-        label: "Revision Request Rate",
-        value: "4.8%",
-        numericValue: 4.8,
-        change: "Under 6% target",
-        trend: "up",
-        subtitle: "First-pass approval accuracy",
-      },
-      {
-        id: "turnaround",
-        label: "Avg Turnaround",
-        value: "3.4h",
-        numericValue: 3.4,
-        subtitle: "Target within 6h working time",
-      },
-      {
-        id: "approved_today",
-        label: "Approved Today",
-        value: "12",
-        numericValue: 12,
-        change: "+3 vs yesterday",
-        trend: "up",
-        subtitle: "Dispatched to print queue",
-      },
-    ];
-  } else if (isFactory) {
-    kpiTiles = [
-      {
-        id: "in_print",
-        label: "Jobs in Print Queue",
-        value: inProduction.toString(),
-        numericValue: inProduction,
-        subtitle: "Active on production floor",
-      },
-      {
-        id: "overdue_jobs",
-        label: "Overdue Print Jobs",
-        value: inProductionOverdue.toString(),
-        numericValue: inProductionOverdue,
-        change: inProductionOverdue === 0 ? "Zero backlog" : "Action required",
-        trend: inProductionOverdue === 0 ? "up" : "down",
-        subtitle: "Exceeding 48-hour SLA window",
-      },
-      {
-        id: "ontime_dispatch",
-        label: "On-Time Dispatch Rate",
-        value: `${onTimeDispatchRate}%`,
-        numericValue: onTimeDispatchRate,
-        change: "Target >= 95%",
-        trend: onTimeDispatchRate >= 95 ? "up" : "down",
-        subtitle: "Dispatches within SLA target",
-      },
-      {
-        id: "qc_rate",
-        label: "First-Pass QC Rate",
-        value: "99.2%",
-        numericValue: 99.2,
-        subtitle: "Pre-dispatch inspection pass",
-      },
-    ];
-  } else {
-    // SUPPORT_AGENT
-    kpiTiles = [
-      {
-        id: "open_tickets",
-        label: "Open Support Tickets",
-        value: openTicketsCount.toString(),
-        numericValue: openTicketsCount,
-        change: "Active customer inquiries",
-        subtitle: "Awaiting support agent resolution",
-      },
-      {
-        id: "rto_month",
-        label: "RTO Count This Month",
-        value: rtoThisMonth.toString(),
-        numericValue: rtoThisMonth,
-        change: "-2 vs last month",
-        trend: "up",
-        subtitle: "Return-to-origin shipments",
-      },
-      {
-        id: "csat",
-        label: "CSAT Score",
-        value: "4.9★",
-        numericValue: 4.9,
-        change: "+0.1 vs Q3",
-        trend: "up",
-        subtitle: "Verified order customer reviews",
-      },
-      {
-        id: "avg_resolution",
-        label: "Avg Resolution Time",
-        value: "4.2h",
-        numericValue: 4.2,
-        subtitle: "Target under 6 business hours",
-      },
-    ];
-  }
-
-  // 7. Actionable Needs Your Attention List
+  // 8. "Needs your attention" list
   const attentionItems: AttentionItem[] = [];
 
-  if (inProductionOverdue > 0) {
+  const waitingApprovalOrders = orders.filter(
+    (o) => o.status === "ARTWORK_UPLOADED" || o.status === "REVISION_REQUESTED"
+  );
+  if (waitingApprovalOrders.length > 0) {
     attentionItems.push({
-      id: "attn-overdue",
-      title: `${inProductionOverdue} Overdue Production Jobs`,
-      description: "Orders have exceeded the 48-hour print floor SLA window. Expedite printing or notify courier.",
-      badge: "SLA Overdue",
-      priority: "URGENT",
-      href: "/admin/orders?status=IN_PRINTING",
-    });
-  }
-
-  if (pendingApprovals > 0) {
-    attentionItems.push({
-      id: "attn-approvals",
-      title: `${pendingApprovals} Merchandise Proofs Waiting`,
-      description: "Proofs uploaded or awaiting customer approval before production can commence.",
-      badge: "Design Queue",
+      id: "attn_approvals",
+      title: `${waitingApprovalOrders.length} Order(s) awaiting artwork approval`,
+      description: "Customer proofs are waiting to be sent or revisions were requested.",
+      badge: "PROOFING",
       priority: "HIGH",
-      href: "/admin/designs",
+      href: "/admin/orders?status=AWAITING_APPROVAL",
     });
   }
 
-  if (lowStockCount > 0) {
+  const pendingPrintingOrders = orders.filter((o) => o.status === "CUSTOMER_APPROVED");
+  if (pendingPrintingOrders.length > 0) {
     attentionItems.push({
-      id: "attn-stock",
-      title: `${lowStockCount} Raw Material SKUs Below Reorder Point`,
-      description: "Blank garments or printing consumables need restock to prevent pipeline bottlenecks.",
-      badge: "Inventory Alert",
-      priority: "HIGH",
-      href: "/admin/forecasting",
-    });
-  }
-
-  if (openTicketsCount > 0) {
-    attentionItems.push({
-      id: "attn-tickets",
-      title: `${openTicketsCount} Customer Support Tickets Open`,
-      description: "Low-rating reviews or customer order inquiries awaiting resolution.",
-      badge: "Support Queue",
+      id: "attn_printing",
+      title: `${pendingPrintingOrders.length} Order(s) ready to print`,
+      description: "Proofs have been approved by customers; ready to move into printing.",
+      badge: "PRINT READY",
       priority: "MEDIUM",
-      href: "/admin/support",
+      href: "/admin/orders?status=CUSTOMER_APPROVED",
     });
   }
 
-  if (attentionItems.length === 0) {
+  if (reviewsWaitingCount > 0) {
     attentionItems.push({
-      id: "attn-clear",
-      title: "All Atelier Operations Running On Schedule",
-      description: "No SLA bottlenecks, proof backlogs, or stock shortages detected.",
-      badge: "Optimal Flow",
+      id: "attn_reviews",
+      title: `${reviewsWaitingCount} Customer review(s) waiting for moderation`,
+      description: "New verified customer feedback submitted; approve to show on store.",
+      badge: "REVIEWS",
       priority: "MEDIUM",
-      href: "/admin/orders",
+      href: "/admin/reviews",
     });
   }
 
-  // 8. Recent Activity Feed
-  const recentActivity = [
-    {
-      id: "act-1",
-      action: "Proof approved by Tata Motors",
-      detail: "Order #PF-2026-1049 approved for 250x Embroidered Hoodies",
-      timestamp: "12m ago",
-      tag: "Design",
-    },
-    {
-      id: "act-2",
-      action: "QC inspection passed",
-      detail: "Order #PF-2026-1048 ready for BlueDart pickup",
-      timestamp: "34m ago",
-      tag: "Factory",
-    },
-    {
-      id: "act-3",
-      action: "Scheduled Cron tick completed",
-      detail: "FBT pairs re-indexed and review invitations sent",
-      timestamp: "1h ago",
-      tag: "System",
-    },
-    {
-      id: "act-4",
-      action: "Razorpay advance payment captured",
-      detail: "₹18,500 advance received for Order #PF-2026-1052",
-      timestamp: "2h ago",
-      tag: "Finance",
-    },
-  ];
+  if (openQuotesCount > 0) {
+    attentionItems.push({
+      id: "attn_quotes",
+      title: `${openQuotesCount} Open quote(s) awaiting follow-up`,
+      description: "Negotiated RFQs sent to clients or staged as drafts.",
+      badge: "QUOTES",
+      priority: "MEDIUM",
+      href: "/admin/quotes",
+    });
+  }
+
+  // 9. Recent Activity
+  const recentActivity: Array<{
+    id: string;
+    action: string;
+    detail: string;
+    timestamp: string;
+    tag: string;
+  }> = [];
+
+  for (const o of orders.slice(0, 10)) {
+    const lastEvent = (o.events && o.events[0]) || null;
+    recentActivity.push({
+      id: `${o.orderNumber}_${lastEvent?.id || o.id}`,
+      action: lastEvent ? lastEvent.message : `Order ${o.orderNumber} placed`,
+      detail: `${o.orderNumber} • ${formatCurrency(o.total)}`,
+      timestamp: formatShortDate(o.updatedAt || o.createdAt),
+      tag: o.status,
+    });
+  }
 
   return {
-    role: userRole,
-    greetingTime: getIndiaGreeting(),
-    totalAttentionNeeded,
-    attentionCounts: {
-      pendingApprovals,
-      overdueJobs: inProductionOverdue,
-      lowStock: lowStockCount,
-      openTickets: openTicketsCount,
-    },
-    funnel,
+    adminName,
+    greetingText,
+    kpiTiles,
     timeSeries,
     categoryDonut,
-    kpiTiles,
     attentionItems,
-    recentActivity,
+    recentActivity: recentActivity.slice(0, 8),
   };
 }

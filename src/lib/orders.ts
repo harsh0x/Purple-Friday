@@ -2,10 +2,10 @@ import crypto from "crypto";
 import { Prisma } from "@prisma/client";
 import prisma from "./prisma";
 import { calculateCartPricing, CartItemInput } from "./pricing";
-import { reserveBlanksForOrder } from "@/server/inventory/inventory-service";
 import { validateCodEligibility } from "@/server/payments/cod-service";
-import { toPaise, toRupees } from "@/server/pricing/engine";
+import { toPaise } from "@/server/pricing/engine";
 import { ORDER_STORE, StoredOrderRecord } from "@/server/orders/state-machine";
+import { notifyAdmin } from "@/server/notifications/admin-dispatcher";
 
 export interface StoredOrder {
   id: string;
@@ -39,19 +39,28 @@ export interface StoredOrder {
   gst: number;
   total: number;
   status:
+  | "ORDER_PLACED"
   | "PENDING_PAYMENT"
   | "PAID"
   | "PROOF_PENDING"
   | "PROOF_READY"
   | "CHANGES_REQUESTED"
+  | "REVISION_REQUESTED"
+  | "CUSTOMER_APPROVED"
   | "APPROVED"
   | "IN_PRODUCTION"
+  | "IN_PRINTING"
   | "PACKED"
   | "DISPATCHED"
   | "DELIVERED"
-  | "CANCELLED";
-  razorpayOrderId?: string;
-  razorpayPaymentId?: string;
+  | "CANCELLED"
+  | "REFUNDED"
+  | "RTO"
+  | (string & {});
+  courier?: string;
+  trackingNumber?: string;
+  trackingUrl?: string;
+  paymentReference?: string;
   paymentMethod?: string;
   paymentStatus?: string;
   advancePaidPaise?: number;
@@ -59,6 +68,7 @@ export interface StoredOrder {
   rtoRiskScore?: number;
   isPrepaidOnly?: boolean;
   couponCode?: string;
+  verifyError?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -103,34 +113,21 @@ export async function createOrder(params: CreateOrderParams): Promise<StoredOrde
   const calculation = await calculateCartPricing(params.items, params.couponCode);
 
   const totalPaise = toPaise(calculation.total);
-  const isCod = params.paymentMethod === "COD";
-  let advancePaidPaise = 0;
-  let balanceDuePaise = 0;
+  const advancePaidPaise = 0;
+  const balanceDuePaise = totalPaise;
 
-  if (isCod) {
-    const codCheck = await validateCodEligibility({
-      customerName: params.customerName,
-      customerPhone: params.customerPhone,
-      customerEmail: params.customerEmail,
-      shippingAddress: params.shippingAddress,
-      billingAddress: params.billingAddress,
-      paymentMethod: "COD",
-      totalPaise,
-    });
-
-    if (!codCheck.eligible) {
-      throw new Error(codCheck.reason || "Cash on Delivery is unavailable for this order.");
-    }
-
-    advancePaidPaise = codCheck.advancePaise;
-    balanceDuePaise = codCheck.balanceDuePaise;
-  }
+  const codCheck = await validateCodEligibility({
+    customerName: params.customerName,
+    customerPhone: params.customerPhone,
+    customerEmail: params.customerEmail,
+    shippingAddress: params.shippingAddress,
+    billingAddress: params.billingAddress,
+    paymentMethod: "COD",
+    totalPaise,
+  });
 
   const orderId = `ord_${crypto.randomUUID()}`;
   const orderNumber = generateOrderNumber();
-
-  // Razorpay Mock / Live order ID
-  const razorpayOrderId = `order_${crypto.randomBytes(8).toString("hex")}`;
 
   const orderRecord: StoredOrder = {
     id: orderId,
@@ -157,12 +154,12 @@ export async function createOrder(params: CreateOrderParams): Promise<StoredOrde
     shipping: calculation.shipping,
     gst: calculation.gst,
     total: calculation.total,
-    status: "PENDING_PAYMENT",
-    paymentMethod: isCod ? "COD" : "RAZORPAY",
+    status: "ORDER_PLACED",
+    paymentMethod: "COD",
     paymentStatus: "PENDING",
     advancePaidPaise,
     balanceDuePaise,
-    razorpayOrderId,
+    rtoRiskScore: codCheck.rtoScore,
     couponCode: params.couponCode,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -182,10 +179,11 @@ export async function createOrder(params: CreateOrderParams): Promise<StoredOrde
     gst: toPaise(calculation.gst),
     shipping: toPaise(calculation.shipping),
     total: totalPaise,
-    paymentMethod: isCod ? "COD" : "RAZORPAY",
+    paymentMethod: "COD",
     paymentStatus: "PENDING",
     advancePaidPaise,
     balanceDuePaise,
+    rtoRiskScore: codCheck.rtoScore,
     address: {
       ...params.shippingAddress,
       customerName: params.customerName,
@@ -212,9 +210,7 @@ export async function createOrder(params: CreateOrderParams): Promise<StoredOrde
         status: "ORDER_PLACED",
         actor: params.customerEmail,
         actorRole: "CUSTOMER",
-        message: isCod
-          ? `Order placed via Partial COD. Advance due online: Rs ${toRupees(advancePaidPaise)}, Balance due on delivery: Rs ${toRupees(balanceDuePaise)}.`
-          : `Order placed via Prepaid online. Total payable: Rs ${calculation.total}.`,
+        message: `Order placed via Cash on Delivery / Pay Later. Total payable on delivery: Rs ${calculation.total}.`,
         createdAt: orderRecord.createdAt,
       },
     ],
@@ -231,7 +227,7 @@ export async function createOrder(params: CreateOrderParams): Promise<StoredOrde
           id: orderId,
           orderNumber,
           userId: params.userId,
-          status: "PENDING_PAYMENT",
+          status: "ORDER_PLACED",
           subtotal: calculation.subtotal,
           discount: calculation.discount,
           shipping: calculation.shipping,
@@ -239,7 +235,6 @@ export async function createOrder(params: CreateOrderParams): Promise<StoredOrde
           total: calculation.total,
           address: params.shippingAddress as unknown as Prisma.InputJsonValue,
           gstin: params.gstin,
-          razorpayOrderId,
           items: {
             create: calculation.items.map((item) => ({
               productId: item.productId,
@@ -256,6 +251,19 @@ export async function createOrder(params: CreateOrderParams): Promise<StoredOrde
     // Memory fallback
   }
 
+  try {
+    await notifyAdmin("ORDER_PLACED", {
+      orderNumber: orderRecord.orderNumber,
+      customerName: params.customerName,
+      customerEmail: params.customerEmail,
+      userId: params.userId,
+      total: totalPaise,
+      paymentMethod: "COD",
+    });
+  } catch (err) {
+    console.warn("[orders] notifyAdmin ORDER_PLACED error:", err);
+  }
+
   return orderRecord;
 }
 
@@ -267,26 +275,25 @@ export function getOrderById(orderId: string): StoredOrder | undefined {
   return ORDER_REGISTRY.get(orderId);
 }
 
-export async function markOrderPaid(
-  orderIdOrNumber: string,
-  paymentId: string
-): Promise<StoredOrder | undefined> {
+  export async function markOrderPaid(
+    orderIdOrNumber: string,
+  paymentReference?: string
+  ): Promise<StoredOrder | undefined> {
   const order = ORDER_REGISTRY.get(orderIdOrNumber);
   if (!order) return undefined;
 
   order.status = "PAID";
-  order.razorpayPaymentId = paymentId;
+  order.paymentStatus = "PAID";
+  if (paymentReference) {
+    order.paymentReference = paymentReference;
+  }
   order.updatedAt = new Date().toISOString();
 
-  // Transactional reservation of blank inventory
-  try {
-    await reserveBlanksForOrder(
-      order.id,
-      order.items.map((i) => ({ productSlug: i.productId, qty: i.qty })),
-      order.customerName
-    );
-  } catch {
-    // Non-blocking reservation
+  const stateRecord = ORDER_STORE.get(order.orderNumber) || ORDER_STORE.get(order.id);
+  if (stateRecord) {
+    stateRecord.paymentStatus = "PAID";
+    stateRecord.balanceDuePaise = 0;
+    stateRecord.updatedAt = order.updatedAt;
   }
 
   try {
@@ -300,6 +307,20 @@ export async function markOrderPaid(
     }
   } catch {
     // Memory fallback
+  }
+
+  try {
+    await notifyAdmin("ORDER_PAID", {
+      orderNumber: order.orderNumber,
+      customerName: order.customerName,
+      customerEmail: order.customerEmail,
+      userId: order.userId,
+      paymentMethod: order.paymentMethod,
+      isAdvance: false,
+      amount: Math.round(order.total * 100),
+    });
+  } catch (err) {
+    console.warn("[orders] notifyAdmin ORDER_PAID error:", err);
   }
 
   return order;

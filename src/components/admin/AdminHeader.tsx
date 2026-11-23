@@ -45,7 +45,7 @@ export function AdminHeader({ userName }: AdminHeaderProps) {
   const healthItems = [
     { name: "DB", status: "ONLINE", icon: Database, color: "text-emerald-400" },
     { name: "Cloudinary", status: "ACTIVE", icon: Cloud, color: "text-emerald-400" },
-    { name: "Razorpay", status: "SANDBOX", icon: CreditCard, color: "text-blue-400" },
+    { name: "Payments", status: "COD_ACTIVE", icon: CreditCard, color: "text-emerald-400" },
     { name: "Turnstile", status: "DEV_MODE", icon: Shield, color: "text-amber-400" },
     { name: "Memory Cache", status: "FALLBACK_OK", icon: Server, color: "text-pf-lime" },
   ];

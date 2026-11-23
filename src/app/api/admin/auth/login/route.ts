@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { verifyUserCredentials } from "@/lib/auth-service";
-import { isStaffRole, getRoleHomeScreen } from "@/lib/admin/permissions";
+import { isStaffRole } from "@/lib/admin/permissions";
 import { createAdminSessionToken, applyAdminSessionCookie } from "@/lib/admin/admin-session";
 import { writeAudit } from "@/lib/admin/audit";
 
@@ -35,6 +35,19 @@ function checkRateLimit(ip: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
+  const origin = request.headers.get("origin");
+  const host = request.headers.get("host");
+  if (origin && host) {
+    try {
+      const originHost = new URL(origin).host;
+      if (originHost !== host) {
+        return NextResponse.json({ error: "CSRF check failed" }, { status: 403 });
+      }
+    } catch {
+      return NextResponse.json({ error: "CSRF check failed" }, { status: 403 });
+    }
+  }
+
   const clientIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "127.0.0.1";
 
   // 1. Rate limiting check
@@ -71,8 +84,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. Issue secure Admin Session
-    const sessionToken = createAdminSessionToken(user);
-    const homeScreen = getRoleHomeScreen(user.role);
+    const sessionToken = await createAdminSessionToken(user);
+    const homeScreen = "/admin";
 
     // 6. Record immutable audit log
     await writeAudit({

@@ -6,6 +6,7 @@ import { getAdminSession } from "@/lib/admin/admin-session";
 import { isStaffRole } from "@/lib/admin/permissions";
 import { ORDER_STORE } from "@/server/orders/state-machine";
 import { writeAudit } from "@/lib/admin/audit";
+import { isCloudinaryConfigured, uploadBufferToCloudinary } from "@/lib/cloudinary";
 
 const MOCKUP_STORAGE_DIR = path.join(process.cwd(), "storage", "mockups");
 
@@ -50,13 +51,28 @@ export async function POST(
     // Save mockup image to disk if provided as base64
     let savedMockupUrl = item.mockupUrl;
     if (mockupImageBase64 && mockupImageBase64.startsWith("data:image/")) {
-      ensureStorageDir();
       const base64Data = mockupImageBase64.replace(/^data:image\/\w+;base64,/, "");
       const buffer = Buffer.from(base64Data, "base64");
-      const filename = `mockup_${orderNumber}_${itemId}_${Date.now()}.png`;
-      const filePath = path.join(MOCKUP_STORAGE_DIR, filename);
-      fs.writeFileSync(filePath, buffer);
-      savedMockupUrl = `/storage/mockups/${filename}`;
+      if (isCloudinaryConfigured()) {
+        savedMockupUrl = await uploadBufferToCloudinary(buffer, {
+          folder: "purple-friday/mockups",
+          publicId: `mockup_${orderNumber}_${itemId}_${Date.now()}`,
+          resourceType: "image",
+          format: "png",
+        });
+      } else {
+        if (process.env.NODE_ENV === "production") {
+          return NextResponse.json(
+            { error: "Local disk storage is disabled in production. Cloudinary must be configured." },
+            { status: 500 }
+          );
+        }
+        ensureStorageDir();
+        const filename = `mockup_${orderNumber}_${itemId}_${Date.now()}.png`;
+        const filePath = path.join(MOCKUP_STORAGE_DIR, filename);
+        fs.writeFileSync(filePath, buffer);
+        savedMockupUrl = `/storage/mockups/${filename}`;
+      }
     } else if (mockupImageBase64) {
       savedMockupUrl = mockupImageBase64;
     }

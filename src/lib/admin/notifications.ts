@@ -11,7 +11,7 @@ export interface NotificationItem {
   createdAt: string;
 }
 
-const NOTIFICATIONS_STORE: NotificationItem[] = [
+export const NOTIFICATIONS_STORE: NotificationItem[] = [
   {
     id: "notif_seed_welcome",
     userOrRole: "role:SUPER_ADMIN",
@@ -67,76 +67,92 @@ export async function createNotification(params: {
   return record;
 }
 
-export async function getNotificationsForUserOrRole(identifiers: string[]): Promise<NotificationItem[]> {
-  try {
-    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
-      const rows = await prisma.notification.findMany({
-        where: {
-          userOrRole: { in: identifiers },
-        },
-        orderBy: { createdAt: "desc" },
-        take: 50,
-      });
+  export async function getNotificationsForUserOrRole(
+    identifiers: string[],
+    after?: string | null
+  ): Promise<NotificationItem[]> {
+    try {
+      if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
+        const rows = await prisma.notification.findMany({
+          where: {
+            userOrRole: { in: identifiers },
+          },
+          orderBy: { createdAt: "desc" },
+          take: 50,
+        });
 
-      if (rows.length > 0) {
-        return rows.map((r) => ({
-          id: r.id,
-          userOrRole: r.userOrRole,
-          title: r.title,
-          body: r.body,
-          link: r.link,
-          readTime: r.readTime ? r.readTime.toISOString() : null,
-          createdAt: r.createdAt.toISOString(),
-        }));
-      }
+        if (rows.length > 0) {
+            const mapped = rows.map((r) => ({
+              id: r.id,
+              userOrRole: r.userOrRole,
+              title: r.title,
+              body: r.body,
+              link: r.link,
+              readTime: r.readTime ? r.readTime.toISOString() : null,
+              createdAt: r.createdAt.toISOString(),
+            }));
+
+            if(after) {
+              const idx = mapped.findIndex((n) => n.id === after);
+              if (idx > 0) return mapped.slice(0, idx);
+              if (idx === 0) return [];
+            }
+        return mapped;
+          }
     }
-  } catch {
-    // Fallback to memory
-  }
+      } catch {
+        // Fallback to memory
+      }
 
-  return NOTIFICATIONS_STORE.filter((n) => identifiers.includes(n.userOrRole));
-}
+      const all = NOTIFICATIONS_STORE.filter((n) => identifiers.includes(n.userOrRole));
+      if (after) {
+        const idx = all.findIndex((n) => n.id === after);
+        if (idx > 0) return all.slice(0, idx);
+        if (idx === 0) return [];
+      }
+      return all.slice(0, 50);
+    }
 
 export async function markNotificationAsRead(id: string): Promise<void> {
-  const now = new Date();
+      const now = new Date();
 
-  try {
-    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
-      await prisma.notification.update({
-        where: { id },
-        data: { readTime: now },
-      });
+      try {
+        if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
+          await prisma.notification.update({
+            where: { id },
+            data: { readTime: now },
+          });
+        }
+      } catch {
+        // Memory fallback
+      }
+
+      const inMem = NOTIFICATIONS_STORE.find((n) => n.id === id);
+      if (inMem) {
+        inMem.readTime = now.toISOString();
+      }
     }
-  } catch {
-    // Memory fallback
-  }
 
-  const inMem = NOTIFICATIONS_STORE.find((n) => n.id === id);
-  if (inMem) {
-    inMem.readTime = now.toISOString();
-  }
-}
+    export async function markAllNotificationsAsRead(identifiers: string[]): Promise<void> {
+      const now = new Date();
 
-export async function markAllNotificationsAsRead(identifiers: string[]): Promise<void> {
-  const now = new Date();
+      try {
+        if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
+          await prisma.notification.updateMany({
+            where: {
+              userOrRole: { in: identifiers },
+              readTime: null,
+            },
+            data: { readTime: now },
+          });
+        }
+      } catch {
+        // Memory fallback
+      }
 
-  try {
-    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
-      await prisma.notification.updateMany({
-        where: {
-          userOrRole: { in: identifiers },
-          readTime: null,
-        },
-        data: { readTime: now },
-      });
+      for (const n of NOTIFICATIONS_STORE) {
+        if (identifiers.includes(n.userOrRole) && !n.readTime) {
+          n.readTime = now.toISOString();
+        }
+      }
     }
-  } catch {
-    // Memory fallback
-  }
-
-  for (const n of NOTIFICATIONS_STORE) {
-    if (identifiers.includes(n.userOrRole) && !n.readTime) {
-      n.readTime = now.toISOString();
-    }
-  }
-}

@@ -177,6 +177,7 @@ export default function AdminCmsPage() {
       answer: "Proofs are approved 100% online through your secure digital proof link.",
       sortOrder: document.faqs.length + 1,
       active: true,
+      showOnHome: true,
     };
     setDocument({ ...document, faqs: [...document.faqs, newFaq] });
   };

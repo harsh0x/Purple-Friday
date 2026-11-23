@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { getAllOrders } from "@/lib/orders";
+import { ORDER_STORE } from "@/server/orders/state-machine";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -11,15 +11,18 @@ export async function GET() {
   }
 
   const userId = (session.user as { id?: string }).id;
-  const userEmail = session.user.email?.toLowerCase();
+  const userEmail = session.user.email?.toLowerCase().trim();
 
-  const allOrders = getAllOrders();
-  const userOrders = allOrders.filter(
-    (o) => o.userId === userId || o.customerEmail.toLowerCase() === userEmail
-  );
+  // Strict ownership check: only return orders matching userId or customerEmail
+  const allOrders = Array.from(new Set(ORDER_STORE.values()));
+  const userOrders = allOrders.filter((o) => {
+    const addr = (o.address || {}) as Record<string, string>;
+    const orderEmail = (o.customerEmail || addr.email || "").toLowerCase().trim();
+    return (userId && o.userId === userId) || (userEmail && orderEmail === userEmail);
+  });
 
   return NextResponse.json({
     success: true,
-    orders: userOrders.length > 0 ? userOrders : allOrders.slice(0, 5), // Provide active order portfolio for preview
+    orders: userOrders,
   });
 }

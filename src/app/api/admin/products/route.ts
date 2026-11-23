@@ -1,86 +1,117 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { hasPermission } from "@/lib/admin/permissions";
+import { getAdminSession } from "@/lib/admin/admin-session";
+import { requireAdmin } from "@/lib/admin/permissions";
 import {
-  getAdminProducts,
+  listProductsPaginated,
   saveProduct,
+  duplicateProduct,
+  bulkUpdateProductStatus,
   archiveOrDeleteProduct,
 } from "@/server/products/product-service";
 
   export async function GET(req: NextRequest) {
-    const session = await getServerSession(authOptions);
-      const user = session?.user as { role?: string; name?: string; email?: string } | undefined;
-
-      if (!user || !hasPermission(user.role as never, "admin:manage_products")) {
-        return NextResponse.json({ error: "Forbidden: Super Admin only" }, { status: 403 });
-      }
-
-      const { searchParams } = new URL(req.url);
-      const search = searchParams.get("search") || undefined;
-      const category = searchParams.get("category") || undefined;
-      const audience = searchParams.get("audience") || undefined;
-      const includeArchived = searchParams.get("includeArchived") === "true";
-
-      const products = await getAdminProducts({
-        search,
-        category,
-        audience,
-        includeArchived,
-      });
-
-      return NextResponse.json({ success: true, products });
+    const session = await getAdminSession();
+    try {
+      requireAdmin(session);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Forbidden";
+      return NextResponse.json({ error: msg }, { status: 403 });
     }
 
-      export async function POST(req: NextRequest) {
-        const session = await getServerSession(authOptions);
-          const user = session?.user as { role?: string; name?: string; email?: string } | undefined;
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = parseInt(searchParams.get("limit") || "15", 10);
+    const search = searchParams.get("search") || undefined;
+    const category = searchParams.get("category") || undefined;
+    const audience = searchParams.get("audience") || undefined;
+    const status = searchParams.get("status") || undefined;
+    const sort = searchParams.get("sort") || undefined;
+    const includeArchived = searchParams.get("includeArchived") === "true";
 
-          if (!user || !hasPermission(user.role as never, "admin:manage_products")) {
-            return NextResponse.json({ error: "Forbidden: Super Admin only" }, { status: 403 });
+    const result = await listProductsPaginated({
+      page,
+      limit,
+      search,
+      category,
+      audience,
+      status,
+      sort,
+      includeArchived,
+    });
+
+    return NextResponse.json({ success: true, ...result });
+  }
+
+export async function POST(req: NextRequest) {
+  const session = await getAdminSession();
+  try {
+    requireAdmin(session);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Forbidden";
+    return NextResponse.json({ error: msg }, { status: 403 });
+  }
+
+    const actor = {
+      name: session?.name || "Admin",
+      role: session?.role || "ADMIN",
+    };
+
+    try {
+      const body = await req.json();
+
+        // Action: Duplicate Product
+        if (body.action === "duplicate" && body.id) {
+          const result = await duplicateProduct(body.id, actor);
+          if (!result.success) {
+            return NextResponse.json({ error: result.error }, { status: 400 });
           }
+          return NextResponse.json({ success: true, product: result.product });
+        }
 
-          try {
-            const body = await req.json();
-            const result = await saveProduct(body, {
-              name: user.name || user.email || "Super Admin",
-              role: user.role || "SUPER_ADMIN",
-            });
+        // Action: Bulk Update Status
+        if (body.action === "bulk_status" && Array.isArray(body.ids) && body.status) {
+          const result = await bulkUpdateProductStatus(body.ids, body.status, actor);
+          return NextResponse.json({ success: true, updatedCount: result.updatedCount });
+        }
 
-              if (!result.success) {
-                return NextResponse.json({ error: result.error }, { status: 400 });
-              }
+    // Default: Save Product
+    const result = await saveProduct(body, actor);
 
-              return NextResponse.json({ success: true, product: result.product });
-            } catch (error: unknown) {
-              const message = error instanceof Error ? error.message : "Failed to save product";
-              return NextResponse.json({ error: message }, { status: 500 });
-            }
-          }
+      if (!result.success) {
+        return NextResponse.json({ error: result.error }, { status: 400 });
+      }
 
-          export async function DELETE(req: NextRequest) {
-            const session = await getServerSession(authOptions);
-            const user = session?.user as { role?: string; name?: string; email?: string } | undefined;
+      return NextResponse.json({ success: true, product: result.product });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to save product";
+      return NextResponse.json({ error: msg }, { status: 500 });
+    }
+  }
 
-              if (!user || !hasPermission(user.role as never, "admin:manage_products")) {
-                return NextResponse.json({ error: "Forbidden: Super Admin only" }, { status: 403 });
-              }
+    export async function DELETE(req: NextRequest) {
+      const session = await getAdminSession();
+      try {
+        requireAdmin(session);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Forbidden";
+        return NextResponse.json({ error: msg }, { status: 403 });
+      }
 
-              try {
-                const { searchParams } = new URL(req.url);
-                const id = searchParams.get("id");
-                if (!id) {
-                  return NextResponse.json({ error: "Product id required" }, { status: 400 });
-                }
+      try {
+        const { searchParams } = new URL(req.url);
+        const id = searchParams.get("id");
+        if (!id) {
+          return NextResponse.json({ error: "Product ID required" }, { status: 400 });
+        }
 
-                  const result = await archiveOrDeleteProduct(id, {
-                    name: user.name || user.email || "Super Admin",
-                    role: user.role || "SUPER_ADMIN",
-                  });
+    const result = await archiveOrDeleteProduct(id, {
+      name: session?.name || "Admin",
+      role: session?.role || "ADMIN",
+    });
 
-                  return NextResponse.json(result);
-                } catch (error: unknown) {
-                  const message = error instanceof Error ? error.message : "Failed to remove product";
-                  return NextResponse.json({ error: message }, { status: 500 });
-                }
-              }
+    return NextResponse.json(result);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Failed to remove product";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}

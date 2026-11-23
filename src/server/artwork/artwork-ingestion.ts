@@ -4,6 +4,7 @@ import crypto from "crypto";
 import sharp from "sharp";
 import { fileTypeFromBuffer } from "file-type";
 import { sanitizeSvg } from "@/lib/security/sanitize-svg";
+import { isCloudinaryConfigured } from "@/lib/cloudinary";
 
 export interface ColorProfile {
   hex: string;
@@ -228,6 +229,9 @@ export async function ingestArtworkFile({
   }
 
   // Generate safe random stored filename
+  if (process.env.NODE_ENV === "production" && !isCloudinaryConfigured()) {
+    throw new Error("Local disk storage is disabled in production. Cloudinary must be configured.");
+  }
   const safeFilename = `${fileId}${ext || ".dat"}`;
   const targetFilePath = path.join(ARTWORK_STORAGE_DIR, safeFilename);
   fs.writeFileSync(targetFilePath, buffer);

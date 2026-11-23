@@ -75,83 +75,68 @@ const ClosingCtaBand = dynamic(
   { loading: () => <SectionSkeleton height="h-80" title="Loading Dispatch Call..." /> }
 );
 
-  export default async function HomePage(props: {
-    searchParams?: Promise<{ previewToken?: string }>;
-  }) {
-    const searchParams = props.searchParams ? await props.searchParams : {};
-    const [rawProducts, cms] = await Promise.all([
-      getCachedProducts(),
-      getPublishedCms(searchParams.previewToken),
-    ]);
+export default async function HomePage(props: {
+  searchParams?: Promise<{ previewToken?: string }>;
+}) {
+  const searchParams = props.searchParams ? await props.searchParams : {};
+  const [rawProducts, cms] = await Promise.all([
+    getCachedProducts(),
+    getPublishedCms(searchParams.previewToken),
+  ]);
 
-    const products: ProductCardData[] = rawProducts.map((p) => ({
-      id: p.id,
-      slug: p.slug,
-      name: p.name,
-      shortName: p.shortName,
-      description: p.description,
-      basePrice: p.basePrice,
-      mrp: p.mrp,
-      minQty: p.minQty,
-      qtyStep: p.qtyStep,
-      rating: 4.9,
-      reviewCount: 42,
-      badges: p.badges || ["Best Seller"],
-      template: p.slug,
-      color: "#FFFFFF",
-    }));
+  const products: ProductCardData[] = rawProducts.map((p) => ({
+    id: p.id,
+    slug: p.slug,
+    name: p.name,
+    shortName: p.shortName,
+    description: p.description,
+    basePrice: p.basePrice,
+    mrp: p.mrp,
+    minQty: p.minQty,
+    qtyStep: p.qtyStep,
+    rating: 4.9,
+    reviewCount: 42,
+    badges: p.badges || ["Best Seller"],
+    template: p.slug,
+    color: "#FFFFFF",
+  }));
 
-  const isVisible = (id: string) => {
-    const s = cms.sections.find((sec) => sec.id === id);
-        return s ? s.visible : true;
-  };
+    // Sort sections by sortOrder dynamically
+    const sortedSections = [...cms.sections].sort((a, b) => a.sortOrder - b.sortOrder);
 
-        return (
-        <div className="flex flex-col w-full bg-paper">
-          {/* 1. Hero Section (Above the fold, instant render) */}
-          {isVisible("hero") && <HeroSection cmsHero={cms.hero} />}
+    const sectionRenderers: Record<string, React.ReactNode> = {
+      hero: <HeroSection cmsHero={cms.hero} />,
+      trust: <TrustStrip />,
+      best_sellers: (
+        <div className="py-16 md:py-20 border-b-2 border-ink bg-paper">
+          <BestSellersCarousel products={products} />
+        </div>
+      ),
+      categories: (
+        <div className="py-16 md:py-20 border-b-2 border-ink bg-white">
+          <CategoryBentoGrid />
+        </div>
+      ),
+      how_it_works: <HowItWorksSequence />,
+      reviews: (
+        <div className="py-16 md:py-20 border-b-2 border-ink bg-white">
+          <CustomerReviewMarquee />
+        </div>
+      ),
+      process: <OrderProcessTimeline />,
+      stories: <StoriesCarousel />,
+      factory: <FactoryTeamSection />,
+      faq: <FaqSection cmsFaqs={cms.faqs} />,
+      cta: <ClosingCtaBand />,
+    };
 
-          {/* 2. Trust Strip */}
-          {isVisible("trust") && <TrustStrip />}
-
-          {/* 3. Best Sellers Carousel */}
-          {isVisible("best_sellers") && (
-            <div className="py-16 md:py-20 border-b-2 border-ink bg-paper">
-              <BestSellersCarousel products={products} />
-            </div>
-          )}
-
-          {/* 4. Category Bento Grid */}
-          {isVisible("categories") && (
-            <div className="py-16 md:py-20 border-b-2 border-ink bg-white">
-              <CategoryBentoGrid />
-            </div>
-          )}
-
-          {/* 5. How It Works (Desktop Pinned Scroll / Mobile Stacked) */}
-          {isVisible("how_it_works") && <HowItWorksSequence />}
-
-          {/* 6. Customer Review Wall Marquee */}
-          {isVisible("reviews") && (
-            <div className="py-16 md:py-20 border-b-2 border-ink bg-white">
-              <CustomerReviewMarquee />
-            </div>
-          )}
-
-          {/* 7. Order Process Timeline (SVG Drawing Line) */}
-          {isVisible("process") && <OrderProcessTimeline />}
-
-          {/* 8. Stories / Press Log Carousel */}
-          {isVisible("stories") && <StoriesCarousel />}
-
-          {/* 9. Factory Floor & Team Section */}
-          {isVisible("factory") && <FactoryTeamSection />}
-
-          {/* 10. Frequently Asked Questions */}
-          {isVisible("faq") && <FaqSection cmsFaqs={cms.faqs} />}
-
-        {/* 11. Closing CTA Band */}
-        {isVisible("cta") && <ClosingCtaBand />}
+    return (
+      <div className="flex flex-col w-full bg-paper">
+        {sortedSections.map((sec) => {
+          if (!sec.visible) return null;
+          const comp = sectionRenderers[sec.id];
+          return comp ? <React.Fragment key={sec.id}>{comp}</React.Fragment> : null;
+        })}
       </div>
     );
   }

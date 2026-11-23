@@ -388,63 +388,56 @@ export function getIntegrationStatuses(): IntegrationStatus[] {
     description: string;
     keys: string[];
   }> = [
-    {
-      id: "razorpay",
-      name: "Razorpay Payment Gateway",
-      category: "PAYMENT",
-      description: "Indian UPI, Cards, NetBanking, and automated refunds.",
-      keys: ["RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET"],
-    },
-    {
-      id: "whatsapp",
-      name: "WhatsApp Business API",
-      category: "COMMUNICATION",
-      description: "Order dispatch alerts, digital proof approval links, and support.",
-      keys: ["WHATSAPP_API_KEY", "WHATSAPP_PHONE_NUMBER_ID"],
-    },
-    {
-      id: "courier",
-      name: "Shiprocket / Delhivery Courier Logistics",
-      category: "SHIPPING",
-      description: "Automated AWB generation, pickup scheduling, and live tracking sync.",
-      keys: ["SHIPROCKET_EMAIL", "SHIPROCKET_PASSWORD"],
-    },
-    {
-      id: "resend",
-      name: "Resend Transactional Email",
-      category: "COMMUNICATION",
-      description: "GST tax invoices, order receipts, and proof ready notifications.",
-      keys: ["RESEND_API_KEY"],
-    },
-    {
-      id: "cloudinary",
-      name: "Cloudinary CDN & Media Storage",
-      category: "STORAGE",
-      description: "High-resolution vector assets, print proofs, and customer artwork.",
-      keys: ["CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET"],
-    },
-    {
-      id: "turnstile",
-      name: "Cloudflare Turnstile",
-      category: "SECURITY",
-      description: "Privacy-preserving anti-bot verification on customer auth & forms.",
-      keys: ["NEXT_PUBLIC_TURNSTILE_SITE_KEY", "TURNSTILE_SECRET_KEY"],
-    },
-    {
-      id: "upstash",
-      name: "Upstash Redis",
-      category: "SECURITY",
-      description: "Distributed rate limiting and token bucket storage.",
-      keys: ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"],
-    },
-    {
-      id: "gemini",
-      name: "Google Gemini 2.0 AI Assistant",
-      category: "AI",
-      description: "Design assistance, mockup quality scoring, and palette recommendations.",
-      keys: ["GEMINI_API_KEY"],
-    },
-  ];
+      {
+        id: "whatsapp",
+        name: "WhatsApp Business API",
+        category: "COMMUNICATION",
+        description: "Order dispatch alerts, digital proof approval links, and support.",
+        keys: ["WHATSAPP_API_KEY", "WHATSAPP_PHONE_NUMBER_ID"],
+      },
+      {
+        id: "courier",
+        name: "Shiprocket / Delhivery Courier Logistics",
+        category: "SHIPPING",
+        description: "Automated AWB generation, pickup scheduling, and live tracking sync.",
+        keys: ["SHIPROCKET_EMAIL", "SHIPROCKET_PASSWORD"],
+      },
+      {
+        id: "resend",
+        name: "Resend Transactional Email",
+        category: "COMMUNICATION",
+        description: "GST tax invoices, order receipts, and proof ready notifications.",
+        keys: ["RESEND_API_KEY"],
+      },
+      {
+        id: "cloudinary",
+        name: "Cloudinary CDN & Media Storage",
+        category: "STORAGE",
+        description: "High-resolution vector assets, print proofs, and customer artwork.",
+        keys: ["CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET"],
+      },
+      {
+        id: "turnstile",
+        name: "Cloudflare Turnstile",
+        category: "SECURITY",
+        description: "Privacy-preserving anti-bot verification on customer auth & forms.",
+        keys: ["NEXT_PUBLIC_TURNSTILE_SITE_KEY", "TURNSTILE_SECRET_KEY"],
+      },
+      {
+        id: "upstash",
+        name: "Upstash Redis",
+        category: "SECURITY",
+        description: "Distributed rate limiting and token bucket storage.",
+        keys: ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"],
+      },
+      {
+        id: "gemini",
+        name: "Google Gemini 2.0 AI Assistant",
+        category: "AI",
+        description: "Design assistance, mockup quality scoring, and palette recommendations.",
+        keys: ["GEMINI_API_KEY"],
+      },
+    ];
 
   return integrations.map((item) => {
     const isConfigured = item.keys.every((k) => {
@@ -480,7 +473,7 @@ export async function getMarginSettings(): Promise<MarginSettings> {
         };
       }
     }
-  } catch {}
+  } catch { }
   return (SETTINGS_MEMORY_STORE.get("margin_settings") as MarginSettings) || DEFAULT_MARGIN_SETTINGS;
 }
 
@@ -502,7 +495,7 @@ export async function updateMarginSettings(
         create: { key: "margin_settings", value: next as unknown as Prisma.InputJsonValue, updatedBy: actor },
       });
     }
-  } catch {}
+  } catch { }
   SETTINGS_MEMORY_STORE.set("margin_settings", next);
   await writeAudit({
     actor,
@@ -529,7 +522,7 @@ export async function getSampleToBulkSettings(): Promise<SampleToBulkSettings> {
         };
       }
     }
-  } catch {}
+  } catch { }
   return (SETTINGS_MEMORY_STORE.get("sample_to_bulk_settings") as SampleToBulkSettings) || DEFAULT_SAMPLE_TO_BULK_SETTINGS;
 }
 
@@ -552,7 +545,7 @@ export async function updateSampleToBulkSettings(
         create: { key: "sample_to_bulk_settings", value: next as unknown as Prisma.InputJsonValue, updatedBy: actor },
       });
     }
-  } catch {}
+  } catch { }
   SETTINGS_MEMORY_STORE.set("sample_to_bulk_settings", next);
   await writeAudit({
     actor,
@@ -581,7 +574,7 @@ export async function getReorderNudgeSettings(): Promise<ReorderNudgeSettings> {
         };
       }
     }
-  } catch {}
+  } catch { }
   return (SETTINGS_MEMORY_STORE.get("reorder_nudge_settings") as ReorderNudgeSettings) || DEFAULT_REORDER_NUDGE_SETTINGS;
 }
 
@@ -597,7 +590,7 @@ export async function getReviewSettings(): Promise<ReviewSettings> {
         };
       }
     }
-  } catch {}
+  } catch { }
   return (SETTINGS_MEMORY_STORE.get("review_settings") as ReviewSettings) || DEFAULT_REVIEW_SETTINGS;
 }
 
@@ -615,6 +608,96 @@ export async function getSmartRankingSettings(): Promise<SmartRankingSettings> {
         };
       }
     }
-  } catch {}
+  } catch { }
   return (SETTINGS_MEMORY_STORE.get("smart_ranking_settings") as SmartRankingSettings) || DEFAULT_SMART_RANKING_SETTINGS;
+}
+
+export interface EventAlertChannel {
+  email: boolean;
+  phone: boolean;
+}
+
+export interface AdminAlertPreferences {
+  ORDER_PLACED: EventAlertChannel;
+  ORDER_PAID: EventAlertChannel;
+  CUSTOMER_REGISTERED: EventAlertChannel;
+  NEW_REVIEW: EventAlertChannel;
+  NEW_QUOTE: EventAlertChannel;
+  ORDER_CANCELLED: EventAlertChannel;
+  PROBLEM_REPORTED: EventAlertChannel;
+  PROOF_DECISION: EventAlertChannel;
+  CUSTOMER_PROFILE_CHANGED: EventAlertChannel;
+  LOW_STOCK_ALERT: EventAlertChannel;
+}
+
+export const DEFAULT_ADMIN_ALERT_PREFERENCES: AdminAlertPreferences = {
+  ORDER_PLACED: { email: true, phone: true },
+  ORDER_PAID: { email: true, phone: true },
+  CUSTOMER_REGISTERED: { email: true, phone: false },
+  NEW_REVIEW: { email: true, phone: false },
+  NEW_QUOTE: { email: true, phone: true },
+  ORDER_CANCELLED: { email: true, phone: true },
+  PROBLEM_REPORTED: { email: true, phone: true },
+  PROOF_DECISION: { email: true, phone: true },
+  CUSTOMER_PROFILE_CHANGED: { email: true, phone: false },
+  LOW_STOCK_ALERT: { email: true, phone: false },
+};
+
+export async function getAdminAlertPreferences(): Promise<AdminAlertPreferences> {
+  try {
+    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
+      const s = await prisma.appSetting.findUnique({ where: { key: "admin_alert_preferences" } });
+      if (s?.value) {
+        return {
+          ...DEFAULT_ADMIN_ALERT_PREFERENCES,
+          ...(s.value as Partial<AdminAlertPreferences>),
+        };
+      }
+    }
+  } catch { }
+  return (
+    (SETTINGS_MEMORY_STORE.get("admin_alert_preferences") as AdminAlertPreferences) ||
+    DEFAULT_ADMIN_ALERT_PREFERENCES
+  );
+}
+
+export async function updateAdminAlertPreferences(
+  prefs: Partial<AdminAlertPreferences>,
+  actorEmail: string,
+  actorRole: string
+): Promise<AdminAlertPreferences> {
+  const current = await getAdminAlertPreferences();
+  const updated: AdminAlertPreferences = {
+    ...current,
+    ...prefs,
+  };
+
+  try {
+    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
+      await prisma.appSetting.upsert({
+        where: { key: "admin_alert_preferences" },
+        create: {
+          key: "admin_alert_preferences",
+          value: updated as unknown as Prisma.InputJsonValue,
+        },
+        update: {
+          value: updated as unknown as Prisma.InputJsonValue,
+        },
+      });
+    }
+  } catch { }
+
+  SETTINGS_MEMORY_STORE.set("admin_alert_preferences", updated);
+
+  await writeAudit({
+    actor: actorEmail,
+    actorRole,
+    action: "settings.update_alert_preferences",
+    entityType: "SETTINGS",
+    entityId: "admin_alert_preferences",
+    before: current as unknown as Record<string, unknown>,
+    after: updated as unknown as Record<string, unknown>,
+  });
+
+  return updated;
 }

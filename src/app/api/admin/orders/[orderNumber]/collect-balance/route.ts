@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { markCodBalanceCollected } from "@/server/payments/cod-service";
+import { markOrderPaidManually } from "@/server/payments/cod-service";
 
 export async function POST(
   req: NextRequest,
@@ -18,16 +18,20 @@ export async function POST(
 
   try {
     const body = await req.json().catch(() => ({}));
-    const result = await markCodBalanceCollected({
-      orderNumber,
-      actor: email,
-      actorRole: role,
-      notes: body.notes,
-    });
+      const result = await markOrderPaidManually({
+        orderNumber,
+        actor: email,
+        actorRole: role,
+        method: body.method || "COD",
+        amountPaise: body.amountPaise,
+        reference: body.reference,
+        expectedVersion: body.expectedVersion,
+        notes: body.notes,
+      });
 
-    return NextResponse.json({ success: true, data: result });
-  } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : "Failed to record balance collection";
-    return NextResponse.json({ error: msg }, { status: 400 });
+      return NextResponse.json({ success: true, data: result });
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "Failed to record payment";
+      return NextResponse.json({ error: msg }, { status: 400 });
+    }
   }
-}

@@ -31,6 +31,11 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
+
+# assets & screenshots
+source-photos
+docs/screenshots*
 
 # env files
 .env*
@@ -50,3 +55,8 @@ next-env.d.ts
 !/storage/artwork/.gitkeep
 /storage/mockups/*
 !/storage/mockups/.gitkeep
+
+# dev routes and credentials
+ROUTES-AND-LOGINS.txt
+routes-and-credentials.txt
+.dev-cache

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getAdminSession } from "@/lib/admin/admin-session";
-import { requirePermission } from "@/lib/admin/permissions";
+import { requireAdmin } from "@/lib/admin/permissions";
 import {
   getStoreSettings,
   updateStoreSettings,
@@ -21,7 +21,7 @@ const UpdateSettingsSchema = z
 export async function GET() {
   const session = await getAdminSession();
   try {
-    requirePermission(session, "admin:manage_settings");
+    requireAdmin(session);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Forbidden";
     return NextResponse.json({ error: msg }, { status: 403 });
@@ -36,7 +36,7 @@ export async function GET() {
 export async function PATCH(request: NextRequest) {
   const session = await getAdminSession();
   try {
-    requirePermission(session, "admin:manage_settings");
+    requireAdmin(session);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Forbidden";
     return NextResponse.json({ error: msg }, { status: 403 });

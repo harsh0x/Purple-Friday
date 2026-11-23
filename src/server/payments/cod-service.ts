@@ -1,7 +1,6 @@
 import prisma from "@/lib/prisma";
-import { getCodSettings } from "@/lib/admin/app-settings";
 import { scoreRtoRisk, RiskOrderInput } from "@/server/risk/rto";
-import { roundHalfUp, toPaise, toRupees } from "@/server/pricing/engine";
+import { toRupees } from "@/server/pricing/engine";
 import { writeAudit } from "@/lib/admin/audit";
 import { ORDER_STORE } from "@/server/orders/state-machine";
 
@@ -16,176 +15,38 @@ export interface CodEligibilityResult {
 }
 
 /**
- * Validates whether an order is eligible for Partial COD on the server.
- * Evaluates:
- * 1. Global COD enabled setting
- * 2. Maximum COD order value
- * 3. RTO Risk Engine score
+ * Validates order for Cash on Delivery / Pay Later.
+ * Always eligible - no partial advance or prepaid gating.
+ * RTO risk score is computed for admin visibility badge only.
  */
 export async function validateCodEligibility(
-  order: RiskOrderInput,
-  overridden: boolean = false
+  order: RiskOrderInput
 ): Promise<CodEligibilityResult> {
-  const codSettings = await getCodSettings();
-
-  if (!codSettings.enabled) {
-    return {
-      eligible: false,
-      reason: "Cash on Delivery is currently disabled by store policy.",
-      advancePaise: 0,
-      balanceDuePaise: order.totalPaise,
-      advancePercent: 0,
-    };
-  }
-
-  if (order.totalPaise > codSettings.maxCodValuePaise) {
-    const maxRupees = Math.round(codSettings.maxCodValuePaise / 100);
-    return {
-      eligible: false,
-      reason: `Cash on Delivery is only available for orders up to Rs ${maxRupees}. Please choose online prepaid.`,
-      advancePaise: 0,
-      balanceDuePaise: order.totalPaise,
-      advancePercent: 0,
-    };
-  }
-
-  // Evaluate RTO risk unless explicitly overridden by staff
-  if (!overridden) {
-    const risk = scoreRtoRisk(order);
-    if (risk.isRisky) {
-      return {
-        eligible: false,
-        reason: risk.customerExplanation || "Prepaid only for this delivery address.",
-        advancePaise: 0,
-        balanceDuePaise: order.totalPaise,
-        advancePercent: 0,
-        rtoScore: risk.score,
-        isPrepaidOnly: true,
-      };
-    }
-  }
-
-  const advancePercent = codSettings.advancePercent;
-  const advancePaise = roundHalfUp((order.totalPaise * advancePercent) / 100);
-  const balanceDuePaise = order.totalPaise - advancePaise;
-
+  const risk = scoreRtoRisk(order);
   return {
     eligible: true,
-    advancePaise,
-    balanceDuePaise,
-    advancePercent,
+    advancePaise: 0,
+    balanceDuePaise: order.totalPaise,
+    advancePercent: 0,
+    rtoScore: risk.score,
+    isPrepaidOnly: false,
   };
 }
 
 /**
- * Process verified COD advance payment from Razorpay webhook.
- * Idempotent: safe to run multiple times with the same eventId or paymentId.
+ * Staff manual action: Mark order as PAID upon COD cash collection, UPI, or bank transfer.
+ * Audited and respects version check.
  */
-export async function processCodAdvancePayment(params: {
+export async function markOrderPaidManually(params: {
   orderNumber: string;
-  paymentId: string;
-  amountPaise: number;
-  eventId?: string;
-}) {
-  const order =
-    ORDER_STORE.get(params.orderNumber) ||
-    Array.from(ORDER_STORE.values()).find((o) => o.orderNumber === params.orderNumber);
-
-  if (!order) {
-    throw new Error(`Order ${params.orderNumber} not found.`);
-  }
-
-  // Idempotency: if already advance paid or paid with this paymentId
-  if (
-    order.paymentStatus === "ADVANCE_PAID" ||
-    order.paymentStatus === "PAID"
-  ) {
-    return {
-      success: true,
-      duplicate: true,
-      orderNumber: order.orderNumber,
-      paymentStatus: order.paymentStatus,
-      advancePaidPaise: order.advancePaidPaise ?? params.amountPaise,
-      balanceDuePaise: order.balanceDuePaise ?? 0,
-    };
-  }
-
-  const totalPaise = toPaise(order.total);
-
-  // Update order record
-  order.paymentStatus = "ADVANCE_PAID";
-  order.advancePaidPaise = params.amountPaise;
-  order.balanceDuePaise = Math.max(0, totalPaise - params.amountPaise);
-  order.updatedAt = new Date().toISOString();
-
-  // Add order event
-  if (!order.events) order.events = [];
-  order.events.push({
-    id: `evt_${Date.now()}`,
-    type: "PAYMENT_ADVANCE_VERIFIED",
-    status: order.status,
-    actor: "system@razorpay.webhook",
-    actorRole: "SYSTEM",
-    message: `Partial COD advance of Rs ${toRupees(params.amountPaise)} verified online. Balance due on delivery: Rs ${toRupees(order.balanceDuePaise)}.`,
-    createdAt: new Date().toISOString(),
-  });
-
-  // DB Sync if live
-  try {
-    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
-      await prisma.order.update({
-        where: { orderNumber: order.orderNumber },
-        data: {
-          paymentStatus: "ADVANCE_PAID",
-          advancePaidPaise: params.amountPaise,
-          balanceDuePaise: order.balanceDuePaise,
-          razorpayPaymentId: params.paymentId,
-        },
-      });
-    }
-  } catch {
-    // Memory fallback
-  }
-
-  await writeAudit({
-    actor: "system@razorpay.webhook",
-    actorRole: "SYSTEM",
-    action: "payment.cod_advance_captured",
-    entityType: "ORDER",
-    entityId: order.orderNumber,
-    after: {
-      paymentStatus: "ADVANCE_PAID",
-      advancePaidPaise: params.amountPaise,
-      balanceDuePaise: order.balanceDuePaise,
-      paymentId: params.paymentId,
-    },
-  });
-
-  return {
-    success: true,
-    duplicate: false,
-    orderNumber: order.orderNumber,
-    paymentStatus: "ADVANCE_PAID",
-    advancePaidPaise: params.amountPaise,
-    balanceDuePaise: order.balanceDuePaise,
-  };
-}
-
-/**
- * Staff manual action: Mark remaining COD balance as collected upon courier settlement.
- * Audited and permission-guarded.
- */
-export async function markCodBalanceCollected(params: {
-  orderNumber: string;
+  method?: "COD" | "UPI" | "BANK_TRANSFER";
+  amountPaise?: number;
+  reference?: string;
   actor: string;
   actorRole: string;
+  expectedVersion?: number;
   notes?: string;
 }) {
-  const allowedRoles = ["SUPER_ADMIN", "ADMIN", "FACTORY_MANAGER", "SUPPORT_AGENT"];
-  if (!allowedRoles.includes(params.actorRole)) {
-    throw new Error(`Role ${params.actorRole} is not authorized to collect COD balance.`);
-  }
-
   const order =
     ORDER_STORE.get(params.orderNumber) ||
     Array.from(ORDER_STORE.values()).find((o) => o.orderNumber === params.orderNumber);
@@ -194,23 +55,35 @@ export async function markCodBalanceCollected(params: {
     throw new Error(`Order ${params.orderNumber} not found.`);
   }
 
-  const previousBalance = order.balanceDuePaise ?? 0;
+  if (params.expectedVersion !== undefined && order.version !== params.expectedVersion) {
+    throw new Error("Someone else changed this order, refresh.");
+  }
+
   const previousStatus = order.paymentStatus;
+  const methodLabel =
+    params.method === "UPI"
+      ? "UPI"
+      : params.method === "BANK_TRANSFER"
+        ? "Bank Transfer"
+        : "COD collected";
+  const amountPaid = params.amountPaise ?? order.total;
 
   order.paymentStatus = "PAID";
   order.balanceDuePaise = 0;
+  order.advancePaidPaise = amountPaid;
   order.balanceCollectedAt = new Date().toISOString();
   order.balanceCollectedBy = params.actor;
+  order.version = (order.version || 1) + 1;
   order.updatedAt = new Date().toISOString();
 
   if (!order.events) order.events = [];
   order.events.push({
     id: `evt_${Date.now()}`,
-    type: "PAYMENT_BALANCE_COLLECTED",
+    type: "PAYMENT_COLLECTED",
     status: order.status,
     actor: params.actor,
     actorRole: params.actorRole,
-    message: `COD balance of Rs ${toRupees(previousBalance)} marked as collected by courier (${params.notes || "Courier cash settlement verified"}).`,
+    message: `Payment of Rs ${toRupees(amountPaid)} marked as PAID via ${methodLabel}${params.reference ? ` (Ref: ${params.reference})` : ""}${params.notes ? ` - ${params.notes}` : ""}.`,
     createdAt: new Date().toISOString(),
   });
 
@@ -224,6 +97,7 @@ export async function markCodBalanceCollected(params: {
           balanceDuePaise: 0,
           balanceCollectedAt: new Date(),
           balanceCollectedBy: params.actor,
+          version: order.version,
         },
       });
     }
@@ -234,16 +108,15 @@ export async function markCodBalanceCollected(params: {
   await writeAudit({
     actor: params.actor,
     actorRole: params.actorRole,
-    action: "payment.cod_balance_collected",
+    action: "payment.marked_paid",
     entityType: "ORDER",
     entityId: order.orderNumber,
-    before: {
-      paymentStatus: previousStatus,
-      balanceDuePaise: previousBalance,
-    },
+    before: { paymentStatus: previousStatus },
     after: {
       paymentStatus: "PAID",
-      balanceDuePaise: 0,
+      method: params.method || "COD",
+      amountPaise: amountPaid,
+      reference: params.reference,
       collectedBy: params.actor,
       notes: params.notes,
     },
@@ -256,5 +129,8 @@ export async function markCodBalanceCollected(params: {
     balanceDuePaise: 0,
     balanceCollectedBy: params.actor,
     balanceCollectedAt: order.balanceCollectedAt,
+    version: order.version,
   };
 }
+
+export const markCodBalanceCollected = markOrderPaidManually;

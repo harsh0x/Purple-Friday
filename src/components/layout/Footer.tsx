@@ -7,8 +7,9 @@ import { MessageSquare, ArrowRight, ShieldCheck, Star } from "lucide-react";
 import { Logo } from "./Logo";
 import { RegistrationMark, CropCorners } from "../ui/decorative";
 import { toast } from "sonner";
+import { FooterConfig } from "@/server/cms/schema";
 
-export function Footer() {
+export function Footer({ cmsFooter }: { cmsFooter?: FooterConfig } = {}) {
   const pathname = usePathname();
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -68,8 +69,8 @@ export function Footer() {
             <div className="lg:col-span-6 space-y-4">
               <Logo variant="light" />
               <p className="text-paper/70 font-sans text-sm sm:text-base max-w-lg leading-relaxed">
-                Artisan custom printing atelier for Indian startups, institutions, and enterprises.
-                Offset magnetic badges, 100% bio-washed combed cotton tees, hoodies, and corporate gifting sets with live 3D proofs.
+                {cmsFooter?.brandStatement ||
+                  "Artisan custom printing atelier for Indian startups, institutions, and enterprises. Offset magnetic badges, 100% bio-washed combed cotton tees, hoodies, and corporate gifting sets with live 3D proofs."}
               </p>
               <div className="flex items-center gap-3 text-xs font-mono text-spot-lime">
                 <ShieldCheck className="h-4 w-4" />
@@ -81,10 +82,11 @@ export function Footer() {
             <div className="lg:col-span-6 border border-paper/20 bg-ink-900/60 p-6 rounded-sm relative">
               <CropCorners offset={6} length={8} />
               <h3 className="font-display font-bold text-lg text-paper">
-                The Print Dispatch Newsletter
+                {cmsFooter?.newsletterTitle || "The Print Dispatch Newsletter"}
               </h3>
               <p className="text-xs font-sans text-paper/70 mt-1 mb-4">
-                Prepress production guides, Pantone trend reports, and secret flash deals for corporate managers.
+                {cmsFooter?.newsletterSubtitle ||
+                  "Prepress production guides, Pantone trend reports, and secret flash deals for corporate managers."}
               </p>
 
               <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-2">
@@ -239,16 +241,15 @@ export function Footer() {
               </h4>
               <div className="text-paper/70 text-xs font-mono space-y-1.5">
                 <p className="font-bold text-paper">Purple Friday Private Limited</p>
-                <p>144/B, 4th Cross, Koramangala 4th Block</p>
-                <p>Bengaluru, Karnataka 560034</p>
+                <p>{cmsFooter?.officeAddress || "144/B, 4th Cross, Koramangala 4th Block, Bengaluru, Karnataka 560034"}</p>
                 <p className="pt-1">GSTIN: 29AAACP9876P1ZV</p>
-                <p>Phone: +91 98765 43210</p>
-                <p>Email: atelier@purplefriday.in</p>
+                <p>Phone: {cmsFooter?.contactPhone || "+91 80 4718 2000"}</p>
+                <p>Email: {cmsFooter?.contactEmail || "orders@purplefriday.in"}</p>
               </div>
 
               {/* Chat on WhatsApp CTA */}
               <a
-                href="https://wa.me/919876543210?text=Hi%20Purple%20Friday%20Team%2C%20I%20would%20like%20a%20quote%20for%20bulk%20custom%20merchandise."
+                href={`https://wa.me/${(cmsFooter?.whatsappNumber || "919876543210").replace(/[^0-9]/g, "")}?text=Hi%20Purple%20Friday%20Team%2C%20I%20would%20like%20a%20quote%20for%20bulk%20custom%20merchandise.`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-sm bg-[#25D366] text-white font-mono text-xs font-bold uppercase tracking-wider hover:brightness-105 transition-all shadow-stamp-sm"
@@ -261,11 +262,14 @@ export function Footer() {
 
           {/* Bottom Legal & Rupee Notice */}
           <div className="border-t border-paper/15 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-paper/50">
-            <p>© {new Date().getFullYear()} Purple Friday Private Limited. Built for India with Rupee billing.</p>
+            <p>
+              {cmsFooter?.copyrightText ||
+                `© ${new Date().getFullYear()} Purple Friday Private Limited. Built for India with Rupee billing.`}
+            </p>
             <div className="flex items-center gap-4">
               <span>All prices include GST where applicable</span>
               <span>•</span>
-              <span>100% Secure Razorpay Payments</span>
+              <span>100% Secure Payments</span>
             </div>
           </div>
         </div>

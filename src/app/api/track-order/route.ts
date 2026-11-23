@@ -61,9 +61,7 @@ export async function POST(req: NextRequest) {
           month: "short",
           year: "numeric",
         }),
-        trackingNumber: order.razorpayPaymentId
-          ? `EXP-DEL-${order.orderNumber.replace("PF-", "")}`
-          : undefined,
+        trackingNumber: order.trackingNumber || (order.status === "DISPATCHED" ? `EXP-DEL-${order.orderNumber.replace("PF-", "")}` : undefined),
         customerName: maskCustomerName(order.customerName),
         customerPhone: maskPhoneNumber(order.customerPhone),
         customerEmail: maskEmail(order.customerEmail),

@@ -7,11 +7,6 @@ const EnvSchema = z.object({
   ADMIN_JWT_SECRET: z.string().min(16).default("purple-friday-default-admin-jwt-secret-key-32ch"),
   CRON_SECRET: z.string().min(8).default("pf-cron-secret-token"),
 
-  // Razorpay
-  RAZORPAY_KEY_ID: z.string().optional(),
-  RAZORPAY_KEY_SECRET: z.string().optional(),
-  RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
-
   // Shipping (Shiprocket)
   SHIPROCKET_API_USER: z.string().optional(),
   SHIPROCKET_PASSWORD: z.string().optional(),

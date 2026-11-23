@@ -15,56 +15,61 @@ const PatchNotificationSchema = z
   })
   .strict();
 
-export async function GET() {
-  const session = await getAdminSession();
-  if (!session || !isStaffRole(session.role)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  export async function GET(request: NextRequest) {
+    const session = await getAdminSession();
+    if (!session || !isStaffRole(session.role)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const after = searchParams.get("after");
+
+    const identifiers = [
+      session.userId,
+      `role:${session.role}`,
+      "role:STAFF",
+      "role:SUPER_ADMIN",
+      "role:ADMIN",
+    ];
+
+    const notifications = await getNotificationsForUserOrRole(identifiers, after);
+    const allNotifications = await getNotificationsForUserOrRole(identifiers);
+    const unreadCount = allNotifications.filter((n) => !n.readTime).length;
+
+    return NextResponse.json({ notifications, unreadCount });
   }
 
-  const identifiers = [
-    session.userId,
-    `role:${session.role}`,
-    "role:STAFF",
-    "role:SUPER_ADMIN", // Fallback system alerts
-  ];
+  export async function PATCH(request: NextRequest) {
+    const session = await getAdminSession();
+    if (!session || !isStaffRole(session.role)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-  const notifications = await getNotificationsForUserOrRole(identifiers);
-  const unreadCount = notifications.filter((n) => !n.readTime).length;
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid payload." }, { status: 400 });
+    }
 
-  return NextResponse.json({ notifications, unreadCount });
-}
+    const parsed = PatchNotificationSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Validation failed." }, { status: 400 });
+    }
 
-export async function PATCH(request: NextRequest) {
-  const session = await getAdminSession();
-  if (!session || !isStaffRole(session.role)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { action, id } = parsed.data;
+
+    if (action === "MARK_READ") {
+      if (!id) return NextResponse.json({ error: "Notification id required." }, { status: 400 });
+      await markNotificationAsRead(id);
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "MARK_ALL_READ") {
+      const identifiers = [session.userId, `role:${session.role}`, "role:STAFF", "role:SUPER_ADMIN"];
+      await markAllNotificationsAsRead(identifiers);
+      return NextResponse.json({ success: true });
+    }
+
+    return NextResponse.json({ error: "Unsupported operation." }, { status: 400 });
   }
-
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid payload." }, { status: 400 });
-  }
-
-  const parsed = PatchNotificationSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Validation failed." }, { status: 400 });
-  }
-
-  const { action, id } = parsed.data;
-
-  if (action === "MARK_READ") {
-    if (!id) return NextResponse.json({ error: "Notification id required." }, { status: 400 });
-    await markNotificationAsRead(id);
-    return NextResponse.json({ success: true });
-  }
-
-  if (action === "MARK_ALL_READ") {
-    const identifiers = [session.userId, `role:${session.role}`, "role:STAFF", "role:SUPER_ADMIN"];
-    await markAllNotificationsAsRead(identifiers);
-    return NextResponse.json({ success: true });
-  }
-
-  return NextResponse.json({ error: "Unsupported operation." }, { status: 400 });
-}

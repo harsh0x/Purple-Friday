@@ -16,7 +16,7 @@ export interface RiskOrderInput {
   billingAddress?: {
     state?: string;
   };
-  paymentMethod: "COD" | "PREPAID" | "RAZORPAY" | string;
+  paymentMethod: "COD" | "PREPAID" | string;
   totalPaise: number;
 }
 

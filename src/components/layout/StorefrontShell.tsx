@@ -10,32 +10,39 @@ import { CartDrawer } from "@/components/drawers/CartDrawer";
 import { WishlistDrawer } from "@/components/drawers/WishlistDrawer";
 import { PurpleAssistant } from "@/components/chat/PurpleAssistant";
 import { PageTransition } from "@/components/motion/PageTransition";
+import { StorefrontCmsDocument } from "@/server/cms/schema";
 
-export function StorefrontShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const isAdmin = pathname?.startsWith("/admin");
+  export function StorefrontShell({
+    children,
+    cms,
+  }: {
+    children: React.ReactNode;
+    cms?: StorefrontCmsDocument;
+  }) {
+    const pathname = usePathname();
+    const isAdmin = pathname?.startsWith("/admin");
 
-  if (isAdmin) {
-    // Pure Admin Layout: Zero storefront header, footer, announcement bar, drawers, or floating widgets
+    if (isAdmin) {
+      // Pure Admin Layout: Zero storefront header, footer, announcement bar, drawers, or floating widgets
+      return (
+        <main id="main-content" className="flex-1 flex flex-col w-full min-h-screen">
+          {children}
+        </main>
+      );
+    }
+
     return (
-      <main id="main-content" className="flex-1 flex flex-col w-full min-h-screen">
-        {children}
-      </main>
+      <>
+        <SearchDrawer />
+        <CartDrawer />
+        <WishlistDrawer />
+        <AnnouncementBar cmsAnnouncements={cms?.announcements} />
+        <Header cmsNav={cms?.navigation} />
+        <main id="main-content" className="flex-1 flex flex-col">
+          <PageTransition>{children}</PageTransition>
+        </main>
+        <Footer cmsFooter={cms?.footer} />
+        <PurpleAssistant />
+      </>
     );
   }
-
-  return (
-    <>
-      <SearchDrawer />
-      <CartDrawer />
-      <WishlistDrawer />
-      <AnnouncementBar />
-      <Header />
-      <main id="main-content" className="flex-1 flex flex-col">
-        <PageTransition>{children}</PageTransition>
-      </main>
-      <Footer />
-      <PurpleAssistant />
-    </>
-  );
-}

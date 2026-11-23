@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { saveAdminQuote } from "@/lib/admin/admin-store";
 import { z } from "zod";
+import { notifyAdmin } from "@/server/notifications/admin-dispatcher";
 
 const quoteSubmitSchema = z.object({
   productSlug: z.string().default("general"),
@@ -37,6 +38,17 @@ export async function POST(req: NextRequest) {
       notes: parsed.data.notes,
       briefFileUrl: parsed.data.briefFileUrl,
     });
+
+    try {
+      await notifyAdmin("NEW_QUOTE", {
+        quoteId: saved.id,
+        companyName: parsed.data.customerName,
+        customerEmail: parsed.data.customerEmail,
+        quantity: parsed.data.quantity,
+      });
+    } catch (err) {
+      console.warn("[quotes] notifyAdmin NEW_QUOTE error:", err);
+    }
 
     return NextResponse.json({
       success: true,

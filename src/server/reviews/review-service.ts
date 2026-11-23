@@ -3,6 +3,8 @@ import { ORDER_STORE } from "@/server/orders/state-machine";
 import { getReviewSettings } from "@/lib/admin/app-settings";
 import { createNotification } from "@/lib/admin/notifications";
 import { writeAudit } from "@/lib/admin/audit";
+import { IN_MEMORY_PRODUCTS } from "@/server/products/product-service";
+import { revalidateTag } from "next/cache";
 
 export interface StoredReview {
   id: string;
@@ -17,46 +19,21 @@ export interface StoredReview {
   photoUrls: string[];
   status: "PENDING" | "APPROVED" | "REJECTED";
   verified: boolean;
-  supportTicketId?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface SupportTicketMessage {
-  id: string;
-  sender: string;
-  senderRole: string; // CUSTOMER, SUPPORT_AGENT, SUPER_ADMIN
-  message: string;
-  createdAt: string;
-}
-
-export interface StoredSupportTicket {
-  id: string;
-  ticketNumber: string;
-  orderNumber: string;
-  orderId?: string;
-  reviewId?: string;
-  customerName: string;
-  customerEmail: string;
-  customerPhone?: string;
-  subject: string;
-  status: "OPEN" | "PENDING_CUSTOMER" | "RESOLVED" | "CLOSED";
-  priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
-  assignee: string;
-  messages: SupportTicketMessage[];
+  adminReply?: string;
+  repliedAt?: string;
+  adminRepliedBy?: string;
   createdAt: string;
   updatedAt: string;
 }
 
 // In-memory registries
 export const REVIEW_STORE = new Map<string, StoredReview>();
-export const SUPPORT_TICKET_STORE = new Map<string, StoredSupportTicket>();
 export const REVIEW_TOKEN_MAP = new Map<string, { orderNumber: string; productId: string; expiresAt: number }>();
 
 /**
- * Seed initial review and ticket samples so admin lists have data immediately.
+ * Seed initial review samples so admin list has data immediately.
  */
-function seedInitialReviewsAndTickets() {
+function seedInitialReviews() {
   if (REVIEW_STORE.size > 0) return;
 
   const r1: StoredReview = {
@@ -101,9 +78,8 @@ function seedInitialReviewsAndTickets() {
     title: "Engraving alignment slightly off on 3 units",
     body: "Overall flask is great, but 3 units in the batch had laser etching that wasn't centered with the cap seam.",
     photoUrls: [],
-    status: "REJECTED", // Not published because <= 3 stars
+    status: "PENDING",
     verified: true,
-    supportTicketId: "TKT-2026-1001",
     createdAt: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -111,44 +87,9 @@ function seedInitialReviewsAndTickets() {
   REVIEW_STORE.set(r1.id, r1);
   REVIEW_STORE.set(r2.id, r2);
   REVIEW_STORE.set(r3.id, r3);
-
-  // Initial Support Ticket spawned from r3
-  const t1: StoredSupportTicket = {
-    id: "tkt_001",
-    ticketNumber: "TKT-2026-1001",
-    orderNumber: "PF-2611-40893",
-    reviewId: "rev_003",
-    customerName: "Vikramaditya Rao",
-    customerEmail: "admin@infosys.com",
-    customerPhone: "9876543210",
-    subject: "Quality Issue: Laser engraving alignment on 3 flasks (Review Feedback)",
-    status: "OPEN",
-    priority: "HIGH",
-    assignee: "support@purplefriday.in",
-    messages: [
-      {
-        id: "msg_1",
-        sender: "Vikramaditya Rao",
-        senderRole: "CUSTOMER",
-        message: "Customer submitted a 2-star review: 'Engraving alignment slightly off on 3 units. Overall flask is great, but 3 units in the batch had laser etching that wasn't centered.'",
-        createdAt: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
-      },
-      {
-        id: "msg_2",
-        sender: "support@purplefriday.in",
-        senderRole: "SUPPORT_AGENT",
-        message: "Hi Vikramaditya, apologies for the defect! We have alerted our factory QC. We are dispatching 3 complimentary replacements via BlueDart today.",
-        createdAt: new Date(Date.now() - 1 * 24 * 3600 * 1000).toISOString(),
-      },
-    ],
-    createdAt: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-
-  SUPPORT_TICKET_STORE.set(t1.ticketNumber, t1);
 }
 
-seedInitialReviewsAndTickets();
+seedInitialReviews();
 
 /**
  * Generates a secure single-use review invitation token for an order.
@@ -160,6 +101,16 @@ export function generateReviewInviteToken(orderNumber: string, productId: string
   return token;
 }
 
+export function validateReviewInviteToken(token: string): { orderNumber: string; productId: string } | null {
+  const record = REVIEW_TOKEN_MAP.get(token);
+  if (!record) return null;
+  if (Date.now() > record.expiresAt) {
+    REVIEW_TOKEN_MAP.delete(token);
+    return null;
+  }
+  return { orderNumber: record.orderNumber, productId: record.productId };
+}
+
 /**
  * Checks all DELIVERED orders that reached delivery >= 3 days ago and queues review invitations.
  */
@@ -169,204 +120,243 @@ export async function triggerScheduledReviewRequests(): Promise<{ requestsSent: 
   const now = Date.now();
   let requestsSent = 0;
 
-  for (const order of ORDER_STORE.values()) {
-    if (order.status !== "DELIVERED") continue;
+    for (const order of new Set(ORDER_STORE.values())) {
+      if (order.status !== "DELIVERED") continue;
 
-    const deliveredEvent = (order.events || []).find((e) => e.status === "DELIVERED");
-    const deliveredTime = deliveredEvent ? new Date(deliveredEvent.createdAt).getTime() : new Date(order.updatedAt).getTime();
+      const deliveredEvent = (order.events || []).find((e) => e.status === "DELIVERED");
+      const deliveredTime = deliveredEvent ? new Date(deliveredEvent.createdAt).getTime() : new Date(order.updatedAt).getTime();
 
-    // Check if >= delay (3 days) has passed
-    if (now - deliveredTime >= delayMs) {
-      // Check if already requested
-      const alreadyRequested = (order.events || []).some((e) => e.type === "REVIEW_REQUESTED");
-      if (!alreadyRequested) {
-        const firstItem = (order.items || [])[0];
-        const productId = firstItem ? firstItem.productId : "general";
-        const inviteToken = generateReviewInviteToken(order.orderNumber, productId);
+      // Check if >= delay (3 days) has passed
+      if (now - deliveredTime >= delayMs) {
+        const alreadyRequested = (order.events || []).some((e) => e.type === "REVIEW_REQUESTED");
+        if (!alreadyRequested) {
+          const firstItem = (order.items || [])[0];
+          const productId = firstItem ? firstItem.productId : "general";
+          const inviteToken = generateReviewInviteToken(order.orderNumber, productId);
 
-        if (!order.events) order.events = [];
-        order.events.push({
-          id: `evt_rev_req_${Date.now()}`,
-          type: "REVIEW_REQUESTED",
-          status: order.status,
-          actor: "system@scheduler",
-          actorRole: "SYSTEM",
-          message: `Automated review invitation queued for delivery after 3 days. Token link generated.`,
-          createdAt: new Date().toISOString(),
-        });
+          if (!order.events) order.events = [];
+          order.events.push({
+            id: `evt_rev_req_${Date.now()}`,
+            type: "REVIEW_REQUESTED",
+            status: order.status,
+            actor: "system@scheduler",
+            actorRole: "SYSTEM",
+            message: `Automated review invitation queued for delivery after 3 days. Token link generated.`,
+            createdAt: new Date().toISOString(),
+          });
 
-        await createNotification({
-          userOrRole: order.userId || "role:CUSTOMER",
-          title: `How is your merchandise from Order #${order.orderNumber}?`,
-          body: `Share your review and photo of your custom merchandise to earn exclusive corporate perks.`,
-          link: `/review/${inviteToken}`,
-        });
+          await createNotification({
+            userOrRole: order.userId || "role:CUSTOMER",
+            title: `How is your merchandise from Order #${order.orderNumber}?`,
+            body: `Share your review and photo of your custom merchandise to earn exclusive corporate perks.`,
+            link: `/review/${inviteToken}`,
+          });
 
-        requestsSent++;
+          requestsSent++;
+        }
       }
     }
+
+    return { requestsSent };
   }
 
-  return { requestsSent };
-}
+  /**
+   * Ingests a customer review.
+   */
+  export async function submitCustomerReview(params: {
+    productId: string;
+    orderNumber?: string;
+    authorName: string;
+    rating: number; // 1 to 5
+    title: string;
+    body: string;
+    photoUrls?: string[];
+  }): Promise<{ review: StoredReview }> {
+    const reviewSettings = await getReviewSettings();
+    const reviewId = `rev_${crypto.randomUUID()}`;
+    const now = new Date().toISOString();
 
-/**
- * Ingests a customer review:
- * - 4 to 5 stars with photos: approved candidate (or auto-approved based on AppSettings)
- * - 1 to 3 stars: strictly NOT published, automatically spawns private SupportTicket
- */
-export async function submitCustomerReview(params: {
-  productId: string;
-  orderNumber?: string;
-  authorName: string;
-  rating: number; // 1 to 5
-  title: string;
-  body: string;
-  photoUrls?: string[];
-}): Promise<{ review: StoredReview; supportTicket?: StoredSupportTicket }> {
-  const reviewSettings = await getReviewSettings();
-  const reviewId = `rev_${crypto.randomUUID()}`;
-  const now = new Date().toISOString();
+    const isPositive = params.rating >= 4;
+    let status: "PENDING" | "APPROVED" | "REJECTED" = "PENDING";
 
-  const isPositive = params.rating >= 4;
-  let status: "PENDING" | "APPROVED" | "REJECTED" = "PENDING";
-  let supportTicket: StoredSupportTicket | undefined = undefined;
+    if (isPositive) {
+      status = reviewSettings.autoApprovePositiveReviews ? "APPROVED" : "PENDING";
+    } else {
+      status = "PENDING"; // Quarantined for moderation
+    }
 
-  if (isPositive) {
-    status = reviewSettings.autoApprovePositiveReviews ? "APPROVED" : "PENDING";
-  } else {
-    // 1 to 3 stars: NOT published, automatically triggers private SupportTicket
-    status = "REJECTED";
-
-    const ticketNumber = `TKT-${new Date().getFullYear()}-${1000 + SUPPORT_TICKET_STORE.size + 1}`;
-    const order = params.orderNumber ? ORDER_STORE.get(params.orderNumber) : undefined;
-    const addr = (order?.address || {}) as Record<string, string>;
-
-    supportTicket = {
-      id: `tkt_${crypto.randomUUID()}`,
-      ticketNumber,
-      orderNumber: params.orderNumber || "PF-GENERAL",
-      orderId: order?.id,
-      reviewId,
-      customerName: params.authorName,
-      customerEmail: addr.customerEmail || addr.email || "support.incoming@purplefriday.in",
-      customerPhone: addr.customerPhone || addr.phone,
-      subject: `Customer Feedback Alert (${params.rating}★): ${params.title}`,
-      status: "OPEN",
-      priority: params.rating === 1 ? "URGENT" : "HIGH",
-      assignee: "support@purplefriday.in",
-      messages: [
-        {
-          id: `msg_${Date.now()}`,
-          sender: params.authorName,
-          senderRole: "CUSTOMER",
-          message: `Customer submitted ${params.rating}-star review: "${params.title}" - ${params.body}`,
-          createdAt: now,
-        },
-      ],
+    const review: StoredReview = {
+      id: reviewId,
+      productId: params.productId,
+      orderNumber: params.orderNumber,
+      authorName: params.authorName,
+      rating: params.rating,
+      title: params.title,
+      body: params.body,
+      photoUrls: params.photoUrls || [],
+      status,
+      verified: Boolean(params.orderNumber),
       createdAt: now,
       updatedAt: now,
     };
 
-    SUPPORT_TICKET_STORE.set(ticketNumber, supportTicket);
+    REVIEW_STORE.set(reviewId, review);
 
-    // Notify Support Team
-    await createNotification({
-      userOrRole: "role:SUPPORT_AGENT",
-      title: `New Support Ticket ${ticketNumber}: Low rating (${params.rating}★) on Order #${params.orderNumber || "N/A"}`,
-      body: `Customer ${params.authorName} left low feedback. Review quarantined from storefront. Follow up initiated.`,
-      link: `/admin/support`,
+    return { review };
+  }
+
+  /**
+   * Recalculates product rating average and count based strictly on APPROVED reviews.
+   * Updates in-memory catalogue and revalidates cache tags.
+   */
+  export async function recalculateProductRating(productId: string): Promise<{ average: number; count: number }> {
+    const approved = Array.from(REVIEW_STORE.values()).filter(
+      (r) => (r.productId === productId || r.productTitle === productId) && r.status === "APPROVED"
+    );
+    const count = approved.length;
+    const average =
+      count > 0 ? Math.round((approved.reduce((acc, r) => acc + r.rating, 0) / count) * 10) / 10 : 0;
+
+    for (const [key, prod] of IN_MEMORY_PRODUCTS.entries()) {
+      if (prod.id === productId || prod.slug === productId || key === productId) {
+        prod.rating = average;
+        prod.reviewCount = count;
+        prod.updatedAt = new Date().toISOString();
+      }
+    }
+
+    try {
+      revalidateTag("catalogue");
+      revalidateTag("products");
+    } catch {
+      // Outside request context in tests
+    }
+
+    return { average, count };
+  }
+
+  /**
+   * Staff moderation of customer reviews.
+   */
+  export async function moderateReview(params: {
+    reviewId: string;
+    action: "APPROVE" | "REJECT";
+    actor: string;
+    actorRole: string;
+  }): Promise<StoredReview> {
+    const review = REVIEW_STORE.get(params.reviewId);
+    if (!review) {
+      throw new Error(`Review ${params.reviewId} not found.`);
+    }
+
+    const previousStatus = review.status;
+    review.status = params.action === "APPROVE" ? "APPROVED" : "REJECTED";
+    review.updatedAt = new Date().toISOString();
+
+    await recalculateProductRating(review.productId);
+
+    await writeAudit({
+      actor: params.actor,
+      actorRole: params.actorRole,
+      action: "reviews.moderated",
+      entityType: "REVIEW",
+      entityId: review.id,
+      before: { status: previousStatus },
+      after: { status: review.status },
     });
+
+    return review;
   }
 
-  const review: StoredReview = {
-    id: reviewId,
-    productId: params.productId,
-    orderNumber: params.orderNumber,
-    authorName: params.authorName,
-    rating: params.rating,
-    title: params.title,
-    body: params.body,
-    photoUrls: params.photoUrls || [],
-    status,
-    verified: Boolean(params.orderNumber),
-    supportTicketId: supportTicket?.ticketNumber,
-    createdAt: now,
-    updatedAt: now,
-  };
+  /**
+   * Staff public reply under customer review (shown publicly on storefront).
+   */
+  export async function replyToReview(params: {
+    reviewId: string;
+    replyText: string;
+    actor: string;
+    actorRole?: string;
+  }): Promise<StoredReview> {
+    const review = REVIEW_STORE.get(params.reviewId);
+    if (!review) throw new Error(`Review ${params.reviewId} not found.`);
 
-  REVIEW_STORE.set(reviewId, review);
+    review.adminReply = params.replyText.trim();
+    review.repliedAt = new Date().toISOString();
+    review.adminRepliedBy = params.actor;
+    review.updatedAt = new Date().toISOString();
 
-  return { review, supportTicket };
-}
+    await writeAudit({
+      actor: params.actor,
+      actorRole: params.actorRole || "SUPER_ADMIN",
+      action: "reviews.replied",
+      entityType: "REVIEW",
+      entityId: review.id,
+      after: { adminReply: review.adminReply },
+    });
 
-/**
- * Staff moderation of customer reviews.
- */
-export async function moderateReview(params: {
-  reviewId: string;
-  action: "APPROVE" | "REJECT";
-  actor: string;
-  actorRole: string;
-}): Promise<StoredReview> {
-  const review = REVIEW_STORE.get(params.reviewId);
-  if (!review) {
-    throw new Error(`Review ${params.reviewId} not found.`);
+    return review;
   }
 
-  const previousStatus = review.status;
-  review.status = params.action === "APPROVE" ? "APPROVED" : "REJECTED";
-  review.updatedAt = new Date().toISOString();
+  /**
+   * Staff deletion of review with confirmation and recalculation.
+   */
+  export async function deleteReview(params: {
+    reviewId: string;
+    actor: string;
+    actorRole?: string;
+  }): Promise<boolean> {
+    const review = REVIEW_STORE.get(params.reviewId);
+    if (!review) throw new Error(`Review ${params.reviewId} not found.`);
 
-  await writeAudit({
-    actor: params.actor,
-    actorRole: params.actorRole,
-    action: "reviews.moderated",
-    entityType: "REVIEW",
-    entityId: review.id,
-    before: { status: previousStatus },
-    after: { status: review.status },
-  });
+    const productId = review.productId;
+    REVIEW_STORE.delete(params.reviewId);
 
-  return review;
-}
+    await recalculateProductRating(productId);
 
-/**
- * Add a message / reply to a support ticket.
- */
-export async function addSupportTicketReply(params: {
-  ticketNumber: string;
-  message: string;
-  newStatus?: StoredSupportTicket["status"];
-  actor: string;
-  actorRole: string;
-}): Promise<StoredSupportTicket> {
-  const ticket = SUPPORT_TICKET_STORE.get(params.ticketNumber);
-  if (!ticket) {
-    throw new Error(`Support ticket ${params.ticketNumber} not found.`);
+    await writeAudit({
+      actor: params.actor,
+      actorRole: params.actorRole || "SUPER_ADMIN",
+      action: "reviews.deleted",
+      entityType: "REVIEW",
+      entityId: params.reviewId,
+    });
+
+    return true;
   }
 
-  ticket.messages.push({
-    id: `msg_${Date.now()}`,
-    sender: params.actor,
-    senderRole: params.actorRole,
-    message: params.message,
-    createdAt: new Date().toISOString(),
-  });
+  /**
+   * Bulk approve multiple reviews.
+   */
+  export async function bulkApproveReviews(params: {
+    reviewIds: string[];
+    actor: string;
+    actorRole?: string;
+  }): Promise<{ approvedCount: number }> {
+    let count = 0;
+    const affectedProducts = new Set<string>();
 
-  if (params.newStatus) {
-    ticket.status = params.newStatus;
+    for (const id of params.reviewIds) {
+      const rev = REVIEW_STORE.get(id);
+      if (rev) {
+        rev.status = "APPROVED";
+        rev.updatedAt = new Date().toISOString();
+        affectedProducts.add(rev.productId);
+        count++;
+      }
+    }
+
+    for (const pid of affectedProducts) {
+      await recalculateProductRating(pid);
+    }
+
+    await writeAudit({
+      actor: params.actor,
+      actorRole: params.actorRole || "SUPER_ADMIN",
+      action: "reviews.bulk_approved",
+      entityType: "REVIEW",
+      entityId: params.reviewIds.join(","),
+      after: { approvedCount: count },
+    });
+
+    return { approvedCount: count };
   }
-  ticket.updatedAt = new Date().toISOString();
-
-  await writeAudit({
-    actor: params.actor,
-    actorRole: params.actorRole,
-    action: "support.ticket_reply",
-    entityType: "SUPPORT_TICKET",
-    entityId: ticket.ticketNumber,
-    after: { status: ticket.status, message: params.message },
-  });
-
-  return ticket;
-}

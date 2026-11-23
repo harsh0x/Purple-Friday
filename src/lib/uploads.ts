@@ -212,6 +212,9 @@ export async function processAndStoreUpload({
     url = uploadResult.secure_url;
   } else {
     // Local storage fallback (never guessable path, served via opaque route)
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("Local disk storage is disabled in production. Cloudinary must be configured.");
+    }
     ensureStorageDir();
     storagePath = path.join(STORAGE_DIR, storedFilename);
     fs.writeFileSync(storagePath, finalBuffer);

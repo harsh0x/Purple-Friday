@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createApiHandler } from "@/lib/api";
 import prisma from "@/lib/prisma";
-import { ALL_PRODUCTS } from "@/lib/catalogue";
+import { getCachedProducts } from "@/lib/catalogue";
 
 const searchQuerySchema = z.object({
   q: z.string().default(""),
@@ -75,12 +75,13 @@ export const GET = createApiHandler(
 
     // In-memory fallback search if DB was empty or unavailable
     if (results.length === 0) {
-      results = ALL_PRODUCTS
+      const activeProducts = await getCachedProducts();
+      results = activeProducts
         .filter(
           (p) =>
             p.name.toLowerCase().includes(rawQuery) ||
             p.slug.toLowerCase().includes(rawQuery) ||
-          p.description.toLowerCase().includes(rawQuery) ||
+            p.description.toLowerCase().includes(rawQuery) ||
           p.categorySlug.toLowerCase().includes(rawQuery)
         )
         .slice(0, 16)

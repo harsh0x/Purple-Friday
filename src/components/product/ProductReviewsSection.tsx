@@ -64,7 +64,7 @@ const INITIAL_REVIEWS: Review[] = [
   {
     id: "rev-4",
     name: "Siddharth Rao",
-    company: "Razorpay",
+    company: "Fintech Leader",
     role: "HR Operations",
     rating: 5,
     date: "08 Sep 2026",
@@ -214,11 +214,10 @@ export function ProductReviewsSection({
                 <button
                   key={star ?? "all"}
                   onClick={() => setRatingFilter(star)}
-                  className={`px-3 py-1 font-mono text-xs border transition-all ${
-                    ratingFilter === star
+                  className={`px-3 py-1 font-mono text-xs border transition-all ${ratingFilter === star
                       ? "border-ink bg-ink text-white font-bold"
                       : "border-ink/20 bg-white text-ink hover:border-ink"
-                  }`}
+                    }`}
                 >
                   {star ? `${star} Stars` : "All Reviews"}
                 </button>
@@ -334,9 +333,8 @@ export function ProductReviewsSection({
                       className="p-1 text-violet hover:scale-110 transition-transform"
                     >
                       <Star
-                        className={`h-6 w-6 ${
-                          s <= newRating ? "fill-violet text-violet" : "text-ink/30"
-                        }`}
+                        className={`h-6 w-6 ${s <= newRating ? "fill-violet text-violet" : "text-ink/30"
+                          }`}
                       />
                     </button>
                   ))}
@@ -416,11 +414,10 @@ export function ProductReviewsSection({
                 <button
                   type="button"
                   onClick={() => setPhotoAdded(!photoAdded)}
-                  className={`font-mono text-xs px-2.5 py-1 border transition-all ${
-                    photoAdded
+                  className={`font-mono text-xs px-2.5 py-1 border transition-all ${photoAdded
                       ? "border-emerald-600 bg-emerald-100 text-emerald-800 font-bold"
                       : "border-ink/30 bg-white text-ink hover:border-ink"
-                  }`}
+                    }`}
                 >
                   {photoAdded ? "Photo Attached ✓" : "Upload Photo"}
                 </button>

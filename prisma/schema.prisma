@@ -5,8 +5,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum UserRole {
@@ -238,7 +239,7 @@ model Order {
   gst                    Int
   shipping               Int          @default(0)
   total                  Int
-  paymentMethod          String       @default("RAZORPAY")
+  paymentMethod          String       @default("COD")
   paymentStatus          String       @default("PAID")
   razorpayOrderId        String?
   razorpayPaymentId      String?
@@ -751,7 +752,7 @@ model Refund {
   refundNumber   String   @unique
   amountPaise    Int
   reason         String
-  type           String   // RAZORPAY, MANUAL
+  type           String   // MANUAL, COD
   reference      String?  // rzp_refund_id or bank UTR
   status         String   @default("PROCESSED")
   processedBy    String

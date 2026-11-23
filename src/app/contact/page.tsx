@@ -286,7 +286,7 @@ export default function ContactPage() {
                       </label>
                       <input
                         type="text"
-                        placeholder="Razorpay / Zerodha"
+                        placeholder="PhonePe / Zerodha"
                         {...register("company")}
                         className="w-full h-11 px-3 border-2 border-pf-ink bg-pf-paper text-xs font-sans text-pf-ink focus:outline-none focus:ring-2 focus:ring-pf-violet"
                       />

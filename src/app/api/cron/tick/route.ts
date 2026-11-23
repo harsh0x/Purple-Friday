@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ORDER_STORE } from "@/server/orders/state-machine";
-import { computeOrderSla } from "@/server/orders/orders-service";
 import { createNotification } from "@/lib/admin/notifications";
 import prisma from "@/lib/prisma";
 import { triggerScheduledReviewRequests } from "@/server/reviews/review-service";
-import { computeFrequentlyBoughtTogether, FBT_RECOMMENDATIONS_STORE } from "@/server/recommendations/fbt";
-import { triggerLowStockForecastingAlerts } from "@/server/inventory/forecasting";
-import { computeRfmCustomerProfiles } from "@/server/analytics/rfm";
+import { processMessageRetries } from "@/server/notifications/notify";
+import { getAdminProducts } from "@/server/products/product-service";
+import { notifyAdmin } from "@/server/notifications/admin-dispatcher";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   return handleCronTick(req);
@@ -34,19 +35,17 @@ async function handleCronTick(req: NextRequest) {
   const now = Date.now();
   const hour = 3600 * 1000;
   let nudgesSent = 0;
-  let overdueCount = 0;
 
-  const orders = Array.from(ORDER_STORE.values());
+  const orders = Array.from(new Set(ORDER_STORE.values()));
 
   for (const order of orders) {
-    // 1. Proof Approval Reminders (24h and 48h nudges)
+    // 1. Single 24-hour Proof Approval Reminder
     if (order.status === "MOCKUP_SENT" && order.mockupSentAt) {
       const sentTime = new Date(order.mockupSentAt).getTime();
       const elapsed = now - sentTime;
       const addr = (order.address || {}) as Record<string, string>;
       const customerEmail = addr.email || "customer";
 
-      // 24-hour reminder
       if (elapsed >= 24 * hour && order.nudgeCount === 0) {
         order.nudgeCount = 1;
         nudgesSent++;
@@ -76,71 +75,45 @@ async function handleCronTick(req: NextRequest) {
           // In-memory fallback
         }
       }
+    }
+  }
 
-      // 48-hour urgent reminder
-      if (elapsed >= 48 * hour && order.nudgeCount === 1) {
-        order.nudgeCount = 2;
-        nudgesSent++;
+  // 2. Automated Review Requests (runs for orders delivered >= 3 days ago)
+  const reviewResult = await triggerScheduledReviewRequests();
 
-        await createNotification({
-          userOrRole: order.userId || "role:CUSTOMER",
-          title: `Urgent: Order #${order.orderNumber} Proof Needs Approval`,
-          body: `Your proof has been waiting for 48 hours. Please approve or request changes so we can guarantee your delivery schedule.`,
-          link: `/proof/${order.approvalTokenHash || order.orderNumber}`,
-        });
+  // 3. Process Transactional Message Retries (max 3 tries)
+  const retryResult = await processMessageRetries();
 
-        try {
-          if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("dummy")) {
-            await prisma.job.create({
-              data: {
-                type: "CUSTOMER_PROOF_REMINDER_48H",
-                payload: { orderNumber: order.orderNumber, customerEmail },
-                runAt: new Date(),
-                processedAt: new Date(),
-                status: "COMPLETED",
-                dedupKey: `nudge_48h_${order.orderNumber}`,
-              },
+  // 4. Low Stock Safety Checks
+  let lowStockAlertsSent = 0;
+  try {
+    const products = await getAdminProducts();
+    for (const p of products) {
+      if (p.colors) {
+        for (const c of p.colors) {
+          if (c.stock !== undefined && c.stock !== null && c.stock <= 10) {
+            lowStockAlertsSent++;
+            await notifyAdmin("LOW_STOCK_ALERT", {
+              productId: p.id,
+              productName: `${p.name} (${c.name})`,
+              currentStock: c.stock,
+              threshold: 10,
             });
           }
-        } catch {
-          // In-memory fallback
         }
       }
     }
-
-    // 2. Dispatch SLA Overdue Checks
-    if (["CUSTOMER_APPROVED", "IN_PRINTING", "QC_PASSED"].includes(order.status)) {
-      const sla = computeOrderSla(order);
-      if (sla.isOverdue) {
-        overdueCount++;
-      }
-    }
+  } catch {
+    // Non-blocking stock check
   }
-
-  // 3. Automated Review Requests (runs in cron tick for orders delivered >= 3 days ago)
-  const reviewResult = await triggerScheduledReviewRequests();
-
-  // 4. Heavy Analytics & Merchandising Intelligence Computations
-  // A. Frequently Bought Together Mining
-  const fbtResult = computeFrequentlyBoughtTogether(orders);
-  for (const [k, v] of fbtResult.entries()) {
-    FBT_RECOMMENDATIONS_STORE.set(k, v);
-  }
-
-  // B. Raw Material Forecasting & Low Stock Alerts
-  const forecastAlerts = await triggerLowStockForecastingAlerts();
-
-  // C. RFM Customer Segments & Reorder Overdue Tracking
-  const rfmProfiles = computeRfmCustomerProfiles(orders);
 
   return NextResponse.json({
     success: true,
     nudgesSent,
-    overdueOrders: overdueCount,
     reviewsTriggered: reviewResult.requestsSent,
-    fbtProductsCount: fbtResult.size,
-    lowStockForecastAlerts: forecastAlerts.alertsCount,
-    rfmCustomerCount: rfmProfiles.length,
+    retriesProcessed: retryResult.retried,
+    retriesSucceeded: retryResult.succeeded,
+    lowStockAlertsSent,
     timestamp: new Date().toISOString(),
   });
 }

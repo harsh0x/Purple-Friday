@@ -66,13 +66,14 @@ export async function generateMetadata({
     };
   }
 
-  const meta = META_MAP[slug] || {
-    title: category.name || `${slug.replace(/-/g, " ").toUpperCase()} Collection`,
+  const canonicalSlug = category.slug;
+  const meta = META_MAP[canonicalSlug] || META_MAP[slug] || {
+    title: category.name || `${canonicalSlug.replace(/-/g, " ").toUpperCase()} Collection`,
     description: category.description || "Custom printed merchandise by Purple Friday India.",
   };
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://purplefriday.in";
-  const canonicalUrl = `${siteUrl}${categoryHref(slug)}`;
+  const canonicalUrl = `${siteUrl}${categoryHref(canonicalSlug)}`;
 
   return {
     title: `${meta.title} | Purple Friday`,
@@ -107,13 +108,14 @@ export default async function CategoryPage({
     notFound();
   }
 
-  const meta = META_MAP[slug] || {
-    title: category.name || slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+  const canonicalSlug = category.slug;
+  const meta = META_MAP[canonicalSlug] || META_MAP[slug] || {
+    title: category.name || canonicalSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
     description: category.description || "Precision-printed bulk custom merchandise for modern Indian brands.",
   };
 
   // Fetch initial products (for t-shirts, this includes both t-shirts & polo-shirts)
-  const rawProducts = await getCachedProducts(slug);
+  const rawProducts = await getCachedProducts(canonicalSlug);
 
   const initialProducts: ProductCardData[] = rawProducts.slice(0, 12).map((p) => ({
     id: p.id,

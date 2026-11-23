@@ -221,10 +221,15 @@ export async function getCategoryBySlug(rawSlug: string) {
     };
   }
 
-  const { category } = await getCategoryByIdOrSlug(slug);
+  const { category, redirectedFrom } = await getCategoryByIdOrSlug(slug);
   if (!category || !category.active) return undefined;
 
-  const all = await getCachedProducts();
+  const count = ALL_PRODUCTS.filter((p) =>
+    category.slug === "t-shirts"
+      ? p.categorySlug === "t-shirts" || p.categorySlug === "polo-shirts"
+      : p.categorySlug === category.slug
+  ).length;
+
   return {
     id: category.id,
     slug: category.slug,
@@ -232,8 +237,9 @@ export async function getCategoryBySlug(rawSlug: string) {
     description: category.description,
     sortOrder: category.sortOrder,
     image: category.image,
+    redirectedFrom,
     _count: {
-      products: all.filter((p) => p.categorySlug === category.slug).length,
+      products: count,
     },
   };
 }

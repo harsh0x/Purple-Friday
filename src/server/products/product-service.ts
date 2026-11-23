@@ -8,6 +8,7 @@ import { CATALOGUE_SEED_PRODUCTS } from "./catalogue-seed-data";
 import { writeAudit } from "@/lib/admin/audit";
 import { validatePriceTiers, PriceTierInput } from "@/lib/admin/tier-validator";
 import { toPaise } from "@/server/pricing/engine";
+import { INITIAL_SLUG_ALIASES } from "@/server/categories/category-service";
 
 async function safeRevalidateTag(tag: string) {
   try {
@@ -389,13 +390,16 @@ export async function getStorefrontProducts(
     (p) => !p.archived && p.status === "ACTIVE" && p.active
   );
 
-  if (categorySlug === "t-shirts") {
+  const rawSlug = categorySlug?.toLowerCase().trim();
+  const resolvedSlug = rawSlug ? (INITIAL_SLUG_ALIASES[rawSlug] || rawSlug) : undefined;
+
+  if (resolvedSlug === "t-shirts") {
     activeList = activeList.filter(
       (p) => p.categorySlug === "t-shirts" || p.categorySlug === "polo-shirts"
     );
-  } else if (categorySlug && categorySlug !== "all" && categorySlug !== "best-sellers") {
-    activeList = activeList.filter((p) => p.categorySlug === categorySlug);
-  } else if (categorySlug === "best-sellers") {
+  } else if (resolvedSlug && resolvedSlug !== "all" && resolvedSlug !== "best-sellers") {
+    activeList = activeList.filter((p) => p.categorySlug === resolvedSlug);
+  } else if (resolvedSlug === "best-sellers") {
     activeList = activeList.filter((p) => p.isBestSeller);
   }
 

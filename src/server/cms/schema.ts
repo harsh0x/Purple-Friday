@@ -485,9 +485,9 @@ export const DEFAULT_CMS_DOCUMENT: StorefrontCmsDocument = {
   ],
   navigation: {
     links: [
-      { id: "nav-tees", label: "Tees & Polos", url: "/category/tees", sortOrder: 1 },
+      { id: "nav-tees", label: "Tees & Polos", url: "/category/t-shirts", sortOrder: 1 },
       { id: "nav-hoodies", label: "Hoodies", url: "/category/hoodies", sortOrder: 2 },
-      { id: "nav-badges", label: "Badges", url: "/category/badges", sortOrder: 3 },
+      { id: "nav-badges", label: "Badges", url: "/category/magnetic-badges", sortOrder: 3 },
       { id: "nav-corporate", label: "Corporate Gifting", url: "/corporate-gifting", sortOrder: 4 },
       { id: "nav-blog", label: "Press Log", url: "/blog", sortOrder: 5 },
     ],

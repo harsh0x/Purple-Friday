@@ -85,81 +85,81 @@ interface MegaMenuPanelProps {
   onMouseLeave?: () => void;
 }
 
-export function MegaMenuPanel({
-  category,
-  onClose,
-  onMouseEnter,
-  onMouseLeave,
-}: MegaMenuPanelProps) {
-  return (
-    <div
-      className="absolute top-full left-0 w-full bg-paper border-b-2 border-ink shadow-stamp-lg animate-in fade-in-0 slide-in-from-top-1 duration-200 z-50"
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave || onClose}
-    >
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-12 gap-8 items-start">
-          {/* Left Column: Category Summary */}
-          <div className="col-span-4 border-r border-ink/20 pr-8 space-y-4">
-            <span className="font-mono text-xs uppercase tracking-widest text-violet font-bold block">
-              Prepress Department
-            </span>
-            <h3 className="font-display font-extrabold text-2xl text-ink">
-              {category.name}
-            </h3>
-            <p className="text-sm font-sans text-ink/70 leading-relaxed">
-              {category.description}
-            </p>
-            <div className="pt-2">
-              <Link
-                href={category.href}
-                onClick={() => {
-                  setTimeout(() => onClose(), 50);
-                }}
-                className="inline-flex items-center gap-2 text-xs font-mono font-bold uppercase text-ink hover:text-violet transition-colors group"
-              >
-                <span>View Full Catalogue</span>
-                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
-              </Link>
+  export function MegaMenuPanel({
+    category,
+    onClose,
+    onMouseEnter,
+    onMouseLeave,
+  }: MegaMenuPanelProps) {
+    return (
+      <div
+        className="absolute top-full left-0 w-full bg-paper border-b-2 border-ink shadow-stamp-lg animate-in fade-in-0 slide-in-from-top-1 duration-200 z-50"
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave || onClose}
+      >
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="grid grid-cols-12 gap-8 items-start">
+            {/* Left Column: Category Summary */}
+            <div className="col-span-4 border-r border-ink/20 pr-8 space-y-4">
+              <span className="font-mono text-xs uppercase tracking-widest text-violet font-bold block">
+                Prepress Department
+              </span>
+              <h3 className="font-display font-extrabold text-2xl text-ink">
+                {category.name}
+              </h3>
+              <p className="text-sm font-sans text-ink/70 leading-relaxed">
+                {category.description}
+              </p>
+              <div className="pt-2">
+                <Link
+                  href={category.href}
+                  onClick={() => {
+                    setTimeout(() => onClose(), 50);
+                  }}
+                  className="inline-flex items-center gap-2 text-xs font-mono font-bold uppercase text-ink hover:text-violet transition-colors group"
+                >
+                  <span>View Full Catalogue</span>
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                </Link>
+              </div>
             </div>
-          </div>
 
-          {/* Right Columns: 3 Product Cards with SVG Vector Mockups */}
-          <div className="col-span-8 grid grid-cols-3 gap-6">
-            {category.products.map((item) => (
-              <Link
-                key={item.slug}
-                href={`/product/${item.slug}`}
-                onClick={() => {
-                  setTimeout(() => onClose(), 50);
-                }}
-                className="group p-4 border border-ink/30 bg-paper-pure rounded-sm hover:border-ink hover:shadow-card transition-all relative block"
-              >
-                <CropCorners offset={4} length={6} />
-                {/* Product SVG Mockup Thumbnail */}
-                <div className="h-32 w-full flex items-center justify-center p-2 mb-3 bg-paper rounded-xs overflow-hidden transition-transform duration-300 group-hover:scale-105">
-                  <ProductMockup
-                    slug={item.slug}
-                    template={item.template}
-                    color={item.color}
-                    className="max-h-full max-w-full drop-shadow-sm"
-                  />
-                </div>
-                <p className="font-display font-bold text-sm text-ink truncate group-hover:text-violet transition-colors">
-                  {item.name}
-                </p>
-                <div className="flex items-center justify-between mt-1 text-xs font-mono">
-                  <span className="font-bold text-ink">{item.price}</span>
-                  <span className="text-[10px] text-violet flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Sparkles className="h-3 w-3" /> Customize
-                  </span>
-                </div>
-              </Link>
-            ))}
+            {/* Right Columns: 3 Product Cards with SVG Vector Mockups */}
+            <div className="col-span-8 grid grid-cols-3 gap-6">
+              {category.products.map((item) => (
+                <Link
+                  key={item.slug}
+                  href={`/product/${item.slug}`}
+                  onClick={() => {
+                    setTimeout(() => onClose(), 50);
+                  }}
+                  className="group p-4 border border-ink/30 bg-paper-pure rounded-sm hover:border-ink hover:shadow-card transition-all relative block"
+                >
+                  <CropCorners offset={4} length={6} />
+                  {/* Product SVG Mockup Thumbnail */}
+                  <div className="h-32 w-full flex items-center justify-center p-2 mb-3 bg-paper rounded-xs overflow-hidden transition-transform duration-300 group-hover:scale-105">
+                    <ProductMockup
+                      slug={item.slug}
+                      template={item.template}
+                      color={item.color}
+                      className="max-h-full max-w-full drop-shadow-sm"
+                    />
+                  </div>
+                  <p className="font-display font-bold text-sm text-ink truncate group-hover:text-violet transition-colors">
+                    {item.name}
+                  </p>
+                  <div className="flex items-center justify-between mt-1 text-xs font-mono">
+                    <span className="font-bold text-ink">{item.price}</span>
+                    <span className="text-[10px] text-violet flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Sparkles className="h-3 w-3" /> Customize
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 

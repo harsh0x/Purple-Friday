@@ -107,7 +107,35 @@ export const INITIAL_CATEGORIES: CategoryData[] = [
   },
 ];
 
+export const INITIAL_SLUG_ALIASES: Record<string, string> = {
+  tees: "t-shirts",
+  tshirt: "t-shirts",
+  tshirts: "t-shirts",
+  "t-shirt": "t-shirts",
+  "custom-tees": "t-shirts",
+  badges: "magnetic-badges",
+  badge: "magnetic-badges",
+  "lapel-pins": "magnetic-badges",
+  hoodie: "hoodies",
+  sweatshirt: "hoodies",
+  sweatshirts: "hoodies",
+  polo: "polo-shirts",
+  polos: "polo-shirts",
+  cap: "caps",
+  hat: "caps",
+  hats: "caps",
+  headwear: "caps",
+  "corporate-gifting": "corporate-gifts",
+  corporate: "corporate-gifts",
+  gifting: "corporate-gifts",
+  "corporate-kits": "corporate-gifts",
+};
+
 export function initializeDefaultCategories(): void {
+  for (const [alias, canonical] of Object.entries(INITIAL_SLUG_ALIASES)) {
+    CATEGORY_SLUG_REDIRECTS.set(alias, canonical);
+  }
+
   if (CATEGORY_STORE.size > 0) return;
   for (const cat of INITIAL_CATEGORIES) {
     CATEGORY_STORE.set(cat.id, cat);

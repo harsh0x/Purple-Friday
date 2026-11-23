@@ -129,7 +129,7 @@ export function PurpleAssistant() {
   }
 
   return (
-    <div className="fixed bottom-5 right-5 z-40 font-mono text-xs">
+    <div className="fixed bottom-20 sm:bottom-5 right-4 sm:right-5 z-40 font-mono text-xs">
       {/* Floating Toggle Button */}
       {!isOpen && (
         <button

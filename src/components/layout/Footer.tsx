@@ -278,7 +278,7 @@ export function Footer({ cmsFooter }: { cmsFooter?: FooterConfig } = {}) {
       {/* Floating Reviews Edge Tab on Right */}
       <Link
         href="/reviews"
-        className="fixed right-0 top-1/2 -translate-y-1/2 z-30 bg-ink text-paper border-l-2 border-y-2 border-spot-lime shadow-stamp-sm px-2 py-3 rounded-l-md flex flex-col items-center gap-1.5 hover:bg-violet transition-colors group"
+        className="hidden md:flex fixed right-0 top-1/2 -translate-y-1/2 z-30 bg-ink text-paper border-l-2 border-y-2 border-spot-lime shadow-stamp-sm px-2 py-3 rounded-l-md flex-col items-center gap-1.5 hover:bg-violet transition-colors group"
         aria-label="View verified client reviews"
       >
         <Star className="h-3.5 w-3.5 fill-spot-lime stroke-spot-lime group-hover:fill-white group-hover:stroke-white" />

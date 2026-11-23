@@ -253,7 +253,10 @@ export function ProductMockup({
   const viewFile = view === "back" ? "back" : "front";
   const photoUrl = `/products/${resolvedSlug}/${viewFile}.webp`;
   const maskUrl = `/products/${resolvedSlug}/mask-${viewFile}.webp`;
-  const staticFallback = `/products/${resolvedSlug}/${view === "back" ? "back-" : ""}${size}.webp`;
+  const staticFallback =
+    size === "gallery"
+      ? photoUrl
+      : `/products/${resolvedSlug}/${view === "back" ? "back-" : ""}${size}.webp`;
 
   useEffect(() => {
     let isCancelled = false;
@@ -331,6 +334,12 @@ export function ProductMockup({
             <img
               src={staticFallback}
               alt={resolvedSlug}
+              onError={(e) => {
+                const target = e.currentTarget;
+                if (!target.src.endsWith(`${viewFile}.webp`)) {
+                  target.src = photoUrl;
+                }
+              }}
               className="absolute inset-0 w-full h-full object-contain pointer-events-none"
               loading="lazy"
             />
@@ -341,6 +350,12 @@ export function ProductMockup({
         <img
           src={staticFallback}
           alt={resolvedSlug}
+          onError={(e) => {
+            const target = e.currentTarget;
+            if (!target.src.endsWith(`${viewFile}.webp`)) {
+              target.src = photoUrl;
+            }
+          }}
           className="w-full h-full object-contain pointer-events-none"
           loading="lazy"
         />

@@ -390,385 +390,216 @@ export async function getStorefrontProducts(
     (p) => !p.archived && p.status === "ACTIVE" && p.active
   );
 
-  const rawSlug = categorySlug?.toLowerCase().trim();
-  const resolvedSlug = rawSlug ? (INITIAL_SLUG_ALIASES[rawSlug] || rawSlug) : undefined;
+    const rawSlug = categorySlug?.toLowerCase().trim();
+    const resolvedSlug = rawSlug ? (INITIAL_SLUG_ALIASES[rawSlug] || rawSlug) : undefined;
 
-  if (resolvedSlug === "t-shirts") {
-    activeList = activeList.filter(
-      (p) => p.categorySlug === "t-shirts" || p.categorySlug === "polo-shirts"
-    );
-  } else if (resolvedSlug && resolvedSlug !== "all" && resolvedSlug !== "best-sellers") {
-    activeList = activeList.filter((p) => p.categorySlug === resolvedSlug);
-  } else if (resolvedSlug === "best-sellers") {
-    activeList = activeList.filter((p) => p.isBestSeller);
+    if (resolvedSlug === "t-shirts") {
+      activeList = activeList.filter(
+        (p) => p.categorySlug === "t-shirts" || p.categorySlug === "polo-shirts"
+      );
+    } else if (resolvedSlug && resolvedSlug !== "all" && resolvedSlug !== "best-sellers") {
+      activeList = activeList.filter((p) => p.categorySlug === resolvedSlug);
+    } else if (resolvedSlug === "best-sellers") {
+      activeList = activeList.filter((p) => p.isBestSeller);
+    }
+
+    return activeList;
   }
 
-  return activeList;
-}
-
-/**
- * Create or Update a product with live validation, optimistic locking, and audit log.
- */
-export async function saveProduct(
-  data: {
-    id?: string;
-    slug?: string;
-    name: string;
-    shortName?: string;
-    categorySlug: string;
-    description: string;
-    audience: "TEAM" | "GIFTING" | "BOTH";
-    badges?: string[];
-    specChips?: string[];
-    minQty: number;
-    qtyStep: number;
-    gstRate: number;
-    active: boolean;
-    status?: "DRAFT" | "ACTIVE" | "ARCHIVED";
-    isBestSeller: boolean;
-    seoTitle?: string;
-    seoDescription?: string;
-    socialImage?: string;
-    costPrice: number; // in paise
-    mrp: number; // in rupees
-    basePrice: number; // in rupees
-    printMethod: string;
-    printAreas?: Array<{ id: string; name: string; maxWidthMm: number; maxHeightMm: number }>;
-    colors?: Array<{
+  /**
+   * Create or Update a product with live validation, optimistic locking, and audit log.
+   */
+  export async function saveProduct(
+    data: {
+      id?: string;
+      slug?: string;
       name: string;
-      hex: string;
-      active?: boolean;
-      images?: string[];
+      shortName?: string;
+      categorySlug: string;
+      description: string;
+      audience: "TEAM" | "GIFTING" | "BOTH";
+      badges?: string[];
+      specChips?: string[];
+      minQty: number;
+      qtyStep: number;
+      gstRate: number;
+      active: boolean;
+      status?: "DRAFT" | "ACTIVE" | "ARCHIVED";
+      isBestSeller: boolean;
+      seoTitle?: string;
+      seoDescription?: string;
+      socialImage?: string;
+      costPrice: number; // in paise
+      mrp: number; // in rupees
+      basePrice: number; // in rupees
+      printMethod: string;
+      printAreas?: Array<{ id: string; name: string; maxWidthMm: number; maxHeightMm: number }>;
+      colors?: Array<{
+        name: string;
+        hex: string;
+        active?: boolean;
+        images?: string[];
+        stock?: number | null;
+        image?: string; // backward compat
+      }>;
+      sizes?: string[];
+      optionGroups?: ProductOptionGroup[];
+      images?: Array<{ url: string; isPrimary: boolean; altText?: string }>;
+      priceTiers: ProductSlabInput[];
       stock?: number | null;
-      image?: string; // backward compat
-    }>;
-    sizes?: string[];
-    optionGroups?: ProductOptionGroup[];
-    images?: Array<{ url: string; isPrimary: boolean; altText?: string }>;
-    priceTiers: ProductSlabInput[];
-    stock?: number | null;
-    expectedVersion?: number;
-  },
-  actor: { name: string; role: string; ip?: string }
-): Promise<{ success: boolean; product?: ProductData; error?: string }> {
-  initializeDefaultProducts();
+      expectedVersion?: number;
+    },
+    actor: { name: string; role: string; ip?: string }
+  ): Promise<{ success: boolean; product?: ProductData; error?: string }> {
+    initializeDefaultProducts();
 
-  // 1. Validate pricing tiers (no gaps, no overlaps, strictly decreasing)
-  const tierInputs: PriceTierInput[] = data.priceTiers.map((t) => ({
-    minQty: t.minQty,
-    maxQty: t.maxQty,
-    unitPrice: t.unitPrice,
-  }));
-  const validation = validatePriceTiers(tierInputs);
-  if (!validation.valid) {
-    return { success: false, error: validation.errors.join("; ") };
-  }
-
-  // 2. Validate MOQ matches first tier
-  if (data.priceTiers[0].minQty !== data.minQty) {
-    return {
-      success: false,
-      error: `First pricing tier minQty (${data.priceTiers[0].minQty}) must match product MOQ (${data.minQty}).`,
-    };
-  }
-
-  // 3. Normalise colours and enforce Rule: A colour with no image cannot be active
-  const normalizedColors: ProductColorVariant[] = (data.colors || []).map((c) => {
-    const images: string[] = [];
-    if (c.images && Array.isArray(c.images)) {
-      images.push(...c.images.filter(Boolean));
-    }
-    if (c.image && !images.includes(c.image)) {
-      images.push(c.image);
-    }
-    return {
-      name: c.name.trim(),
-      hex: c.hex.trim(),
-      active: c.active !== undefined ? c.active : true,
-      images,
-      stock: c.stock !== undefined ? c.stock : null,
-    };
-  });
-
-  for (const c of normalizedColors) {
-    if (c.active && (!c.images || c.images.length === 0)) {
-      return {
-        success: false,
-        error: `Colour "${c.name}" cannot be active without at least one product image.`,
-      };
-    }
-  }
-
-  // 4. Resolve slug
-  const targetSlug = data.slug ? generateSlug(data.slug) : generateSlug(data.name);
-
-  // Check existing product
-  const existing = data.id ? IN_MEMORY_PRODUCTS.get(data.id) : null;
-
-  if (existing) {
-    // Optimistic Concurrency Check
-    if (data.expectedVersion !== undefined && existing.version !== data.expectedVersion) {
-      return {
-        success: false,
-        error: `Conflict: This product was modified by another user (current version: ${existing.version}, expected: ${data.expectedVersion}). Please refresh and try again.`,
-      };
-    }
-
-    // Handle slug change & redirect
-    if (existing.slug !== targetSlug) {
-      const taken = IN_MEMORY_PRODUCTS.get(targetSlug);
-      if (taken && taken.id !== existing.id) {
-        return { success: false, error: `Slug '${targetSlug}' is already in use by another product.` };
-      }
-      IN_MEMORY_SLUG_REDIRECTS.set(existing.slug, targetSlug);
-      IN_MEMORY_PRODUCTS.delete(existing.slug);
-    }
-  } else {
-    // New product: check slug uniqueness
-    const taken = IN_MEMORY_PRODUCTS.get(targetSlug);
-    if (taken) {
-      return { success: false, error: `Slug '${targetSlug}' is already in use by another product.` };
-    }
-  }
-
-  const id = existing?.id || data.id || `prod_${Date.now()}`;
-  const costPrice = data.costPrice || (existing ? existing.costPrice : 0);
-
-  // Determine status
-  let status: "DRAFT" | "ACTIVE" | "ARCHIVED" = data.status || (existing ? existing.status : "ACTIVE");
-  if (data.active === false && status === "ACTIVE") {
-    status = "DRAFT";
-  }
-
-  // Compute margins for slabs
-  const calculatedTiers = data.priceTiers.map((t) => {
-    const unitPricePaise = t.unitPricePaise || toPaise(t.unitPrice);
-    return {
+    // 1. Validate pricing tiers (no gaps, no overlaps, strictly decreasing)
+    const tierInputs: PriceTierInput[] = data.priceTiers.map((t) => ({
       minQty: t.minQty,
       maxQty: t.maxQty,
       unitPrice: t.unitPrice,
-      unitPricePaise,
-      marginPercent: calculateMargin(unitPricePaise, costPrice),
-    };
-  });
-
-  const now = new Date().toISOString();
-
-  const updatedProduct: ProductData = {
-    id,
-    slug: targetSlug,
-    name: data.name.trim(),
-    shortName: data.shortName?.trim() || data.name.trim(),
-    categorySlug: data.categorySlug,
-    description: data.description.trim(),
-    audience: data.audience,
-    badges: data.badges || existing?.badges || [],
-    specChips: data.specChips || existing?.specChips || [],
-    minQty: data.minQty,
-    qtyStep: data.qtyStep,
-    gstRate: data.gstRate,
-    active: status === "ACTIVE",
-    status,
-    isBestSeller: data.isBestSeller,
-    seoTitle: data.seoTitle || `${data.name} | Purple Friday`,
-    seoDescription: data.seoDescription || data.description.slice(0, 155),
-    socialImage: data.socialImage || existing?.socialImage,
-    costPrice,
-    mrp: data.mrp,
-    basePrice: data.basePrice,
-    printMethod: data.printMethod,
-    printAreas: data.printAreas || existing?.printAreas || [
-      { id: "front", name: "Front Chest", maxWidthMm: 280, maxHeightMm: 350 },
-    ],
-    colors: normalizedColors.length > 0 ? normalizedColors : existing?.colors || [
-      { name: "Standard", hex: "#15101F", active: true, images: [`/products/${targetSlug}.jpg`] },
-    ],
-    sizes: data.sizes || existing?.sizes || ["S", "M", "L", "XL", "2XL"],
-    optionGroups: data.optionGroups || existing?.optionGroups || [],
-    images: data.images || existing?.images || [
-      { url: `/products/${targetSlug}.jpg`, isPrimary: true, altText: data.name },
-    ],
-    priceTiers: calculatedTiers,
-    stock: data.stock !== undefined ? data.stock : existing?.stock ?? null,
-    rating: existing?.rating || 4.9,
-    reviewCount: existing?.reviewCount || 1,
-    version: (existing?.version || 0) + 1,
-    archived: status === "ARCHIVED",
-    createdAt: existing?.createdAt || now,
-    updatedAt: now,
-  };
-
-  IN_MEMORY_PRODUCTS.set(id, updatedProduct);
-  IN_MEMORY_PRODUCTS.set(targetSlug, updatedProduct);
-
-  try {
-    safeRevalidateTag("catalogue");
-    safeRevalidateTag("products");
-  } catch { }
-
-  await writeAudit({
-    actor: actor.name,
-    actorRole: actor.role,
-    action: existing ? "admin:update_product" : "admin:create_product",
-    entityType: "Product",
-    entityId: id,
-    before: existing ? (existing as unknown as Record<string, unknown>) : null,
-    after: updatedProduct as unknown as Record<string, unknown>,
-  });
-
-  return { success: true, product: updatedProduct };
-}
-
-/**
- * Duplicate a product creating a new draft copy
- */
-export async function duplicateProduct(
-  idOrSlug: string,
-  actor: { name: string; role: string; ip?: string }
-): Promise<{ success: boolean; product?: ProductData; error?: string }> {
-  initializeDefaultProducts();
-
-  const original = IN_MEMORY_PRODUCTS.get(idOrSlug);
-  if (!original) {
-    return { success: false, error: `Product '${idOrSlug}' not found.` };
-  }
-
-  let copySlug = `${original.slug}-copy`;
-  let counter = 1;
-  while (IN_MEMORY_PRODUCTS.has(copySlug)) {
-    counter += 1;
-    copySlug = `${original.slug}-copy-${counter}`;
-  }
-
-  const copyName = `${original.name} (Copy)`;
-  const copyId = `prod_${Date.now()}`;
-  const now = new Date().toISOString();
-
-  const copied: ProductData = {
-    ...original,
-    id: copyId,
-    slug: copySlug,
-    name: copyName,
-    shortName: `${original.shortName} (Copy)`,
-    status: "DRAFT",
-    active: false,
-    version: 1,
-    archived: false,
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  IN_MEMORY_PRODUCTS.set(copyId, copied);
-  IN_MEMORY_PRODUCTS.set(copySlug, copied);
-
-  try {
-    safeRevalidateTag("catalogue");
-    safeRevalidateTag("products");
-  } catch { }
-
-  await writeAudit({
-    actor: actor.name,
-    actorRole: actor.role,
-    action: "admin:duplicate_product",
-    entityType: "Product",
-    entityId: copyId,
-    after: { originalSlug: original.slug, newSlug: copySlug },
-  });
-
-  return { success: true, product: copied };
-}
-
-/**
- * Bulk update product status (ACTIVE, DRAFT, ARCHIVED)
- */
-export async function bulkUpdateProductStatus(
-  ids: string[],
-  newStatus: "ACTIVE" | "DRAFT" | "ARCHIVED",
-  actor: { name: string; role: string; ip?: string }
-): Promise<{ success: boolean; updatedCount: number }> {
-  initializeDefaultProducts();
-
-  let count = 0;
-  for (const id of ids) {
-    const prod = IN_MEMORY_PRODUCTS.get(id);
-    if (!prod) continue;
-
-    prod.status = newStatus;
-    prod.active = newStatus === "ACTIVE";
-    prod.archived = newStatus === "ARCHIVED";
-    prod.version += 1;
-    prod.updatedAt = new Date().toISOString();
-
-    IN_MEMORY_PRODUCTS.set(prod.id, prod);
-    IN_MEMORY_PRODUCTS.set(prod.slug, prod);
-    count += 1;
-  }
-
-  try {
-    safeRevalidateTag("catalogue");
-    safeRevalidateTag("products");
-  } catch { }
-
-  await writeAudit({
-    actor: actor.name,
-    actorRole: actor.role,
-    action: "admin:bulk_update_products",
-    entityType: "Product",
-    entityId: ids.join(","),
-    after: { status: newStatus, count },
-  });
-
-  return { success: true, updatedCount: count };
-}
-
-/**
- * Archive or Delete product.
- * If orders reference this product, hard deletion is blocked and it is archived instead.
- */
-export async function archiveOrDeleteProduct(
-  productId: string,
-  actor: { name: string; role: string; ip?: string }
-): Promise<{ success: boolean; actionTaken: "ARCHIVED" | "DELETED"; message: string }> {
-  initializeDefaultProducts();
-
-  const product = IN_MEMORY_PRODUCTS.get(productId);
-  if (!product) {
-    throw new Error(`Product '${productId}' not found.`);
-  }
-
-  // Check if orders reference this product
-  let isReferenced = false;
-  try {
-    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("sample-project")) {
-      const orderCount = await prisma.orderItem.count({
-        where: {
-          OR: [{ productId: product.id }, { productId: product.slug }],
-        },
-      });
-      if (orderCount > 0) isReferenced = true;
+    }));
+    const validation = validatePriceTiers(tierInputs);
+    if (!validation.valid) {
+      return { success: false, error: validation.errors.join("; ") };
     }
-  } catch {
-    // In fallback mode, assume safety check
-  }
 
-  // Reference check for seeded catalog products with simulated order history
-  if (
-    product.id.startsWith("round-gloss-badge") ||
-    product.id.startsWith("classic-crewneck") ||
-    product.id.startsWith("executive-pique")
-  ) {
-    isReferenced = true;
-  }
+    // 2. Validate MOQ matches first tier
+    if (data.priceTiers[0].minQty !== data.minQty) {
+      return {
+        success: false,
+        error: `First pricing tier minQty (${data.priceTiers[0].minQty}) must match product MOQ (${data.minQty}).`,
+      };
+    }
 
-  if (isReferenced) {
-    product.archived = true;
-    product.status = "ARCHIVED";
-    product.active = false;
-    product.version += 1;
-    product.updatedAt = new Date().toISOString();
+    // 3. Normalise colours and enforce Rule: A colour with no image cannot be active
+    const normalizedColors: ProductColorVariant[] = (data.colors || []).map((c) => {
+      const images: string[] = [];
+      if (c.images && Array.isArray(c.images)) {
+        images.push(...c.images.filter(Boolean));
+      }
+      if (c.image && !images.includes(c.image)) {
+        images.push(c.image);
+      }
+      return {
+        name: c.name.trim(),
+        hex: c.hex.trim(),
+        active: c.active !== undefined ? c.active : true,
+        images,
+        stock: c.stock !== undefined ? c.stock : null,
+      };
+    });
 
-    IN_MEMORY_PRODUCTS.set(product.id, product);
-    IN_MEMORY_PRODUCTS.set(product.slug, product);
+    for (const c of normalizedColors) {
+      if (c.active && (!c.images || c.images.length === 0)) {
+        return {
+          success: false,
+          error: `Colour "${c.name}" cannot be active without at least one product image.`,
+        };
+      }
+    }
+
+    // 4. Resolve slug
+    const targetSlug = data.slug ? generateSlug(data.slug) : generateSlug(data.name);
+
+    // Check existing product
+    const existing = data.id ? IN_MEMORY_PRODUCTS.get(data.id) : null;
+
+    if (existing) {
+      // Optimistic Concurrency Check
+      if (data.expectedVersion !== undefined && existing.version !== data.expectedVersion) {
+        return {
+          success: false,
+          error: `Conflict: This product was modified by another user (current version: ${existing.version}, expected: ${data.expectedVersion}). Please refresh and try again.`,
+        };
+      }
+
+      // Handle slug change & redirect
+      if (existing.slug !== targetSlug) {
+        const taken = IN_MEMORY_PRODUCTS.get(targetSlug);
+        if (taken && taken.id !== existing.id) {
+          return { success: false, error: `Slug '${targetSlug}' is already in use by another product.` };
+        }
+        IN_MEMORY_SLUG_REDIRECTS.set(existing.slug, targetSlug);
+        IN_MEMORY_PRODUCTS.delete(existing.slug);
+      }
+    } else {
+      // New product: check slug uniqueness
+      const taken = IN_MEMORY_PRODUCTS.get(targetSlug);
+      if (taken) {
+        return { success: false, error: `Slug '${targetSlug}' is already in use by another product.` };
+      }
+    }
+
+    const id = existing?.id || data.id || `prod_${Date.now()}`;
+    const costPrice = data.costPrice || (existing ? existing.costPrice : 0);
+
+    // Determine status
+    let status: "DRAFT" | "ACTIVE" | "ARCHIVED" = data.status || (existing ? existing.status : "ACTIVE");
+    if (data.active === false && status === "ACTIVE") {
+      status = "DRAFT";
+    }
+
+    // Compute margins for slabs
+    const calculatedTiers = data.priceTiers.map((t) => {
+      const unitPricePaise = t.unitPricePaise || toPaise(t.unitPrice);
+      return {
+        minQty: t.minQty,
+        maxQty: t.maxQty,
+        unitPrice: t.unitPrice,
+        unitPricePaise,
+        marginPercent: calculateMargin(unitPricePaise, costPrice),
+      };
+    });
+
+    const now = new Date().toISOString();
+
+    const updatedProduct: ProductData = {
+      id,
+      slug: targetSlug,
+      name: data.name.trim(),
+      shortName: data.shortName?.trim() || data.name.trim(),
+      categorySlug: data.categorySlug,
+      description: data.description.trim(),
+      audience: data.audience,
+      badges: data.badges || existing?.badges || [],
+      specChips: data.specChips || existing?.specChips || [],
+      minQty: data.minQty,
+      qtyStep: data.qtyStep,
+      gstRate: data.gstRate,
+      active: status === "ACTIVE",
+      status,
+      isBestSeller: data.isBestSeller,
+      seoTitle: data.seoTitle || `${data.name} | Purple Friday`,
+      seoDescription: data.seoDescription || data.description.slice(0, 155),
+      socialImage: data.socialImage || existing?.socialImage,
+      costPrice,
+      mrp: data.mrp,
+      basePrice: data.basePrice,
+      printMethod: data.printMethod,
+      printAreas: data.printAreas || existing?.printAreas || [
+        { id: "front", name: "Front Chest", maxWidthMm: 280, maxHeightMm: 350 },
+      ],
+      colors: normalizedColors.length > 0 ? normalizedColors : existing?.colors || [
+        { name: "Standard", hex: "#15101F", active: true, images: [`/products/${targetSlug}.jpg`] },
+      ],
+      sizes: data.sizes || existing?.sizes || ["S", "M", "L", "XL", "2XL"],
+      optionGroups: data.optionGroups || existing?.optionGroups || [],
+      images: data.images || existing?.images || [
+        { url: `/products/${targetSlug}.jpg`, isPrimary: true, altText: data.name },
+      ],
+      priceTiers: calculatedTiers,
+      stock: data.stock !== undefined ? data.stock : existing?.stock ?? null,
+      rating: existing?.rating || 4.9,
+      reviewCount: existing?.reviewCount || 1,
+      version: (existing?.version || 0) + 1,
+      archived: status === "ARCHIVED",
+      createdAt: existing?.createdAt || now,
+      updatedAt: now,
+    };
+
+    IN_MEMORY_PRODUCTS.set(id, updatedProduct);
+    IN_MEMORY_PRODUCTS.set(targetSlug, updatedProduct);
 
     try {
       safeRevalidateTag("catalogue");
@@ -778,48 +609,217 @@ export async function archiveOrDeleteProduct(
     await writeAudit({
       actor: actor.name,
       actorRole: actor.role,
-      action: "admin:archive_product",
+      action: existing ? "admin:update_product" : "admin:create_product",
+      entityType: "Product",
+      entityId: id,
+      before: existing ? (existing as unknown as Record<string, unknown>) : null,
+      after: updatedProduct as unknown as Record<string, unknown>,
+    });
+
+    return { success: true, product: updatedProduct };
+  }
+
+  /**
+   * Duplicate a product creating a new draft copy
+   */
+  export async function duplicateProduct(
+    idOrSlug: string,
+    actor: { name: string; role: string; ip?: string }
+  ): Promise<{ success: boolean; product?: ProductData; error?: string }> {
+    initializeDefaultProducts();
+
+    const original = IN_MEMORY_PRODUCTS.get(idOrSlug);
+    if (!original) {
+      return { success: false, error: `Product '${idOrSlug}' not found.` };
+    }
+
+    let copySlug = `${original.slug}-copy`;
+    let counter = 1;
+    while (IN_MEMORY_PRODUCTS.has(copySlug)) {
+      counter += 1;
+      copySlug = `${original.slug}-copy-${counter}`;
+    }
+
+    const copyName = `${original.name} (Copy)`;
+    const copyId = `prod_${Date.now()}`;
+    const now = new Date().toISOString();
+
+    const copied: ProductData = {
+      ...original,
+      id: copyId,
+      slug: copySlug,
+      name: copyName,
+      shortName: `${original.shortName} (Copy)`,
+      status: "DRAFT",
+      active: false,
+      version: 1,
+      archived: false,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    IN_MEMORY_PRODUCTS.set(copyId, copied);
+    IN_MEMORY_PRODUCTS.set(copySlug, copied);
+
+    try {
+      safeRevalidateTag("catalogue");
+      safeRevalidateTag("products");
+    } catch { }
+
+    await writeAudit({
+      actor: actor.name,
+      actorRole: actor.role,
+      action: "admin:duplicate_product",
+      entityType: "Product",
+      entityId: copyId,
+      after: { originalSlug: original.slug, newSlug: copySlug },
+    });
+
+    return { success: true, product: copied };
+  }
+
+  /**
+   * Bulk update product status (ACTIVE, DRAFT, ARCHIVED)
+   */
+  export async function bulkUpdateProductStatus(
+    ids: string[],
+    newStatus: "ACTIVE" | "DRAFT" | "ARCHIVED",
+    actor: { name: string; role: string; ip?: string }
+  ): Promise<{ success: boolean; updatedCount: number }> {
+    initializeDefaultProducts();
+
+    let count = 0;
+    for (const id of ids) {
+      const prod = IN_MEMORY_PRODUCTS.get(id);
+      if (!prod) continue;
+
+      prod.status = newStatus;
+      prod.active = newStatus === "ACTIVE";
+      prod.archived = newStatus === "ARCHIVED";
+      prod.version += 1;
+      prod.updatedAt = new Date().toISOString();
+
+      IN_MEMORY_PRODUCTS.set(prod.id, prod);
+      IN_MEMORY_PRODUCTS.set(prod.slug, prod);
+      count += 1;
+    }
+
+    try {
+      safeRevalidateTag("catalogue");
+      safeRevalidateTag("products");
+    } catch { }
+
+    await writeAudit({
+      actor: actor.name,
+      actorRole: actor.role,
+      action: "admin:bulk_update_products",
+      entityType: "Product",
+      entityId: ids.join(","),
+      after: { status: newStatus, count },
+    });
+
+    return { success: true, updatedCount: count };
+  }
+
+  /**
+   * Archive or Delete product.
+   * If orders reference this product, hard deletion is blocked and it is archived instead.
+   */
+  export async function archiveOrDeleteProduct(
+    productId: string,
+    actor: { name: string; role: string; ip?: string }
+  ): Promise<{ success: boolean; actionTaken: "ARCHIVED" | "DELETED"; message: string }> {
+    initializeDefaultProducts();
+
+    const product = IN_MEMORY_PRODUCTS.get(productId);
+    if (!product) {
+      throw new Error(`Product '${productId}' not found.`);
+    }
+
+    // Check if orders reference this product
+    let isReferenced = false;
+    try {
+      if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("sample-project")) {
+        const orderCount = await prisma.orderItem.count({
+          where: {
+            OR: [{ productId: product.id }, { productId: product.slug }],
+          },
+        });
+        if (orderCount > 0) isReferenced = true;
+      }
+    } catch {
+      // In fallback mode, assume safety check
+    }
+
+    // Reference check for seeded catalog products with simulated order history
+    if (
+      product.id.startsWith("round-gloss-badge") ||
+      product.id.startsWith("classic-crewneck") ||
+      product.id.startsWith("executive-pique")
+    ) {
+      isReferenced = true;
+    }
+
+    if (isReferenced) {
+      product.archived = true;
+      product.status = "ARCHIVED";
+      product.active = false;
+      product.version += 1;
+      product.updatedAt = new Date().toISOString();
+
+      IN_MEMORY_PRODUCTS.set(product.id, product);
+      IN_MEMORY_PRODUCTS.set(product.slug, product);
+
+      try {
+        safeRevalidateTag("catalogue");
+        safeRevalidateTag("products");
+      } catch { }
+
+      await writeAudit({
+        actor: actor.name,
+        actorRole: actor.role,
+        action: "admin:archive_product",
+        entityType: "Product",
+        entityId: product.id,
+        after: { archived: true, status: "ARCHIVED", active: false, reason: "Product referenced in existing orders" },
+      });
+
+      return {
+        success: true,
+        actionTaken: "ARCHIVED",
+        message: `Product is referenced in existing customer orders. It has been safely archived and deactivated from the storefront.`,
+      };
+    }
+
+    // Unreferenced product: safe to permanently delete
+    IN_MEMORY_PRODUCTS.delete(product.id);
+    IN_MEMORY_PRODUCTS.delete(product.slug);
+
+    try {
+      safeRevalidateTag("catalogue");
+      safeRevalidateTag("products");
+    } catch { }
+
+    await writeAudit({
+      actor: actor.name,
+      actorRole: actor.role,
+      action: "admin:delete_product",
       entityType: "Product",
       entityId: product.id,
-      after: { archived: true, status: "ARCHIVED", active: false, reason: "Product referenced in existing orders" },
+      before: product as unknown as Record<string, unknown>,
     });
 
     return {
       success: true,
-      actionTaken: "ARCHIVED",
-      message: `Product is referenced in existing customer orders. It has been safely archived and deactivated from the storefront.`,
+      actionTaken: "DELETED",
+      message: `Product was permanently deleted.`,
     };
   }
 
-  // Unreferenced product: safe to permanently delete
-  IN_MEMORY_PRODUCTS.delete(product.id);
-  IN_MEMORY_PRODUCTS.delete(product.slug);
-
-  try {
-    safeRevalidateTag("catalogue");
-    safeRevalidateTag("products");
-  } catch { }
-
-  await writeAudit({
-    actor: actor.name,
-    actorRole: actor.role,
-    action: "admin:delete_product",
-    entityType: "Product",
-    entityId: product.id,
-    before: product as unknown as Record<string, unknown>,
-  });
-
-  return {
-    success: true,
-    actionTaken: "DELETED",
-    message: `Product was permanently deleted.`,
-  };
-}
-
-/**
- * Idempotent importer to populate products into database/service
- */
-export async function importCatalogueToDatabase(): Promise<{ count: number }> {
-  initializeDefaultProducts();
-  return { count: IN_MEMORY_PRODUCTS.size / 2 };
-}
+  /**
+   * Idempotent importer to populate products into database/service
+   */
+  export async function importCatalogueToDatabase(): Promise<{ count: number }> {
+    initializeDefaultProducts();
+    return { count: IN_MEMORY_PRODUCTS.size / 2 };
+  }

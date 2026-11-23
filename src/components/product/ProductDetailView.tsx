@@ -264,8 +264,8 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailPro
   };
 
   return (
-      <div className="bg-paper min-h-screen">
-        {/* Breadcrumb Navigation */}
+    <div className="bg-paper min-h-screen pb-24 lg:pb-0">
+      {/* Breadcrumb Navigation */}
         <nav
           aria-label="Breadcrumb"
           className="border-b border-ink/20 bg-paper-pure px-4 md:px-8 py-3 text-xs font-mono text-ink/70"
@@ -294,7 +294,7 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailPro
               <div className="mx-auto max-w-7xl px-4 md:px-8 py-8 md:py-12">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
                   {/* Left Column: Real Photographic Gallery & Zoom Stage (6 cols) */}
-                  <div className="lg:col-span-6 sticky top-24">
+                  <div className="lg:col-span-6 lg:sticky lg:top-24">
                     <ProductGallery
                       template={product.template}
                       slug={effectivePhotoSlug}

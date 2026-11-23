@@ -66,112 +66,112 @@ export async function generateMetadata({
     };
   }
 
-  const canonicalSlug = category.slug;
-  const meta = META_MAP[canonicalSlug] || META_MAP[slug] || {
-    title: category.name || `${canonicalSlug.replace(/-/g, " ").toUpperCase()} Collection`,
-    description: category.description || "Custom printed merchandise by Purple Friday India.",
-  };
+    const canonicalSlug = category.slug;
+    const meta = META_MAP[canonicalSlug] || META_MAP[slug] || {
+      title: category.name || `${canonicalSlug.replace(/-/g, " ").toUpperCase()} Collection`,
+      description: category.description || "Custom printed merchandise by Purple Friday India.",
+    };
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://purplefriday.in";
-  const canonicalUrl = `${siteUrl}${categoryHref(canonicalSlug)}`;
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://purplefriday.in";
+    const canonicalUrl = `${siteUrl}${categoryHref(canonicalSlug)}`;
 
-  return {
-    title: `${meta.title} | Purple Friday`,
-    description: meta.description,
-    alternates: {
-      canonical: canonicalUrl,
-    },
-    openGraph: {
-      title: `${meta.title} — Wholesale Custom Print India`,
+    return {
+      title: `${meta.title} | Purple Friday`,
       description: meta.description,
-      url: canonicalUrl,
-      type: "website",
-      locale: "en_IN",
-      siteName: "Purple Friday",
-    },
-  };
-}
-
-export default async function CategoryPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const resolved = await params;
-  const slug = resolved?.slug;
-  if (!slug) {
-    notFound();
+      alternates: {
+        canonical: canonicalUrl,
+      },
+      openGraph: {
+        title: `${meta.title} — Wholesale Custom Print India`,
+        description: meta.description,
+        url: canonicalUrl,
+        type: "website",
+        locale: "en_IN",
+        siteName: "Purple Friday",
+      },
+    };
   }
 
-  const category = await getCategoryBySlug(slug);
-  if (!category) {
-    notFound();
-  }
+  export default async function CategoryPage({
+    params,
+  }: {
+    params: Promise<{ slug: string }>;
+  }) {
+    const resolved = await params;
+    const slug = resolved?.slug;
+    if (!slug) {
+      notFound();
+    }
 
-  const canonicalSlug = category.slug;
-  const meta = META_MAP[canonicalSlug] || META_MAP[slug] || {
-    title: category.name || canonicalSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-    description: category.description || "Precision-printed bulk custom merchandise for modern Indian brands.",
-  };
+    const category = await getCategoryBySlug(slug);
+    if (!category) {
+      notFound();
+    }
 
-  // Fetch initial products (for t-shirts, this includes both t-shirts & polo-shirts)
-  const rawProducts = await getCachedProducts(canonicalSlug);
+      const canonicalSlug = category.slug;
+      const meta = META_MAP[canonicalSlug] || META_MAP[slug] || {
+        title: category.name || canonicalSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+        description: category.description || "Precision-printed bulk custom merchandise for modern Indian brands.",
+      };
 
-  const initialProducts: ProductCardData[] = rawProducts.slice(0, 12).map((p) => ({
-    id: p.id,
-    slug: p.slug,
-    name: p.name,
-    shortName: p.shortName,
-    description: p.description,
-    basePrice: p.basePrice,
-    mrp: p.mrp,
-    minQty: p.minQty,
-    qtyStep: p.qtyStep,
-    rating: p.rating || 4.9,
-    reviewCount: p.reviewCount || 42,
-    badges: p.badges,
-    template: p.template || p.slug,
-    color: p.colors?.[0]?.hex || "#FFFFFF",
-    colors: p.colors,
-  }));
+      // Fetch initial products (for t-shirts, this includes both t-shirts & polo-shirts)
+      const rawProducts = await getCachedProducts(canonicalSlug);
 
-  const initialCursor = rawProducts.length > 12 ? rawProducts[11].slug : null;
+      const initialProducts: ProductCardData[] = rawProducts.slice(0, 12).map((p) => ({
+        id: p.id,
+        slug: p.slug,
+        name: p.name,
+        shortName: p.shortName,
+        description: p.description,
+        basePrice: p.basePrice,
+        mrp: p.mrp,
+        minQty: p.minQty,
+        qtyStep: p.qtyStep,
+        rating: p.rating || 4.9,
+        reviewCount: p.reviewCount || 42,
+        badges: p.badges,
+        template: p.template || p.slug,
+        color: p.colors?.[0]?.hex || "#FFFFFF",
+        colors: p.colors,
+      }));
 
-  const counts = {
-    all: rawProducts.length,
-    team: rawProducts.filter((p) => p.audience === "TEAM" || p.audience === "BOTH").length,
-    gifting: rawProducts.filter((p) => p.audience === "GIFTING" || p.audience === "BOTH").length,
-  };
+      const initialCursor = rawProducts.length > 12 ? rawProducts[11].slug : null;
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://purplefriday.in";
-  const canonicalUrl = `${siteUrl}${categoryHref(slug)}`;
+      const counts = {
+        all: rawProducts.length,
+        team: rawProducts.filter((p) => p.audience === "TEAM" || p.audience === "BOTH").length,
+        gifting: rawProducts.filter((p) => p.audience === "GIFTING" || p.audience === "BOTH").length,
+      };
 
-  const breadcrumbJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      {
-        "@type": "ListItem",
-        position: 1,
-        name: "Home",
-        item: siteUrl,
-      },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: "Categories",
-        item: `${siteUrl}/category/all`,
-      },
-      {
-        "@type": "ListItem",
-        position: 3,
-        name: meta.title,
-        item: canonicalUrl,
-      },
-    ],
-  };
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://purplefriday.in";
+      const canonicalUrl = `${siteUrl}${categoryHref(slug)}`;
 
-  return (
+      const breadcrumbJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Home",
+            item: siteUrl,
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: "Categories",
+            item: `${siteUrl}/category/all`,
+          },
+          {
+            "@type": "ListItem",
+            position: 3,
+            name: meta.title,
+            item: canonicalUrl,
+          },
+        ],
+      };
+
+      return(
     <>
       <script
         id={`breadcrumb-${slug}-schema`}
@@ -192,5 +192,5 @@ export default async function CategoryPage({
       </Suspense>
     </>
   );
-}
+  }
 

@@ -5,5 +5,7 @@
       "schedule": "0 0 * * *"
     }
   ],
-  "regions": ["bom1"]
+  "regions": [
+    "bom1"
+  ]
 }

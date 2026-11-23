@@ -20,7 +20,7 @@
     "vercel-build": "tsx scripts/db-migrate.ts && next build"
   },
   "engines": {
-    "node": "20.x"
+    "node": "26.x"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -74,7 +74,7 @@
     "@eslint/eslintrc": "^3",
     "@playwright/test": "^1.65.0",
     "@types/bcryptjs": "^2.4.6",
-    "@types/node": "^20.19.43 || ^22.0.0",
+    "@types/node": "^20.19.43 || ^22.0.0 || ^26.0.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/web-push": "^3.6.4",

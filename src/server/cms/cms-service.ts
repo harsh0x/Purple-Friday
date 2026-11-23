@@ -7,14 +7,14 @@ async function safeRevalidateTag(tag: string) {
   try {
     const { revalidateTag } = await import("next/cache");
     revalidateTag(tag);
-  } catch {}
+  } catch { }
 }
 
 async function safeRevalidatePath(path: string) {
   try {
     const { revalidatePath } = await import("next/cache");
     revalidatePath(path);
-  } catch {}
+  } catch { }
 }
 import {
   StorefrontCmsDocument,

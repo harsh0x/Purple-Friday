@@ -164,8 +164,8 @@ export function CustomizerControls({
           type="button"
           onClick={() => setActiveTab("artwork")}
           className={`flex-1 py-3 text-xs font-mono uppercase tracking-wider flex items-center justify-center gap-1.5 border-b-2 transition-colors ${activeTab === "artwork"
-              ? "border-pf-violet text-pf-violet bg-white font-bold"
-              : "border-transparent text-pf-ink/60 hover:text-pf-ink"
+            ? "border-pf-violet text-pf-violet bg-white font-bold"
+            : "border-transparent text-pf-ink/60 hover:text-pf-ink"
             }`}
         >
           <Upload className="w-4 h-4" />
@@ -176,8 +176,8 @@ export function CustomizerControls({
           type="button"
           onClick={() => setActiveTab("text")}
           className={`flex-1 py-3 text-xs font-mono uppercase tracking-wider flex items-center justify-center gap-1.5 border-b-2 transition-colors ${activeTab === "text"
-              ? "border-pf-violet text-pf-violet bg-white font-bold"
-              : "border-transparent text-pf-ink/60 hover:text-pf-ink"
+            ? "border-pf-violet text-pf-violet bg-white font-bold"
+            : "border-transparent text-pf-ink/60 hover:text-pf-ink"
             }`}
         >
           <Type className="w-4 h-4" />
@@ -188,8 +188,8 @@ export function CustomizerControls({
           type="button"
           onClick={() => setActiveTab("product")}
           className={`flex-1 py-3 text-xs font-mono uppercase tracking-wider flex items-center justify-center gap-1.5 border-b-2 transition-colors ${activeTab === "product"
-              ? "border-pf-violet text-pf-violet bg-white font-bold"
-              : "border-transparent text-pf-ink/60 hover:text-pf-ink"
+            ? "border-pf-violet text-pf-violet bg-white font-bold"
+            : "border-transparent text-pf-ink/60 hover:text-pf-ink"
             }`}
         >
           <Palette className="w-4 h-4" />
@@ -286,8 +286,8 @@ export function CustomizerControls({
                     type="button"
                     onClick={onToggleFlipLogo}
                     className={`flex flex-col items-center justify-center py-2.5 px-2 rounded-lg text-xs font-mono border transition-colors ${logoFlipped
-                        ? "bg-pf-violet text-white border-pf-violet"
-                        : "bg-pf-paper hover:bg-pf-lilac/30 text-pf-ink border-pf-ink/10"
+                      ? "bg-pf-violet text-white border-pf-violet"
+                      : "bg-pf-paper hover:bg-pf-lilac/30 text-pf-ink border-pf-ink/10"
                       }`}
                   >
                     <FlipHorizontal className="w-4 h-4 mb-1" />
@@ -469,8 +469,8 @@ export function CustomizerControls({
                     onClick={() => onSelectColor(c.hex)}
                     title={c.name}
                     className={`w-9 h-9 rounded-full border-2 transition-transform relative flex items-center justify-center ${selectedColor.toLowerCase() === c.hex.toLowerCase()
-                        ? "border-pf-violet scale-110 shadow-sm"
-                        : "border-pf-ink/20 hover:scale-105"
+                      ? "border-pf-violet scale-110 shadow-sm"
+                      : "border-pf-ink/20 hover:scale-105"
                       }`}
                     style={{ backgroundColor: c.hex }}
                   >
@@ -498,8 +498,8 @@ export function CustomizerControls({
                       type="button"
                       onClick={() => onSelectView(v)}
                       className={`py-2 text-xs font-mono uppercase tracking-wider rounded-lg border transition-colors ${view === v
-                          ? "bg-pf-ink text-white border-pf-ink"
-                          : "bg-pf-paper text-pf-ink/70 border-pf-ink/10 hover:text-pf-ink"
+                        ? "bg-pf-ink text-white border-pf-ink"
+                        : "bg-pf-paper text-pf-ink/70 border-pf-ink/10 hover:text-pf-ink"
                         }`}
                     >
                       {v === "front" ? "Front Chest" : "Full Back"}
@@ -550,8 +550,8 @@ export function CustomizerControls({
                       type="button"
                       onClick={() => onSelectColor(c.hex)}
                       className={`p-2 rounded-lg border flex flex-col items-center gap-1 transition-all ${selectedColor.toLowerCase() === c.hex.toLowerCase()
-                          ? "border-pf-violet bg-pf-lilac/20"
-                          : "border-pf-ink/10 hover:border-pf-ink/30 bg-white"
+                        ? "border-pf-violet bg-pf-lilac/20"
+                        : "border-pf-ink/10 hover:border-pf-ink/30 bg-white"
                         }`}
                     >
                       <div

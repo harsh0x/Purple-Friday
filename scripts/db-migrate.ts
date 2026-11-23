@@ -1,5 +1,7 @@
 import { execSync } from "node:child_process";
 
+process.env.PRISMA_HIDE_UPDATE_MESSAGE = "true";
+
 async function main() {
   console.log("--------------------------------------------------");
   console.log("Purple Friday - Database Migration Runner");
@@ -7,10 +9,13 @@ async function main() {
 
   const databaseUrl = process.env.DATABASE_URL;
 
-  // Always generate Prisma Client types
+  // Ensure Prisma Client types are present
   try {
-    console.log("[db:migrate] Generating Prisma Client...");
-    execSync("npx prisma generate", { stdio: "inherit" });
+    console.log("[db:migrate] Ensuring Prisma Client is ready...");
+    execSync("npx prisma generate", {
+      stdio: "inherit",
+      env: { ...process.env, PRISMA_HIDE_UPDATE_MESSAGE: "true" },
+    });
   } catch (error) {
     console.error("[db:migrate] Failed to generate Prisma Client:", error);
     process.exit(1);
@@ -30,7 +35,10 @@ async function main() {
 
   try {
     console.log("[db:migrate] Pushing schema to PostgreSQL database...");
-    execSync("npx prisma db push --skip-generate", { stdio: "inherit" });
+    execSync("npx prisma db push --skip-generate", {
+      stdio: "inherit",
+      env: { ...process.env, PRISMA_HIDE_UPDATE_MESSAGE: "true" },
+    });
     console.log("[db:migrate] Schema pushed successfully.");
 
     // Apply append-only trigger for AuditLog

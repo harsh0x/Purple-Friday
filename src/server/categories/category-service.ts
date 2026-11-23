@@ -5,7 +5,7 @@ async function safeRevalidateTag(tag: string) {
   try {
     const { revalidateTag } = await import("next/cache");
     revalidateTag(tag);
-  } catch {}
+  } catch { }
 }
 
 export interface CategoryData {
@@ -275,7 +275,7 @@ export async function saveCategory(
   try {
     safeRevalidateTag("catalogue");
     safeRevalidateTag("categories");
-  } catch {}
+  } catch { }
 
   await writeAudit({
     actor: actor.name,
@@ -340,7 +340,7 @@ export async function reorderCategory(
   try {
     safeRevalidateTag("catalogue");
     safeRevalidateTag("categories");
-  } catch {}
+  } catch { }
 
   await writeAudit({
     actor: actor.name,
@@ -394,7 +394,7 @@ export async function deleteCategory(
   try {
     safeRevalidateTag("catalogue");
     safeRevalidateTag("categories");
-  } catch {}
+  } catch { }
 
   await writeAudit({
     actor: actor.name,

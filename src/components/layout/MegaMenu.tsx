@@ -81,13 +81,21 @@ export const NAV_CATEGORIES: NavCategoryItem[] = [
 interface MegaMenuPanelProps {
   category: NavCategoryItem;
   onClose: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
-export function MegaMenuPanel({ category, onClose }: MegaMenuPanelProps) {
+export function MegaMenuPanel({
+  category,
+  onClose,
+  onMouseEnter,
+  onMouseLeave,
+}: MegaMenuPanelProps) {
   return (
     <div
       className="absolute top-full left-0 w-full bg-paper border-b-2 border-ink shadow-stamp-lg animate-in fade-in-0 slide-in-from-top-1 duration-200 z-50"
-      onMouseLeave={onClose}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave || onClose}
     >
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid grid-cols-12 gap-8 items-start">

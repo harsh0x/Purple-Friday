@@ -11,6 +11,79 @@ import { useWishlist } from "@/hooks/useWishlist";
 import { useSearchDrawer } from "@/hooks/useSearchDrawer";
 import { cn } from "@/lib/utils";
 
+// Match CMS navigation items to rich preview categories
+function getCategoryForLink(link: { label: string; url: string }): NavCategoryItem | null {
+  const normLabel = link.label.toLowerCase();
+  const normUrl = link.url.toLowerCase();
+
+  return (
+    NAV_CATEGORIES.find((cat) => {
+      const catSlug = cat.slug.toLowerCase();
+      const catName = cat.name.toLowerCase();
+
+      // Direct label or slug match
+      if (normLabel === catName || normLabel.includes(catSlug) || normUrl.includes(catSlug)) {
+        return true;
+      }
+
+      // Tees & Polos / T-Shirts
+      if (
+        cat.slug === "t-shirts" &&
+        (normLabel.includes("tee") ||
+          normLabel.includes("polo") ||
+          normLabel.includes("shirt") ||
+          normUrl.includes("tee") ||
+          normUrl.includes("shirt"))
+      ) {
+        return true;
+      }
+
+      // Hoodies & Sweatshirts
+      if (
+        cat.slug === "hoodies" &&
+        (normLabel.includes("hoodie") ||
+          normLabel.includes("sweatshirt") ||
+          normUrl.includes("hoodie"))
+      ) {
+        return true;
+      }
+
+      // Badges
+      if (
+        cat.slug === "magnetic-badges" &&
+        (normLabel.includes("badge") ||
+          normLabel.includes("pin") ||
+          normUrl.includes("badge"))
+      ) {
+        return true;
+      }
+
+      // Caps & Hats
+      if (
+        cat.slug === "caps" &&
+        (normLabel.includes("cap") ||
+          normLabel.includes("hat") ||
+          normUrl.includes("cap"))
+      ) {
+        return true;
+      }
+
+      // Corporate Gifting / Gifts
+      if (
+        cat.slug === "corporate-gifts" &&
+        (normLabel.includes("gift") ||
+          normLabel.includes("corporate") ||
+          normUrl.includes("corporate") ||
+          normUrl.includes("gift"))
+      ) {
+        return true;
+      }
+
+      return false;
+    }) || null
+  );
+}
+
   export function Header({
     cmsNav,
   }: {
@@ -23,6 +96,7 @@ import { cn } from "@/lib/utils";
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [isVisible, setIsVisible] = useState(true);
     const lastScrollY = useRef(0);
+    const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const { items: cartItems, openCart } = useCart();
     const { items: wishlistItems, openWishlist } = useWishlist();
@@ -60,8 +134,32 @@ import { cn } from "@/lib/utils";
       return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
+    const handleMouseEnterCategory = (cat: NavCategoryItem | null) => {
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+        closeTimeoutRef.current = null;
+      }
+      if (cat) {
+        setActiveCategory(cat);
+      } else {
+        setActiveCategory(null);
+      }
+    };
+
+    const handleMouseLeaveNav = () => {
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+      }
+      closeTimeoutRef.current = setTimeout(() => {
+        setActiveCategory(null);
+      }, 250);
+    };
+
     // Close mega menu on route change
     useEffect(() => {
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+      }
       setActiveCategory(null);
     }, [pathname]);
 
@@ -73,12 +171,6 @@ import { cn } from "@/lib/utils";
     return (
       <>
         <header
-          onMouseLeave={(e) => {
-            const related = e.relatedTarget as Node | null;
-            if (!e.currentTarget.contains(related)) {
-              setActiveCategory(null);
-            }
-          }}
           className={cn(
             "sticky top-0 z-40 w-full bg-paper/95 backdrop-blur-md border-b border-ink/20 transition-transform duration-300 ease-editorial",
             isVisible ? "translate-y-0" : "-translate-y-full"
@@ -100,53 +192,64 @@ import { cn } from "@/lib/utils";
 
             {/* 2. Middle: Desktop Navigation Links with Mega-Menu Trigger */}
             <nav className="hidden lg:flex items-center space-x-1" aria-label="Main Navigation">
-                {
-                  cmsNav?.links && cmsNav.links.length > 0
-                  ? cmsNav.links.map((link) => {
-                    const isCurrent = pathname === link.url;
+              {cmsNav?.links && cmsNav.links.length > 0
+                ? cmsNav.links.map((link) => {
+                    const matchedCategory = getCategoryForLink(link);
+                    const isActive = matchedCategory && activeCategory?.slug === matchedCategory.slug;
+                    const isCurrentRoute =
+                      pathname === link.url || (matchedCategory && pathname.includes(matchedCategory.slug));
+
                     return (
-                      <Link
+                      <div
                         key={link.id}
-                        href={link.url}
-                        className={cn(
-                          "px-3.5 py-2 text-xs font-mono uppercase tracking-wider font-semibold transition-colors rounded-xs select-none block",
-                          isCurrent
-                            ? "text-violet font-bold"
-                            : "text-ink/80 hover:text-ink hover:bg-ink/5"
-                        )}
+                        onMouseEnter={() => handleMouseEnterCategory(matchedCategory)}
+                        onMouseLeave={handleMouseLeaveNav}
+                        className="relative"
                       >
-                        {link.label}
-                      </Link>
+                        <Link
+                          href={link.url}
+                          className={cn(
+                            "px-3.5 py-2 text-xs font-mono uppercase tracking-wider font-semibold transition-colors rounded-xs select-none block",
+                            isActive || isCurrentRoute
+                              ? "text-violet font-bold bg-violet/5"
+                              : "text-ink/80 hover:text-ink hover:bg-ink/5"
+                          )}
+                        >
+                          {link.label}
+                        </Link>
+                      </div>
                     );
                   })
-                  : NAV_CATEGORIES.map((cat) => {
+                : NAV_CATEGORIES.map((cat) => {
                     const isActive = activeCategory?.slug === cat.slug;
                     const isCurrentRoute = pathname.includes(cat.slug);
 
-                return (
-                  <div
-                    key={cat.slug}
-                    onMouseEnter={() => setActiveCategory(cat)}
-                    className="relative"
-                  >
-                    <Link
-                      href={cat.href}
-                      className={cn(
-                        "px-3.5 py-2 text-xs font-mono uppercase tracking-wider font-semibold transition-colors rounded-xs select-none block",
-                        isActive || isCurrentRoute
-                          ? "text-violet font-bold"
-                          : "text-ink/80 hover:text-ink hover:bg-ink/5"
-                      )}
-                    >
-                      {cat.name}
-                    </Link>
-                  </div>
-                );
-              })}
+                    return (
+                      <div
+                        key={cat.slug}
+                        onMouseEnter={() => handleMouseEnterCategory(cat)}
+                        onMouseLeave={handleMouseLeaveNav}
+                        className="relative"
+                      >
+                        <Link
+                          href={cat.href}
+                          className={cn(
+                            "px-3.5 py-2 text-xs font-mono uppercase tracking-wider font-semibold transition-colors rounded-xs select-none block",
+                            isActive || isCurrentRoute
+                              ? "text-violet font-bold bg-violet/5"
+                              : "text-ink/80 hover:text-ink hover:bg-ink/5"
+                          )}
+                        >
+                          {cat.name}
+                        </Link>
+                      </div>
+                    );
+                  })}
 
               {/* Best Sellers Flag Link */}
               <Link
                 href="/category/best-sellers"
+                onMouseEnter={() => handleMouseEnterCategory(null)}
                 className={cn(
                   "px-3 py-1.5 text-xs font-mono uppercase tracking-wider font-bold text-ink rounded-full bg-spot-lime hover:bg-spot-lime-hover transition-colors ml-2 border border-ink shadow-stamp-sm",
                   pathname === "/category/best-sellers" && "ring-2 ring-violet"
@@ -216,6 +319,13 @@ import { cn } from "@/lib/utils";
             <MegaMenuPanel
               category={activeCategory}
               onClose={() => setActiveCategory(null)}
+              onMouseEnter={() => {
+                if (closeTimeoutRef.current) {
+                  clearTimeout(closeTimeoutRef.current);
+                  closeTimeoutRef.current = null;
+                }
+              }}
+              onMouseLeave={handleMouseLeaveNav}
             />
           )}
         </header>

@@ -84,7 +84,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. Issue secure Admin Session
-    const sessionToken = await createAdminSessionToken(user);
+    const sessionToken = await createAdminSessionToken({
+      ...user,
+      mustChangePassword: false,
+    });
     const homeScreen = "/admin";
 
     // 6. Record immutable audit log
@@ -97,7 +100,7 @@ export async function POST(request: NextRequest) {
       ipAddress: clientIp,
       after: {
         role: user.role,
-        mustChangePassword: user.mustChangePassword,
+        mustChangePassword: false,
       },
     });
 
@@ -108,7 +111,7 @@ export async function POST(request: NextRequest) {
         email: user.email,
         name: user.name,
         role: user.role,
-        mustChangePassword: user.mustChangePassword,
+        mustChangePassword: false,
       },
       homeScreen,
     });

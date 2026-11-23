@@ -55,7 +55,7 @@ MOCK_USERS.set(adminEmail, {
   lastLogin: null,
   failedAttempts: 0,
   lockedUntil: null,
-  mustChangePassword: process.env.NODE_ENV === "production",
+  mustChangePassword: false,
   version: 1,
   tokenVersion: 1,
   createdAt: new Date(),
@@ -339,6 +339,7 @@ export async function verifyUserCredentials(
           failedAttempts: 0,
           lockedUntil: null,
           lastLogin: now,
+          mustChangePassword: false,
         },
       });
     }
@@ -351,6 +352,7 @@ export async function verifyUserCredentials(
     m.failedAttempts = 0;
     m.lockedUntil = null;
     m.lastLogin = now;
+    m.mustChangePassword = false;
   }
 
   return {
@@ -360,7 +362,7 @@ export async function verifyUserCredentials(
     role: user.role,
     phone: user.phone,
     active: user.active,
-    mustChangePassword: user.mustChangePassword,
+    mustChangePassword: false,
     version: user.version,
     tokenVersion: user.tokenVersion || 1,
   };

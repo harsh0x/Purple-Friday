@@ -65,7 +65,7 @@ async function seedProductionAdmin() {
         passwordHash,
         role: UserRole.SUPER_ADMIN,
         active: true,
-        mustChangePassword: true,
+        mustChangePassword: false,
       },
       create: {
         email: adminEmail,
@@ -73,7 +73,7 @@ async function seedProductionAdmin() {
         passwordHash,
         role: UserRole.SUPER_ADMIN,
         active: true,
-        mustChangePassword: true,
+        mustChangePassword: false,
       },
     });
 

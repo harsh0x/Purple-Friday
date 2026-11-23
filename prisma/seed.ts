@@ -28,7 +28,7 @@ async function main() {
       passwordHash,
       role: UserRole.SUPER_ADMIN,
       active: true,
-      mustChangePassword: true,
+      mustChangePassword: false,
     },
     create: {
       email: adminEmail,
@@ -37,7 +37,7 @@ async function main() {
       role: UserRole.SUPER_ADMIN,
       phone: "+919876543210",
       active: true,
-      mustChangePassword: true,
+      mustChangePassword: false,
     },
   });
   console.log(`[seed] Superadmin user verified: ${admin.email}`);

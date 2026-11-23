@@ -31,6 +31,7 @@ Configure these in **Vercel Project Settings > Environment Variables** (Producti
 1. **Push Repository**: Ensure all local assets (`../purple-friday-assets`) remain outside Git.
 2. **Import Project into Vercel**: Framework preset: **Next.js**, Root Directory: `./` (or `purple-friday`).
 3. **Build Command**: Set Build Command to `npm run vercel-build` (runs migrations + build).
-4. **Deploy**: Trigger initial build. Vercel runs Prisma migrations and Next.js static optimization.
-5. **Bootstrap Admin**: In Vercel CLI or deploy console, run `npm run seed:prod-admin` to provision single Superadmin.
-6. **Verify Health**: Check `https://<domain>/api/health` returns `{"ok":true}`.
+4. **Cron Job (Hobby vs Pro)**: `vercel.json` is set to daily (`0 0 * * *`) for Vercel Hobby accounts. On Vercel Pro, change to `*/10 * * * *` if desired.
+5. **Deploy**: Trigger initial build. Vercel runs Prisma migrations and Next.js static optimization.
+6. **Bootstrap Admin**: In Vercel CLI or deploy console, run `npm run seed:prod-admin` to provision single Superadmin.
+7. **Verify Health**: Check `https://<domain>/api/health` returns `{"ok":true}`.

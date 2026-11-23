@@ -407,10 +407,10 @@ export function getOrderById(orderId: string): StoredOrder | undefined {
   return ORDER_REGISTRY.get(orderId);
 }
 
-  export async function markOrderPaid(
-    orderIdOrNumber: string,
+export async function markOrderPaid(
+  orderIdOrNumber: string,
   paymentReference?: string
-  ): Promise<StoredOrder | undefined> {
+): Promise<StoredOrder | undefined> {
   const order = ORDER_REGISTRY.get(orderIdOrNumber);
   if (!order) return undefined;
 

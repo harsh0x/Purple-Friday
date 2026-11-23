@@ -18,6 +18,14 @@ export default function ErrorBoundary({
     console.error("[Segment Error Boundary Caught]:", error);
   }, [error]);
 
+  // If this error is a Next.js navigation redirect, re-throw so the framework navigates normally
+  if (
+    error?.message === "NEXT_REDIRECT" ||
+    (typeof error?.digest === "string" && error.digest.startsWith("NEXT_REDIRECT"))
+  ) {
+    throw error;
+  }
+
   const requestId = error.digest || "PF-ERR-500";
 
   return (

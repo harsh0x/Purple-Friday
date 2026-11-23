@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import { useCart } from "@/hooks/useCart";
 import { ProductMockup } from "@/components/mockup/ProductMockup";
 import { formatINR } from "@/lib/utils";
-import { PricingCalculationResult } from "@/lib/pricing";
+import type { PricingCalculationResult } from "@/lib/pricing";
 
 export default function CartPage() {
   const { items, updateQty, removeItem, clearCart, couponCode, setCouponCode } = useCart();

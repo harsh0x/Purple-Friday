@@ -1,8 +1,21 @@
-import { revalidatePath, revalidateTag } from "next/cache";
 import crypto from "crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { writeAudit } from "@/lib/admin/audit";
+
+async function safeRevalidateTag(tag: string) {
+  try {
+    const { revalidateTag } = await import("next/cache");
+    revalidateTag(tag);
+  } catch {}
+}
+
+async function safeRevalidatePath(path: string) {
+  try {
+    const { revalidatePath } = await import("next/cache");
+    revalidatePath(path);
+  } catch {}
+}
 import {
   StorefrontCmsDocument,
   StorefrontCmsDocumentSchema,
@@ -241,9 +254,9 @@ export async function publishCms(
 
   // Next.js cache revalidation
   try {
-    revalidateTag("cms");
-    revalidateTag("cms-content");
-    revalidatePath("/");
+    safeRevalidateTag("cms");
+    safeRevalidateTag("cms-content");
+    safeRevalidatePath("/");
   } catch {
     // Ignore in non-request test contexts
   }

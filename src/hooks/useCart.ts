@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { CartItemInput } from "@/lib/pricing";
+import type { CartItemInput } from "@/lib/pricing";
 
 export interface CartItem extends CartItemInput {
   name?: string;

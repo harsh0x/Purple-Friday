@@ -14,7 +14,7 @@ import {
 import { useWishlist } from "@/hooks/useWishlist";
 import { useCart } from "@/hooks/useCart";
 import { ProductMockup } from "../mockup/ProductMockup";
-import { CATALOG_FALLBACK } from "@/lib/pricing";
+import { CATALOG_FALLBACK } from "@/lib/pricing-client";
 import { formatINR } from "@/lib/utils";
 import { toast } from "sonner";
 

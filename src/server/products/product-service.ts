@@ -8,7 +8,13 @@ import { CATALOGUE_SEED_PRODUCTS } from "./catalogue-seed-data";
 import { writeAudit } from "@/lib/admin/audit";
 import { validatePriceTiers, PriceTierInput } from "@/lib/admin/tier-validator";
 import { toPaise } from "@/server/pricing/engine";
-import { revalidateTag } from "next/cache";
+
+async function safeRevalidateTag(tag: string) {
+  try {
+    const { revalidateTag } = await import("next/cache");
+    revalidateTag(tag);
+  } catch {}
+}
 
 export interface MasterColor {
   id: string;
@@ -592,8 +598,8 @@ function calculateMargin(unitPricePaise: number, costPricePaise: number): number
       IN_MEMORY_PRODUCTS.set(targetSlug, updatedProduct);
 
       try {
-        revalidateTag("catalogue");
-        revalidateTag("products");
+        safeRevalidateTag("catalogue");
+        safeRevalidateTag("products");
       } catch { }
 
       await writeAudit({
@@ -652,8 +658,8 @@ function calculateMargin(unitPricePaise: number, costPricePaise: number): number
       IN_MEMORY_PRODUCTS.set(copySlug, copied);
 
       try {
-        revalidateTag("catalogue");
-        revalidateTag("products");
+        safeRevalidateTag("catalogue");
+        safeRevalidateTag("products");
       } catch { }
 
       await writeAudit({
@@ -695,8 +701,8 @@ function calculateMargin(unitPricePaise: number, costPricePaise: number): number
       }
 
       try {
-        revalidateTag("catalogue");
-        revalidateTag("products");
+        safeRevalidateTag("catalogue");
+        safeRevalidateTag("products");
       } catch { }
 
       await writeAudit({
@@ -761,8 +767,8 @@ function calculateMargin(unitPricePaise: number, costPricePaise: number): number
           IN_MEMORY_PRODUCTS.set(product.slug, product);
 
           try {
-            revalidateTag("catalogue");
-            revalidateTag("products");
+            safeRevalidateTag("catalogue");
+            safeRevalidateTag("products");
           } catch { }
 
           await writeAudit({
@@ -786,8 +792,8 @@ function calculateMargin(unitPricePaise: number, costPricePaise: number): number
         IN_MEMORY_PRODUCTS.delete(product.slug);
 
         try {
-          revalidateTag("catalogue");
-          revalidateTag("products");
+          safeRevalidateTag("catalogue");
+          safeRevalidateTag("products");
         } catch { }
 
         await writeAudit({

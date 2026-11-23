@@ -16,11 +16,11 @@ import {
   Check,
   Camera,
 } from "lucide-react";
-import { CatalogueProduct } from "@/lib/catalogue";
+import type { CatalogueProduct } from "@/lib/catalogue";
 import { DpiCalculationResult } from "@/lib/customizer/quality";
 import { ContrastRecommendation } from "@/lib/customizer/contrast";
 import { removeWhiteBackgroundFromImageUrl } from "@/lib/customizer/background";
-import { resolveTierPrice } from "@/lib/pricing";
+import { resolveTierPrice } from "@/lib/pricing-client";
 
 export interface CustomizerControlsProps {
   product: CatalogueProduct;

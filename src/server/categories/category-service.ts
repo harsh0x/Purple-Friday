@@ -1,6 +1,12 @@
 import prisma from "@/lib/prisma";
 import { writeAudit } from "@/lib/admin/audit";
-import { revalidateTag } from "next/cache";
+
+async function safeRevalidateTag(tag: string) {
+  try {
+    const { revalidateTag } = await import("next/cache");
+    revalidateTag(tag);
+  } catch {}
+}
 
 export interface CategoryData {
   id: string;
@@ -267,8 +273,8 @@ export async function saveCategory(
   }
 
   try {
-    revalidateTag("catalogue");
-    revalidateTag("categories");
+    safeRevalidateTag("catalogue");
+    safeRevalidateTag("categories");
   } catch {}
 
   await writeAudit({
@@ -332,8 +338,8 @@ export async function reorderCategory(
   CATEGORY_STORE.set(targetItem.slug, targetItem);
 
   try {
-    revalidateTag("catalogue");
-    revalidateTag("categories");
+    safeRevalidateTag("catalogue");
+    safeRevalidateTag("categories");
   } catch {}
 
   await writeAudit({
@@ -386,8 +392,8 @@ export async function deleteCategory(
   }
 
   try {
-    revalidateTag("catalogue");
-    revalidateTag("categories");
+    safeRevalidateTag("catalogue");
+    safeRevalidateTag("categories");
   } catch {}
 
   await writeAudit({

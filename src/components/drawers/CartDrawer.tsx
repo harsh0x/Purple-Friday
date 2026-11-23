@@ -8,7 +8,7 @@ import { Button } from "../ui/button";
 import { useCart } from "@/hooks/useCart";
 import { ProductMockup } from "../mockup/ProductMockup";
 import { formatINR } from "@/lib/utils";
-import { PricingCalculationResult } from "@/lib/pricing";
+import type { PricingCalculationResult } from "@/lib/pricing";
 import { toast } from "sonner";
 
 export function CartDrawer() {

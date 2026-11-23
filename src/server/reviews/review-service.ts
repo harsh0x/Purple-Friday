@@ -4,7 +4,13 @@ import { getReviewSettings } from "@/lib/admin/app-settings";
 import { createNotification } from "@/lib/admin/notifications";
 import { writeAudit } from "@/lib/admin/audit";
 import { IN_MEMORY_PRODUCTS } from "@/server/products/product-service";
-import { revalidateTag } from "next/cache";
+
+async function safeRevalidateTag(tag: string) {
+  try {
+    const { revalidateTag } = await import("next/cache");
+    revalidateTag(tag);
+  } catch {}
+}
 
 export interface StoredReview {
   id: string;
@@ -226,8 +232,8 @@ export async function triggerScheduledReviewRequests(): Promise<{ requestsSent: 
     }
 
     try {
-      revalidateTag("catalogue");
-      revalidateTag("products");
+      safeRevalidateTag("catalogue");
+      safeRevalidateTag("products");
     } catch {
       // Outside request context in tests
     }

@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { get as idbGet, set as idbSet } from "idb-keyval";
 import type Konva from "konva";
 
-import { CatalogueProduct } from "@/lib/catalogue";
+import type { CatalogueProduct } from "@/lib/catalogue";
 import { useCustomerLogo } from "@/hooks/useCustomerLogo";
 import { useCart } from "@/hooks/useCart";
 import { getPrintAreaForTemplate } from "@/lib/customizer/print-areas";
@@ -19,7 +19,7 @@ import {
   recommendContrastingProductColors,
 } from "@/lib/customizer/contrast";
 import { HistoryManager } from "@/lib/customizer/history";
-import { resolveTierPrice } from "@/lib/pricing";
+import { resolveTierPrice } from "@/lib/pricing-client";
 import { CustomizerCanvas } from "./CustomizerCanvas";
 import { CustomizerControls } from "./CustomizerControls";
 import { LetOurTeamDesignModal } from "@/components/product/LetOurTeamDesignModal";

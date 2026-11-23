@@ -43,7 +43,7 @@ interface AdminShellClientProps {
         </div>
 
         {/* Floating rounded liquid glass sidebar */}
-        <div className="relative z-10 shrink-0">
+        <div className="relative z-40 md:z-20 shrink-0">
           <AdminSidebar
             userRole={userRole}
             isOpenMobile={mobileDrawerOpen}
@@ -62,7 +62,7 @@ interface AdminShellClientProps {
 
           {/* Content surface: Adapts to Light (Warm Paper) or Dark (Obsidian / Slate) */}
           <main
-            className={`flex-1 m-4 p-5 sm:p-8 rounded-3xl border shadow-xl overflow-y-auto min-h-[calc(100vh-120px)] transition-colors duration-200 ${
+            className={`flex-1 m-2 sm:m-4 p-4 sm:p-8 rounded-3xl border shadow-xl overflow-y-auto min-h-[calc(100vh-120px)] transition-colors duration-200 ${
               isDark
                 ? "bg-[#13111C] border-[#2A253B] text-[#F4F3F8]"
                 : "bg-[#F5F0E8] border-[#15101F]/10 text-[#15101F]"

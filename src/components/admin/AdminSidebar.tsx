@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ADMIN_NAVIGATION } from "@/lib/admin/navigation";
@@ -19,6 +20,23 @@ export function AdminSidebar({
 }: AdminSidebarProps) {
   const pathname = usePathname();
   const { transparentSidebar } = useAdminTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Lock body scroll when mobile drawer is open to prevent background bleed-through
+  useEffect(() => {
+    if (isOpenMobile) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpenMobile]);
 
   const sidebarContent = (
       <div className="flex flex-col h-full justify-between overflow-hidden">
@@ -117,31 +135,42 @@ export function AdminSidebar({
       </div>
       );
 
-      return (
-      <>
-        {/* Desktop Floating Rounded Sidebar - 100dvh with single scrolling nav */}
-        <aside
-          className={`hidden md:flex flex-col w-64 lg:w-72 shrink-0 m-4 p-5 rounded-3xl transition-all duration-300 sticky top-4 h-[calc(100vh-2rem)] max-h-[calc(100dvh-2rem)] overflow-hidden z-30 text-white ${transparentSidebar ? "admin-sidebar-liquid-glass" : "admin-sidebar-solid"
-            }`}
-        >
-          {sidebarContent}
-        </aside>
+  const mobileDrawer =
+    isOpenMobile && mounted
+      ? createPortal(
+          <div
+            className="fixed inset-0 z-[9999] md:hidden bg-[#0F0D15]/80 backdrop-blur-md animate-in fade-in duration-200"
+            onClick={onCloseMobile}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation sidebar"
+          >
+            <div
+              className={`fixed inset-y-0 left-0 z-[10000] w-72 max-w-[85vw] h-[100dvh] p-6 shadow-2xl overflow-hidden animate-in slide-in-from-left duration-200 text-white ${
+                transparentSidebar ? "admin-sidebar-liquid-glass" : "admin-sidebar-solid"
+              }`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {sidebarContent}
+            </div>
+          </div>,
+          document.body
+        )
+      : null;
 
-            {/* Mobile / Tablet Drawer */}
-            {isOpenMobile && (
-              <div
-                className="fixed inset-0 z-50 md:hidden bg-[#0F0D15]/80 backdrop-blur-sm"
-                  onClick={onCloseMobile}
-                >
-                  <div
-                    className={`fixed inset-y-0 left-0 w-72 max-w-[85vw] h-[100dvh] p-6 shadow-2xl overflow-hidden animate-in slide-in-from-left duration-200 text-white ${transparentSidebar ? "admin-sidebar-liquid-glass" : "admin-sidebar-solid"
-                      }`}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                {sidebarContent}
-              </div>
-        </div>
-      )}
+  return (
+    <>
+      {/* Desktop Floating Rounded Sidebar - 100dvh with single scrolling nav */}
+      <aside
+        className={`hidden md:flex flex-col w-64 lg:w-72 shrink-0 m-4 p-5 rounded-3xl transition-all duration-300 sticky top-4 h-[calc(100vh-2rem)] max-h-[calc(100dvh-2rem)] overflow-hidden z-30 text-white ${
+          transparentSidebar ? "admin-sidebar-liquid-glass" : "admin-sidebar-solid"
+        }`}
+      >
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile / Tablet Drawer Portal */}
+      {mobileDrawer}
     </>
   );
 }

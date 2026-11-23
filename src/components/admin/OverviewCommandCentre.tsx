@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowUpRight,
@@ -21,17 +21,63 @@ interface Props {
 export function OverviewCommandCentre({ initialData }: Props) {
   const [data] = useState<OverviewDashboardData>(initialData);
   const [timeRange, setTimeRange] = useState<"7D" | "30D" | "90D">("30D");
+  const [activeTooltipIdx, setActiveTooltipIdx] = useState<number | null>(null);
+  const chartScrollRef = useRef<HTMLDivElement>(null);
   const { theme } = useAdminTheme();
   const isDark = theme === "dark";
 
+  const is7D = timeRange === "7D";
+  const is30D = timeRange === "30D";
+  const is90D = timeRange === "90D";
+
   const currentSeries =
-    timeRange === "7D"
+    is7D
       ? data.timeSeries.days7
-      : timeRange === "30D"
+      : is30D
         ? data.timeSeries.days30
         : data.timeSeries.days90;
 
   const maxVal = Math.max(...currentSeries.netRevenue, 100);
+
+  // Automatically scroll timeline to the latest date (far right) when time range changes
+  useEffect(() => {
+    setActiveTooltipIdx(null);
+    if (chartScrollRef.current) {
+      chartScrollRef.current.scrollTo({
+        left: chartScrollRef.current.scrollWidth,
+        behavior: "smooth",
+      });
+    }
+  }, [timeRange]);
+
+  const getLabelInfo = (dateStr: string, idx: number, total: number) => {
+    const parts = dateStr.trim().split(" ");
+    const day = parts[0] || "";
+    const month = parts[1] || "";
+
+    if (total <= 7) {
+      return { show: true, text: day };
+    }
+
+    if (total <= 30) {
+      if (day === "1") {
+        return { show: true, text: `1 ${month}`.trim() };
+      }
+      if (idx === 0 || idx === total - 1 || idx % 4 === 0) {
+        return { show: true, text: day };
+      }
+      return { show: false, text: "" };
+    }
+
+    // 90 Days
+    if (day === "1") {
+      return { show: true, text: `1 ${month}`.trim() };
+    }
+    if (idx === 0 || idx === total - 1 || idx % 7 === 0) {
+      return { show: true, text: day };
+    }
+    return { show: false, text: "" };
+  };
 
   const tileIcons: Record<string, React.ReactNode> = {
     orders_today: <ShoppingBag className="w-5 h-5 text-[#6A2CFF] dark:text-[#CDB8FF]" />,
@@ -104,33 +150,38 @@ export function OverviewCommandCentre({ initialData }: Props) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Revenue Chart with 7, 30, 90 day controls */}
         <div
-          className={`lg:col-span-2 rounded-3xl p-6 sm:p-7 border shadow-sm flex flex-col justify-between transition-colors ${isDark ? "bg-[#1A1726] border-[#2A253B]" : "bg-white border-[#15101F]/10"
-            }`}
+          className={`lg:col-span-2 rounded-3xl p-6 sm:p-7 border shadow-sm flex flex-col justify-between transition-colors overflow-hidden ${
+            isDark ? "bg-[#1A1726] border-[#2A253B]" : "bg-white border-[#15101F]/10"
+          }`}
         >
           <div
-            className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b ${isDark ? "border-[#2A253B]" : "border-[#15101F]/10"
-              }`}
+            className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b ${
+              isDark ? "border-[#2A253B]" : "border-[#15101F]/10"
+            }`}
           >
             <div>
               <div className="flex items-center gap-2">
                 <h2
-                  className={`font-sans font-bold text-lg tracking-tight ${isDark ? "text-[#F4F3F8]" : "text-[#15101F]"
-                    }`}
+                  className={`font-sans font-bold text-lg tracking-tight ${
+                    isDark ? "text-[#F4F3F8]" : "text-[#15101F]"
+                  }`}
                 >
                   Net Revenue
                 </h2>
                 <span
-                  className={`px-2 py-0.5 rounded-full text-[11px] font-sans font-semibold ${isDark
-                    ? "bg-[#7C3AED]/20 text-[#C4B5FD] border border-[#7C3AED]/30"
-                    : "bg-[#6A2CFF]/10 text-[#6A2CFF]"
-                    }`}
+                  className={`px-2 py-0.5 rounded-full text-[11px] font-sans font-semibold ${
+                    isDark
+                      ? "bg-[#7C3AED]/20 text-[#C4B5FD] border border-[#7C3AED]/30"
+                      : "bg-[#6A2CFF]/10 text-[#6A2CFF]"
+                  }`}
                 >
                   Excl. GST
                 </span>
               </div>
               <p
-                className={`text-xs font-sans mt-0.5 ${isDark ? "text-[#9E98B3]" : "text-[#15101F]/65"
-                  }`}
+                className={`text-xs font-sans mt-0.5 ${
+                  isDark ? "text-[#9E98B3]" : "text-[#15101F]/65"
+                }`}
               >
                 Daily realized revenue across all confirmed orders
               </p>
@@ -138,21 +189,23 @@ export function OverviewCommandCentre({ initialData }: Props) {
 
             {/* Segmented Time Control */}
             <div
-              className={`inline-flex items-center p-1 rounded-2xl border text-xs font-sans shrink-0 ${isDark ? "bg-[#13111C] border-[#2A253B]" : "bg-[#F5F0E8] border-[#15101F]/10"
-                }`}
+              className={`inline-flex items-center p-1 rounded-2xl border text-xs font-sans shrink-0 ${
+                isDark ? "bg-[#13111C] border-[#2A253B]" : "bg-[#F5F0E8] border-[#15101F]/10"
+              }`}
             >
               {(["7D", "30D", "90D"] as const).map((range) => (
                 <button
                   key={range}
                   onClick={() => setTimeRange(range)}
-                  className={`px-3 py-1.5 rounded-xl font-medium transition-all ${timeRange === range
-                    ? isDark
-                      ? "bg-[#7C3AED] text-white shadow-sm font-semibold"
-                      : "bg-[#15101F] text-white shadow-sm font-semibold"
-                    : isDark
-                      ? "text-[#9E98B3] hover:text-[#F4F3F8]"
-                      : "text-[#15101F]/60 hover:text-[#15101F]"
-                    }`}
+                  className={`px-3 py-1.5 rounded-xl font-medium transition-all ${
+                    timeRange === range
+                      ? isDark
+                        ? "bg-[#7C3AED] text-white shadow-sm font-semibold"
+                        : "bg-[#15101F] text-white shadow-sm font-semibold"
+                      : isDark
+                        ? "text-[#9E98B3] hover:text-[#F4F3F8]"
+                        : "text-[#15101F]/60 hover:text-[#15101F]"
+                  }`}
                 >
                   {range === "7D" ? "7 days" : range === "30D" ? "30 days" : "90 days"}
                 </button>
@@ -160,53 +213,109 @@ export function OverviewCommandCentre({ initialData }: Props) {
             </div>
           </div>
 
-          {/* SVG Bar Chart Visualization */}
-          <div className="my-6 min-h-[200px] flex items-end justify-between gap-2 px-2">
-            {currentSeries.dates.map((date: string, idx: number) => {
-              const rev = currentSeries.netRevenue[idx] || 0;
-              const heightPercent = Math.min(100, Math.max(8, Math.round((rev / maxVal) * 100)));
+          {/* Scrollable Bar Chart Visualization */}
+          <div className="my-6">
+            <div
+              ref={chartScrollRef}
+              className="overflow-x-auto pb-3 pt-2 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent -mx-2 px-2"
+            >
+              <div
+                className={`min-h-[220px] flex items-end justify-between ${
+                  is7D
+                    ? "w-full gap-2 sm:gap-4 px-2"
+                    : is30D
+                      ? "min-w-[620px] lg:min-w-0 w-full gap-1.5 sm:gap-2 px-1"
+                      : "min-w-[960px] lg:min-w-[1080px] w-full gap-1 px-1"
+                }`}
+              >
+                {currentSeries.dates.map((date: string, idx: number) => {
+                  const rev = currentSeries.netRevenue[idx] || 0;
+                  const heightPercent = Math.min(100, Math.max(8, Math.round((rev / maxVal) * 100)));
+                  const labelInfo = getLabelInfo(date, idx, currentSeries.dates.length);
+                  const isTooltipOpen = activeTooltipIdx === idx;
 
-              return (
-                <div key={idx} className="flex-1 flex flex-col items-center gap-2 group relative">
-                  {/* Tooltip */}
-                  <div
-                    className={`opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full mb-2 z-20 pointer-events-none text-xs font-sans rounded-xl p-2.5 shadow-xl whitespace-nowrap border ${isDark
-                      ? "bg-[#13111C] border-[#2A253B] text-[#F4F3F8]"
-                      : "bg-[#15101F] border-transparent text-white"
-                      }`}
-                  >
-                    <div className="font-bold">{date}</div>
-                    <div className="text-emerald-400 font-medium">₹{rev.toLocaleString("en-IN")}</div>
-                  </div>
+                  const tooltipPosClass =
+                    idx < 3
+                      ? "left-0"
+                      : idx > currentSeries.dates.length - 4
+                        ? "right-0"
+                        : "left-1/2 -translate-x-1/2";
 
-                  {/* Single Revenue Bar */}
-                  <div className="w-full flex items-end justify-center h-44">
+                  return (
                     <div
-                      className={`w-full max-w-[24px] rounded-t-md transition-all duration-500 hover:brightness-110 ${isDark ? "bg-[#7C3AED]" : "bg-[#6A2CFF]"
+                      key={idx}
+                      onClick={() => setActiveTooltipIdx(isTooltipOpen ? null : idx)}
+                      onMouseEnter={() => setActiveTooltipIdx(idx)}
+                      onMouseLeave={() => setActiveTooltipIdx(null)}
+                      className="flex-1 flex flex-col items-center gap-1.5 group relative cursor-pointer"
+                    >
+                      {/* Tooltip */}
+                      <div
+                        className={`transition-all duration-150 absolute bottom-full mb-2 z-30 pointer-events-none text-xs font-sans rounded-xl p-2.5 shadow-xl whitespace-nowrap border ${tooltipPosClass} ${
+                          isTooltipOpen
+                            ? "opacity-100 scale-100 visible"
+                            : "opacity-0 scale-95 invisible group-hover:opacity-100 group-hover:scale-100 group-hover:visible"
+                        } ${
+                          isDark
+                            ? "bg-[#13111C] border-[#2A253B] text-[#F4F3F8]"
+                            : "bg-[#15101F] border-transparent text-white"
                         }`}
-                      style={{ height: `${heightPercent}%` }}
-                    />
-                  </div>
-                  <span
-                    className={`text-[11px] font-sans truncate max-w-[38px] ${isDark ? "text-[#736C8D]" : "text-[#15101F]/60"
-                      }`}
-                  >
-                    {date.split(" ")[0]}
-                  </span>
-                </div>
-              );
-            })}
+                      >
+                        <div className="font-bold">{date}</div>
+                        <div className="text-emerald-400 font-medium">₹{rev.toLocaleString("en-IN")}</div>
+                      </div>
+
+                      {/* Single Revenue Bar */}
+                      <div className="w-full flex items-end justify-center h-44">
+                        <div
+                          className={`w-full rounded-t-md transition-all duration-300 hover:brightness-125 ${
+                            isDark ? "bg-[#7C3AED]" : "bg-[#6A2CFF]"
+                          } ${isTooltipOpen ? "ring-2 ring-white/50 brightness-125" : ""} ${
+                            is7D
+                              ? "max-w-[32px] min-w-[18px]"
+                              : is30D
+                                ? "max-w-[18px] min-w-[10px]"
+                                : "max-w-[12px] min-w-[6px]"
+                          }`}
+                          style={{ height: `${heightPercent}%` }}
+                        />
+                      </div>
+
+                      <span
+                        className={`text-[10px] sm:text-[11px] font-sans truncate ${
+                          labelInfo.show
+                            ? isDark
+                              ? "text-[#736C8D] font-medium"
+                              : "text-[#15101F]/70 font-medium"
+                            : "invisible select-none"
+                        }`}
+                      >
+                        {labelInfo.show ? labelInfo.text : "·"}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
           <div
-            className={`pt-4 border-t flex flex-wrap items-center justify-between gap-3 text-xs font-sans ${isDark ? "border-[#2A253B] text-[#9E98B3]" : "border-[#15101F]/10 text-[#15101F]/70"
-              }`}
+            className={`pt-4 border-t flex flex-wrap items-center justify-between gap-3 text-xs font-sans ${
+              isDark ? "border-[#2A253B] text-[#9E98B3]" : "border-[#15101F]/10 text-[#15101F]/70"
+            }`}
           >
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-[#6A2CFF]" />
               <span>Net Revenue (excl. GST)</span>
             </div>
-            <span>Daily totals from real store orders</span>
+            <div className="flex items-center gap-3">
+              {!is7D && (
+                <span className="text-[11px] text-[#9E98B3] flex items-center gap-1 font-mono">
+                  ↔ Scroll or swipe to view full timeline
+                </span>
+              )}
+              <span>Daily totals from real store orders</span>
+            </div>
           </div>
         </div>
 

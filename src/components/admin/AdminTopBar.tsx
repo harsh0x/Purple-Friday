@@ -257,13 +257,13 @@ async function markAllRead() {
 
 return (
   <>
-    <header className="m-4 mb-0 px-4 sm:px-6 py-3.5 bg-[#15101F]/80 backdrop-blur-md border border-white/10 rounded-3xl shadow-lg flex items-center justify-between gap-4 text-white">
+    <header className="m-2 sm:m-4 mb-0 px-3.5 sm:px-6 py-2.5 sm:py-3.5 bg-[#15101F]/80 backdrop-blur-md border border-white/10 rounded-3xl shadow-lg flex items-center justify-between gap-2.5 sm:gap-4 text-white">
       {/* Left: Mobile trigger & Global Search */}
-      <div className="flex items-center gap-3 flex-1 max-w-xl">
+      <div className="flex items-center gap-2 sm:gap-3 flex-1 max-w-xl min-w-0">
         {onOpenMobileMenu && (
           <button
             onClick={onOpenMobileMenu}
-            className="md:hidden p-2 rounded-2xl bg-white/5 border border-white/10 text-white/70 hover:text-white"
+            className="md:hidden p-2 rounded-2xl bg-white/5 border border-white/10 text-white/70 hover:text-white shrink-0"
             aria-label="Open navigation menu"
           >
             <Menu className="w-5 h-5" />
@@ -273,13 +273,16 @@ return (
         {/* Wide search trigger */}
         <button
           onClick={() => setCommandPaletteOpen(true)}
-          className="w-full flex items-center justify-between px-4 py-2.5 rounded-2xl bg-[#1C1628] border border-white/10 text-white/50 hover:text-white hover:border-white/20 transition-all text-xs font-sans group shadow-inner"
+          className="w-full flex items-center justify-between px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl bg-[#1C1628] border border-white/10 text-white/50 hover:text-white hover:border-white/20 transition-all text-xs font-sans group shadow-inner min-w-0"
         >
-          <div className="flex items-center gap-2.5">
-            <Search className="w-4 h-4 text-[#CDB8FF] group-hover:text-white transition-colors" />
-            <span>Search people, orders, catalogue, audit...</span>
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+            <Search className="w-4 h-4 text-[#CDB8FF] group-hover:text-white transition-colors shrink-0" />
+            <span className="truncate text-left">
+              <span className="sm:hidden">Search admin...</span>
+              <span className="hidden sm:inline">Search people, orders, catalogue, audit...</span>
+            </span>
           </div>
-          <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 rounded-lg bg-white/10 text-[10px] font-mono text-white/60">
+          <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 rounded-lg bg-white/10 text-[10px] font-mono text-white/60 shrink-0">
             Ctrl K
           </kbd>
         </button>
